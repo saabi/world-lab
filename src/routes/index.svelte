@@ -1,5 +1,5 @@
 <script>
-	import Subdivide from 'svelte-subdivide';
+	import Subdivide from '@sveltejs/svelte-subdivide';
 	import WorkSpace from '../components/WorkSpace.svelte'
 	import ColorSpace from '../components/ColorSpace.svelte';
 	import Spectrum from '../components/Spectrum.svelte';
