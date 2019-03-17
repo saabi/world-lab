@@ -56,8 +56,14 @@ div {
     position: absolute;
     top: 0;
     left: 0;
-    background: gray;
     color: white;
+    overflow: hidden;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 24px 24px 0 0;
+    border-color: #007bff transparent transparent transparent;
+    cursor: pointer;
 }
 ul {
     display: none;
@@ -66,11 +72,20 @@ ul {
     left: 0px;
     background: gray;
     color: white;
+    margin: 0;
+    padding: 0;
 }
 .menuopener:checked ~ ul {
     display: block;
 }
+input[type='radio'] {
+    display: none;
+}
 li {
     display: block;
+    margin: 0;
+}
+li label {
+        cursor: pointer;
 }
 </style>
