@@ -8,9 +8,8 @@
 
     import planetVertexShader from '../shaders/planet.vert';
     import planetFragmentShader from '../shaders/planet.frag';
-//    import floorVertexShader from '../shaders/floor.vert';
-//    import floorFragmentShader from '../shaders/floor.frag';
-//    import gridFragmentShader from '../shaders/grid.frag';
+
+    import { planet_configs } from '../planet-editor/sample-planets';
 
     export let radius = 200;
     export let top = 100;
@@ -21,6 +20,13 @@
     let update;
     let run = true;
     let canvasId;
+
+    let selection='normie';
+    $: setConfig(selection);
+
+    function setConfig(s) {
+        config = planet_configs[s];
+    }
 
     let wireframe = false;
     let render_water = true;
@@ -172,6 +178,17 @@ ul > li > header {
 <div>
     <ul>
         <li><header>Planet</header></li>
+        <li>
+            <label>Radius</label>
+            <select bind:value={selection} >
+                {#each Object.keys(planet_configs) as planetName}
+                    <option value={planetName}>
+                        {planetName}
+                    </option>
+                {/each}
+            </select>
+            <data>{selection}</data>
+        </li>
         <li>
             <label>Radius</label>
             <input type="range" min="0" max="3000" step="1" bind:value={config.radius} />
