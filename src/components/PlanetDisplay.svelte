@@ -27,6 +27,7 @@
 
     let angle = Math.PI / 2;
     let wireframe = false;
+    let multisampling = true;
     let illumination = true;
     let render_water = true;
     let config = {
@@ -103,7 +104,7 @@
             polar_scale: {value: 0.3},
             polar_amplitude: {value: 8.5},
             illumination: {value: 1.0},
-
+            multisampling: {value: 1.0},
         };
         material.extensions.derivatives = true;
         material.uniforms.inverseModelMatrix = {value:  new THREE.Matrix4()};
@@ -119,6 +120,7 @@
             material.wireframe = wireframe;
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
             material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
+            material.uniforms.multisampling.value = multisampling ? 1.0 : 0.0;
             material.uniforms.time.value = time/1000;
             material.uniforms.angle.value = angle;
             material.uniforms.inverseModelMatrix.value.getInverse(mesh.matrixWorld)
@@ -231,6 +233,10 @@ ul > li > header {
         <li>
             <label>WireFrame</label>
             <input type="checkbox" bind:checked={wireframe} />
+        </li>
+        <li>
+            <label>Multisampling></label>
+            <input type="checkbox" bind:checked={multisampling} />
         </li>
         <li>
             <label>Illumination</label>

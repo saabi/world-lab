@@ -5,6 +5,7 @@ uniform mat4 inverseModelMatrix;
 
 uniform float angle;
 uniform float radius;
+uniform float multisampling;
 
 uniform float voronoi_scale;
 uniform float voronoi_amplitude;
@@ -210,8 +211,8 @@ void main() {
   Result acc = sample2(p2, wl, total_amplitude, lookAt);
   vec3 r1 = acc.op;
 
-  int i=0;
-  if (SAMPLES > 0) {
+  float count = 1.0;
+  if (multisampling > 0.0 && SAMPLES > 0) {
     vec3 samples[SAMPLES==0?1:SAMPLES];
     for (int i = 0; i < SAMPLES; i++) {
       float a = 3.1415*2.0/(SAMPLES==0?0.000001:float(SAMPLES))*float(i);
@@ -225,9 +226,9 @@ void main() {
       acc.erosion_value += r.erosion_value;
       samples[i] = normalize(r.op-r1);
     }
+    count += float(SAMPLES);
   }
 
-  float count = float(1+SAMPLES);
   acc.vor /= count;
   acc.height /= count;
   acc.distortion /= count;
