@@ -65,7 +65,7 @@ float gear(vec2 domain, float phase, vec2 pos){
 
 float geartile(vec2 domain, float phase){
 	domain = fract(domain);
-	return 
+	return (
 		gear(domain, -phase, vec2(-0.25,0.25)) + 
 		gear(domain, phase, vec2(-0.25,0.75)) + 
 		gear(domain, phase, vec2(1.25,0.25)) + 
@@ -77,7 +77,8 @@ float geartile(vec2 domain, float phase){
 		gear(domain, phase, vec2(0.25,0.25)) + 
 		gear(domain, -phase, vec2(0.25,sin(time - 3.14))) + 
 		gear(domain, -phase, vec2(0.34275 ,0.25)) + 
-		gear(domain, phase, vec2(0.45,0.75));		
+		gear(domain, phase, vec2(0.45,0.75))
+	);
 }
 void main(void)
 {

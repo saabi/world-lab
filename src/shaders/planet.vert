@@ -162,8 +162,9 @@ void main() {
   float thf;
   if (th > 0.0) 
     thf = total_amplitude-wl;
-  else
+  else {
     thf = wl-radius;
+  }
 
   th /= thf;
   th = pow(th, erosion);
@@ -174,8 +175,9 @@ void main() {
   if (render_water > 0.0) {
     p *= radius + max(height, wl);
   }
-  else
+  else {
     p *= radius + height;
+  }
 
   op = p;
 

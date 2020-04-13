@@ -12,10 +12,6 @@
 
     import { planet_configs } from '../planet-editor/sample-planets';
 
-    export let radius = 200;
-    export let top = 100;
-    export let bottom = 0;
-
     let camera;
     let scene;
     let update;
@@ -72,9 +68,7 @@
 
         scene = new THREE.Scene();
 
-        //const texture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/crate.gif');
-
-        // color-space
+        // planet
         const geometry = new THREE.PlaneGeometry(1, 1, 512, 256);
         const material = new THREE.ShaderMaterial({
             vertexShader: planetVertexShader, 
@@ -111,20 +105,6 @@
         material.extensions.derivatives = true;
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
-
-        /*
-        const floorGeometry = new THREE.CircleBufferGeometry( 5, 32 );
-        const floorMaterial = new THREE.ShaderMaterial({
-            vertexShader: floorVertexShader, 
-            fragmentShader: floorFragmentShader, 
-            side: THREE.DoubleSide,
-            transparent: true
-            });
-        floorMaterial.extensions.derivatives = true;
-        const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-        floorMesh.rotation.x = -90 * Math.PI / 180;
-        scene.add(floorMesh);
-        */
 
         let proportion = camera.position.z / config.radius;
         update = function () {
