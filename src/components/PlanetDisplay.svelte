@@ -32,9 +32,9 @@
     let render_water = true;
     let normals = false;
     let smoothShading = false;
-    const maxres = 32;
-    let resx = 1;
-    let resy = 2;
+    const maxres = 64;
+    let resx = 48;
+    let resy = 16;
     let patchres = 16;
     let config = {
         radius: 100,
