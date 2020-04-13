@@ -5,7 +5,10 @@ varying float distortion;
 varying float height;
 varying vec3 op;
 varying float erosion_value;
+varying vec3 norm;
+varying vec4 viewPosition;
 
+uniform float time;
 uniform float radius;
 uniform float voronoi_amplitude;
 uniform float voronoi_albedo;
@@ -194,12 +197,14 @@ void main() {
 	}
 
   if (illumination > 0.0) {
-    vec3 n = normalize( cross( dFdx( op ), dFdy( op ) ) );
-    vec3 lightDir = normalize(SUN_POS - op);
+    vec3 n = normalize( cross( dFdx( viewPosition.xyz ), dFdy( viewPosition.xyz ) ) );
+    //vec3 n = norm;
+    vec4 sp = viewMatrix * vec4(SUN_POS,1.0);
+    vec3 lightDir = normalize(sp.xyz - op);
     float diff = max(dot(n, lightDir), 0.0);
     col *= diff;
   }
 
 	gl_FragColor = vec4( col, 1.0 );
-	//gl_FragColor = vec4(0.0, h/total_amplitude+.5, 0.0, 1.0);
+	//gl_FragColor = vec4(norm, 1.0);
 }

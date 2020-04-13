@@ -1,3 +1,9 @@
+const int SAMPLES = 4;
+const vec2 ares = vec2(512.0,128.0);
+
+uniform mat4 inverseModelMatrix;
+
+uniform float angle;
 uniform float radius;
 
 uniform float voronoi_scale;
@@ -18,6 +24,8 @@ varying float detail;
 varying float height;
 varying vec3 op;
 varying float erosion_value;
+varying vec3 norm;
+varying vec4 viewPosition;
 
 vec3 hash( vec3 x ) {
   x = vec3( dot(x,vec3(127.1,311.7, 74.7)),
@@ -142,23 +150,24 @@ mat3 calcLookAtMatrix(vec3 origin, vec3 target, float roll) {
     return mat3(uu, vv, ww);
 }
 
-void main() {
-  vec3 center = (modelMatrix * vec4(vec3(0.0),1.0)).xyz;
-  float total_amplitude = voronoi_amplitude+detail_amplitude;
-  float wl = total_amplitude*(water_level - 0.5);
+struct Result {
+  float distortion;
+  vec3 vor;
+  float detail;
+  float height;
+  vec3 op;
+  float erosion_value;
+};
 
-  vec3 p = position + vec3(0.5,0.5,0.0);
-  float z = p.y*3.1415/2.;
-  p.x *= 3.1415 * 2.0;
+Result sample(vec3 p, const float wl, const float total_amplitude) {
+  Result r;
 
-  p = calcLookAtMatrix(center, cameraPosition, 0.0) * vec3(cos(p.x)*sin(z), sin(p.x)*sin(z), cos(z)) ;
+  r.distortion = fbm_4(p*voronoi_distortion_scale);
+  r.vor = voronoi(p*voronoi_scale + (r.distortion-0.5)*voronoi_distortion_amplitude);
+  r.detail = fbm_4(p*detail_scale);
+  r.height = (r.vor.x-0.5)*voronoi_amplitude +(r.detail-0.5)*detail_amplitude;
 
-  distortion = fbm_4(p*voronoi_distortion_scale);
-  vor = voronoi(p*voronoi_scale + (distortion-0.5)*voronoi_distortion_amplitude);
-  detail = fbm_4(p*detail_scale);
-  height = (vor.x-0.5)*voronoi_amplitude +(detail-0.5)*detail_amplitude;//+ (noise1(p*40.)-middle)/2.;
-
-  float th = height - wl;
+  float th = r.height - wl;
   float thf;
   if (th > 0.0) 
     thf = total_amplitude-wl;
@@ -168,20 +177,81 @@ void main() {
 
   th /= thf;
   th = pow(th, erosion);
-  erosion_value = th;
+  r.erosion_value = th;
   th *= thf;
-  height = wl + th;
+  r.height = wl + th;
 
   if (render_water > 0.0) {
-    p *= radius + max(height, wl);
+    p *= radius + max(r.height, wl);
   }
   else {
-    p *= radius + height;
+    p *= radius + r.height;
   }
 
-  op = p;
+  r.op = p;
+  return r;
+}
 
-  p += center;
+Result sample2(vec2 a, const float wl, const float total_amplitude, mat3 lookAt) {
+  vec3 pp = lookAt * vec3(cos(a.x)*sin(a.y), sin(a.x)*sin(a.y), cos(a.y));
+  return sample( pp,wl, total_amplitude);
+}
 
-  gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+void main() {
+  vec3 cam = (inverseModelMatrix * vec4(cameraPosition,1.0)).xyz;
+  mat3 lookAt = calcLookAtMatrix(vec3(0.0), cam, 0.0);
+
+  float total_amplitude = voronoi_amplitude+detail_amplitude;
+  float wl = total_amplitude*(water_level - 0.5);
+
+  vec3 p = position + vec3(0.5,0.5,0.0);
+  vec2 p2 = vec2(p.x * 3.1415 * 2.0, p.y*angle);
+
+  Result acc = sample2(p2, wl, total_amplitude, lookAt);
+  vec3 r1 = acc.op;
+
+  int i=0;
+  if (SAMPLES > 0) {
+    vec3 samples[SAMPLES==0?1:SAMPLES];
+    for (int i = 0; i < SAMPLES; i++) {
+      float a = 3.1415*2.0/(SAMPLES==0?0.000001:float(SAMPLES))*float(i);
+
+      Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*0.66, wl, total_amplitude, lookAt);
+      acc.vor += r.vor;
+      acc.height += r.height;
+      acc.distortion += r.distortion;
+      acc.detail += r.detail;
+      acc.op += r.op;
+      acc.erosion_value += r.erosion_value;
+      samples[i] = normalize(r.op-r1);
+    }
+  }
+
+  float count = float(1+SAMPLES);
+  acc.vor /= count;
+  acc.height /= count;
+  acc.distortion /= count;
+  acc.detail /= count;
+  acc.op /= count;
+  acc.erosion_value /= count;
+
+
+  vor = acc.vor;
+  height = acc.height;
+  distortion = acc.distortion;
+  detail = acc.detail;
+  op = acc.op;
+  erosion_value = acc.erosion_value;
+
+  /*norm = vec3(0.0);
+  norm += normalize(dot(samples[0],samples[1])); 
+  norm += normalize(dot(samples[1],samples[2])); 
+  norm += normalize(dot(samples[2],samples[3])); 
+  norm += normalize(dot(samples[3],samples[0])); 
+  norm /= 4.0;
+
+  norm = normalMatrix * (normalize(norm)*0.2 + normalize(op)*0.8);
+  */
+  viewPosition =  modelViewMatrix * vec4(op, 1.0);
+  gl_Position = projectionMatrix * viewPosition;
 }

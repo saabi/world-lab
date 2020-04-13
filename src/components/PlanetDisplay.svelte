@@ -25,6 +25,7 @@
         config = {...planet_configs[s]};
     }
 
+    let angle = Math.PI / 2;
     let wireframe = false;
     let illumination = true;
     let render_water = true;
@@ -77,6 +78,7 @@
         });
         material.uniforms = {
             time: { value: 1.0 },
+            angle: { value: Math.PI/2 },
             radius: { value: 100 },
             variation: {value: 10},
             voronoi_scale: {value: 1},
@@ -101,13 +103,14 @@
             polar_scale: {value: 0.3},
             polar_amplitude: {value: 8.5},
             illumination: {value: 1.0},
+
         };
         material.extensions.derivatives = true;
+        material.uniforms.inverseModelMatrix = {value:  new THREE.Matrix4()};
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
 
-        let proportion = camera.position.z / config.radius;
-        update = function () {
+        update = function (time) {
             controls.update();
             for (let k in config) {
                 material.uniforms[k].value = config[k];
@@ -116,8 +119,12 @@
             material.wireframe = wireframe;
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
             material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
-            //camera.position.z = config.radius * proportion;
+            material.uniforms.time.value = time/1000;
+            material.uniforms.angle.value = angle;
+            material.uniforms.inverseModelMatrix.value.getInverse(mesh.matrixWorld)
             
+            mesh.rotation.y = time/100000;
+            mesh.matrixWorldNeedsUpdate = true;
         }
     });
 
@@ -220,6 +227,7 @@ ul > li > header {
         <li><Range label="Amplitude" min="0" max="20" step="0.1" bind:value={config.polar_amplitude} /></li>
 
         <li><header>Rendering</header></li>
+        <li><Range label="Angle" min="0" max={Math.PI} step="0.001" bind:value={angle} /></li>
         <li>
             <label>WireFrame</label>
             <input type="checkbox" bind:checked={wireframe} />
