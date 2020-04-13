@@ -32,6 +32,10 @@
     let render_water = true;
     let normals = false;
     let smoothShading = false;
+    const maxres = 32;
+    let resx = 1;
+    let resy = 2;
+    let patchres = 16;
     let config = {
         radius: 100,
         voronoi_scale: 1,
@@ -73,11 +77,18 @@
         scene = new THREE.Scene();
 
         // planet
-        const geometry = new THREE.PlaneGeometry(1, 1, 512, 256);
+        const geometry = new THREE.InstancedBufferGeometry();
+        geometry.fromGeometry( new THREE.PlaneGeometry(1, 1, patchres, patchres) );
+        geometry.maxInstancedCount = maxres*maxres;
+
+        let indexes = new THREE.InstancedBufferAttribute(new Float32Array(maxres*maxres), 1, false, 1);
+        for (let i=0; i<indexes.count; i++) {
+            indexes.setX(i, i);
+        }
+        geometry.setAttribute('aIdx', indexes);
         const material = new THREE.ShaderMaterial({
             vertexShader: planetVertexShader, 
             fragmentShader: planetFragmentShader,
-            side: THREE.DoubleSide
         });
         material.uniforms = {
             time: { value: 1.0 },
@@ -109,6 +120,7 @@
             multisampling: {value: 1.0},
             normals: {value: 0.0},
             smoothShading: {value: 1.0},
+            ares: {value:[resx,resy,patchres]},
         };
         material.extensions.derivatives = true;
         material.uniforms.inverseModelMatrix = {value:  new THREE.Matrix4()};
@@ -121,6 +133,8 @@
                 material.uniforms[k].value = config[k];
             }
 
+            geometry.maxInstancedCount = resx*resy;
+
             material.wireframe = wireframe;
             material.uniforms.render_water.value = render_water ? 1.0 : 0.0;
             material.uniforms.illumination.value = illumination ? 1.0 : 0.0;
@@ -130,6 +144,7 @@
             material.uniforms.time.value = time/1000;
             material.uniforms.angle.value = angle;
             material.uniforms.inverseModelMatrix.value.getInverse(mesh.matrixWorld)
+            material.uniforms.ares.value = [resx,resy, patchres];
             
             mesh.rotation.y = time/100000;
             mesh.matrixWorldNeedsUpdate = true;
@@ -236,6 +251,8 @@ ul > li > header {
 
         <li><header>Rendering</header></li>
         <li><Range label="Angle" min="0" max={Math.PI} step="0.001" bind:value={angle} /></li>
+        <li><Range label="Res X" min="1" max={maxres} step="1" bind:value={resx} /></li>
+        <li><Range label="Res Y" min="1" max={maxres} step="1" bind:value={resy} /></li>
         <li>
             <label>WireFrame</label>
             <input type="checkbox" bind:checked={wireframe} />

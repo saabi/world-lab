@@ -1,6 +1,8 @@
 #define PI 3.141592653589793
 const int SAMPLES = 4;
-const vec2 ares = vec2(512.0,256.0);
+uniform vec3 ares;
+
+attribute float aIdx;
 
 uniform mat4 inverseModelMatrix;
 
@@ -208,7 +210,10 @@ void main() {
   float wl = total_amplitude*(water_level - 0.5);
 
   vec3 p = position + vec3(0.5,0.5,0.0);
-  vec2 p2 = vec2(p.x * PI * 2.0, p.y*angle);
+  p /= vec3(ares.xy,1.0);
+  float y = floor(aIdx / ares.x)/ares.y;
+  float x = mod(aIdx, ares.x)/ares.x;
+  vec2 p2 = vec2((x+p.x) * PI * 2.0 , (y+p.y)*angle);
 
   Result acc = sample2(p2, wl, total_amplitude, lookAt);
   vec3 r1 = acc.op;
@@ -220,7 +225,7 @@ void main() {
     for (int i = 0; i < SAMPLES; i++) {
       float a = PI*2.0/s*float(i)+PI/s;
 
-      Result r = sample2(p2 + vec2(sin(a)/ares.x, cos(a)/ares.y*angle)*1.414, wl, total_amplitude, lookAt);
+      Result r = sample2(p2 + vec2(sin(a)/(ares.x*ares.z), cos(a)/(ares.y*ares.z)*angle)*1.414, wl, total_amplitude, lookAt);
       acc.vor += r.vor;
       acc.height += r.height;
       acc.distortion += r.distortion;
