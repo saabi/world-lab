@@ -157,7 +157,7 @@ export function scheduleOrbitPatches(
 	}
 	orbitSpacingHint = spacing;
 	const candidateCount = candidates.length;
-	const budgeted = applyVertexBudget(candidates, maxVertices);
+	const budgeted = applyVertexBudget(candidates, maxVertices, MAX_CUBE_PATCHES);
 	const patches = budgeted.patches;
 	return {
 		patches,

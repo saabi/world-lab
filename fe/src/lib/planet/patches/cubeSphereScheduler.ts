@@ -18,6 +18,9 @@ import {
 
 export const RESOLUTION_LEVELS = [8, 16, 32, 64, 96] as const;
 
+/** Cap for near-plane-straddling tiles so they cannot exhaust the vertex budget. */
+const STRADDLE_MAX_RESOLUTION = 32;
+
 /** Screen margin for "near viewport" — patches partially off-screen still schedule. */
 export const VIEWPORT_CULL_MARGIN_PX = 96;
 
@@ -205,18 +208,19 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			const emitDiameterPx = straddlesNearPlane
 				? Number.POSITIVE_INFINITY
 				: patchScreenDiameterPx(emitBounds);
-			const res = resolutionFromDiameter(
+			const rawRes = resolutionFromDiameter(
 				Math.max(emitDiameterPx, onOrNearScreen ? targetVertexSpacingPx : targetVertexSpacingPx * 2),
 				targetVertexSpacingPx,
 				maxRes
 			);
+			// Straddling near-plane tiles are subdivided to the finest depth already and
+			// sit at the camera's feet (mostly below the horizon view). Cap their
+			// resolution so a band of them can't exhaust the vertex budget and starve
+			// the visible terrain — that produced an empty view below ~20 m altitude.
+			const res = straddlesNearPlane ? Math.min(rawRes, STRADDLE_MAX_RESOLUTION) : rawRes;
 			const finalPatch = nodeToPatch(node, nextId++, res);
 			const facing = Math.max(0, dot3(patchCenterDir(finalPatch), camDir));
-			// Straddling tiles are closest to the camera; their truncated screen area
-			// would under-rank them, so give them a full-viewport-area priority.
-			const area = straddlesNearPlane
-				? viewport.width * viewport.height
-				: patchScreenAreaPx(emitBounds);
+			const area = patchScreenAreaPx(emitBounds);
 			finalPatch.priority = area * facing;
 			leaves.push(finalPatch);
 		}

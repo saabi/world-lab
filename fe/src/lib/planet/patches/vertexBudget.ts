@@ -22,15 +22,28 @@ function coarsenResolution(resolution: number): number {
 }
 
 /**
- * Drop or coarsen lowest-priority patches until total vertex count fits the budget.
+ * Drop or coarsen lowest-priority patches until they fit both the patch-count cap
+ * and the per-frame vertex budget.
  */
 export function applyVertexBudget(
 	patches: ScheduledPatch[],
-	maxVertices: number = DEFAULT_MAX_VERTICES_PER_FRAME
+	maxVertices: number = DEFAULT_MAX_VERTICES_PER_FRAME,
+	maxPatches: number = Infinity
 ): VertexBudgetResult {
-	const working: (ScheduledPatch | null)[] = patches.map((p) => ({ ...p }));
-	let total = working.reduce((sum, p) => sum + cubePatchVertexCount(p!.resolution), 0);
+	let kept: ScheduledPatch[] = patches.map((p) => ({ ...p }));
 	let dropped = 0;
+
+	// Patch-count cap first: keep the highest-priority patches. (Forced near-plane
+	// subdivision can produce more candidates than the GPU patch buffer holds, and
+	// spacing alone can't reduce them.)
+	if (kept.length > maxPatches) {
+		kept.sort((a, b) => patchPriority(b) - patchPriority(a));
+		dropped += kept.length - maxPatches;
+		kept = kept.slice(0, maxPatches);
+	}
+
+	const working: (ScheduledPatch | null)[] = kept;
+	let total = working.reduce((sum, p) => sum + cubePatchVertexCount(p!.resolution), 0);
 
 	if (total > maxVertices) {
 		const order = working
