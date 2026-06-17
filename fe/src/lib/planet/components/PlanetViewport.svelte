@@ -426,17 +426,18 @@
 		let nextRot = quatMultiply(qYaw, cameraRotation);
 
 		// 2. Pitch: rotate around local Right axis
-		const localRight = rotateVec3(nextRot, [1, 0, 0]);
+		const localRight = rotateVec3(nextRot, [0, 0, -1]);
 		const qPitch = quatFromAxisAngle(localRight, -dy * sensitivity);
 		nextRot = quatMultiply(qPitch, nextRot);
 
-		cameraRotation = nextRot;
-
 		// 3. Decompose back to azimuth/elevation so the UI sliders update:
-		const pos = rotateVec3(cameraRotation, [cameraDistance, 0, 0]);
+		const pos = rotateVec3(nextRot, [cameraDistance, 0, 0]);
 		const dist = len3(pos);
-		elevation = Math.asin(pos[1] / (dist || 1));
+		elevation = Math.max(-1.55, Math.min(1.55, Math.asin(pos[1] / (dist || 1))));
 		azimuth = Math.atan2(pos[2], pos[0]);
+
+		// 4. Update the camera rotation quaternion to match the clamped values
+		cameraRotation = quatFromAzimuthElevation(azimuth, elevation);
 	}
 
 	function onPointerUp(e: PointerEvent) {

@@ -129,8 +129,8 @@
 			<Range
 				id="orbit-elevation"
 				label="Elevation"
-				min={-1.4}
-				max={1.4}
+				min={-1.55}
+				max={1.55}
 				step={0.01}
 				bind:value={elevation}
 			/>
