@@ -10,7 +10,13 @@ const ICE: vec3f = vec3f(0.85, 1.00, 1.20);
 const SHALLOW_WATER: vec3f = vec3f(0.4, 1.0, 1.9);
 const DEEP_WATER: vec3f = vec3f(0.0, 0.1, 0.7);
 
-fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> vec3f {
+struct SurfaceMaterial {
+  albedo: vec3f,
+  roughness: f32,
+  metallic: f32,
+}
+
+fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> SurfaceMaterial {
   var spots = sample.vor.x * (1.0 - params.voronoi_albedo) + params.voronoi_albedo;
   spots *= sample.vor.y * (1.0 - params.voronoi_albedo_y) + params.voronoi_albedo_y;
   spots *= sample.vor.z * (1.0 - params.voronoi_albedo_z) + params.voronoi_albedo_z;
@@ -18,6 +24,8 @@ fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext)
   spots *= sample.detail * (1.0 - params.detail_albedo) + params.detail_albedo;
 
   var col = ROCK * vec3f(spots);
+  var roughness = 0.9;
+  var metallic = 0.0;
   let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
 
   var tn = 0.0;
@@ -34,21 +42,29 @@ fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext)
 
   if (tl < pow(params.vegetation_level, 2.0)) {
     col = TREE * vec3f(spots);
+    roughness = 0.75;
   }
   if (tl < pow(params.sand_cutoff, 2.0)) {
     col = SAND * vec3f(spots);
+    roughness = 0.55;
   }
   if (params.render_water > 0.5 && sample.height_meters <= wl) {
     let depth = sqrt(spots);
     col = mix(SHALLOW_WATER, DEEP_WATER, depth);
+    roughness = 0.05;
   }
   if (tl > pow(params.snow_cover, 2.0)) {
     col = ICE + vec3f(tl);
+    roughness = 0.35;
     if (params.render_water > 0.5 && sample.height_meters > wl) {
       col *= vec3f(spots);
     }
   }
-  return col;
+  return SurfaceMaterial(col, roughness, metallic);
+}
+
+fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> vec3f {
+  return surface_material(sample, params, scale).albedo;
 }
 
 fn face_debug_color(face: u32) -> vec3f {

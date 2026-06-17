@@ -10,6 +10,23 @@ export const UNIFORM_ALIGN = 256;
 
 export const VIEW_UNIFORM_SIZE = 64 * 4; // viewProj + view + cameraPos + debug
 
+export const MAX_GPU_LIGHTS = 4;
+
+/** Mirrors `LightingUniforms` in lighting.wgsl (padded to 256 bytes). */
+export const LIGHTING_UNIFORM_SIZE = 256;
+
+export interface GpuLightPacked {
+	positionOrDir: [number, number, number, number];
+	color: [number, number, number, number];
+	params: [number, number, number, number];
+}
+
+export interface LightingUniforms {
+	ambient: [number, number, number, number];
+	lightCount: number;
+	lights: GpuLightPacked[];
+}
+
 export interface ViewUniforms {
 	viewProjection: Float32Array;
 	view: Float32Array;
@@ -29,4 +46,30 @@ export function writeViewUniforms(buffer: ArrayBuffer, u: ViewUniforms): void {
 	view.setFloat32(148, u.debug[1], true);
 	view.setFloat32(152, u.debug[2], true);
 	view.setFloat32(156, u.debug[3], true);
+}
+
+export function writeLightingUniforms(buffer: ArrayBuffer, u: LightingUniforms): void {
+	const view = new DataView(buffer);
+	const amb = u.ambient;
+	view.setFloat32(0, amb[0], true);
+	view.setFloat32(4, amb[1], true);
+	view.setFloat32(8, amb[2], true);
+	view.setFloat32(12, amb[3] ?? 1, true);
+	view.setUint32(16, Math.min(u.lightCount, MAX_GPU_LIGHTS), true);
+	view.setUint32(20, 0, true);
+	view.setUint32(24, 0, true);
+	view.setUint32(28, 0, true);
+
+	const base = 32;
+	for (let i = 0; i < MAX_GPU_LIGHTS; i++) {
+		const light = u.lights[i] ?? {
+			positionOrDir: [0, 0, 1, 0],
+			color: [0, 0, 0, 0],
+			params: [0, 0, 0, 0]
+		};
+		const o = base + i * 48;
+		for (let j = 0; j < 4; j++) view.setFloat32(o + j * 4, light.positionOrDir[j], true);
+		for (let j = 0; j < 4; j++) view.setFloat32(o + 16 + j * 4, light.color[j], true);
+		for (let j = 0; j < 4; j++) view.setFloat32(o + 32 + j * 4, light.params[j], true);
+	}
 }

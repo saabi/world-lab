@@ -1,4 +1,6 @@
 #include "../planet/material.wgsl"
+#include "../planet/normal.wgsl"
+#include "../planet/lighting.wgsl"
 #include "../common/frame.wgsl"
 #include "../atmosphere/atmosphere.wgsl"
 
@@ -10,6 +12,7 @@ struct ViewUniforms {
 }
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
+@group(0) @binding(1) var<uniform> lighting: LightingUniforms;
 @group(1) @binding(0) var<uniform> planet: PlanetParams;
 @group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
 @group(3) @binding(0) var<storage, read> patches: array<CubeSpherePatchGpu>;
@@ -56,7 +59,8 @@ fn vs_main(
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
   let sample = sample_planet(in.unit_dir, planet, scale_ctx);
-  var col = shade_planet(sample, planet, scale_ctx);
+  let material = surface_material(sample, planet, scale_ctx);
+  var col = material.albedo;
   if (view_u.debug.y > 0.5) {
     col = face_debug_color(in.face);
   }
@@ -70,9 +74,9 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     return vec4f(vec3f(0.2, 0.8, 0.2), 1.0);
   }
   if (planet.illumination > 0.5) {
-    let light_dir = normalize(vec3f(1.0, 0.2, 0.1));
-    let n = normalize(in.world_pos);
-    col *= max(dot(n, light_dir), 0.15);
+    let n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
+    let v = view_u.camera_pos.xyz - sample.world_pos;
+    col = evaluate_pbr(material, n, v, sample.world_pos, lighting);
   }
   let view_dir = normalize(in.world_pos - view_u.camera_pos.xyz);
   let fog = atmosphere_fog(view_dir, scale_ctx.camera_altitude_meters, 0.8);

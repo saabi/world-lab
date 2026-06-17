@@ -34,6 +34,10 @@
 		writeSession
 	} from '../documents/storage.js';
 	import type { StoredPlanetDocument } from '../documents/types.js';
+	import { createDefaultPlanetScene } from '../scene/defaults.js';
+	import type { PlanetScene } from '../scene/types.js';
+	import { collectSceneLights } from '../scene/collectLights.js';
+	import { packSceneLighting } from '../scene/packLighting.js';
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let backend = $state<RenderBackend | null>(null);
@@ -46,6 +50,8 @@
 	let activeDocumentId = $state<string | null>(null);
 	let savedDocuments = $state<StoredPlanetDocument[]>([]);
 	let hydrated = $state(false);
+
+	const scene: PlanetScene = createDefaultPlanetScene();
 
 	let wireframe = $state(false);
 	let faceColors = $state(false);
@@ -272,7 +278,8 @@
 			cubeSpherePatches,
 			surfacePatches,
 			orbitSchedule,
-			debug: { wireframe, faceColors, showPatchBorders, showRingColors }
+			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
+			lighting: packSceneLighting(collectSceneLights(scene))
 		};
 	}
 
@@ -419,6 +426,7 @@
 	<PlanetEditorPanel
 		bind:params
 		bind:wireframe
+		{scene}
 		{selection}
 		{savedDocuments}
 		onSelectionChange={handleSelectionChange}

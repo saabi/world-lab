@@ -16,7 +16,14 @@ import {
 	type GpuScaleContext
 } from '../../params/planetParams.js';
 import { buildScaleContext, gatedParams } from '../../planet/layers.js';
-import { BIND_GROUP, UNIFORM_ALIGN, writeViewUniforms, type ViewUniforms } from '../uniformLayouts.js';
+import {
+	BIND_GROUP,
+	LIGHTING_UNIFORM_SIZE,
+	UNIFORM_ALIGN,
+	writeLightingUniforms,
+	writeViewUniforms,
+	type ViewUniforms
+} from '../uniformLayouts.js';
 import type { RenderFrame, RenderStats } from '../RenderBackend.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
 import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
@@ -36,6 +43,7 @@ export class TerrainPass {
 	readonly cubePipeline: GPURenderPipeline;
 	readonly surfacePipeline: GPURenderPipeline;
 	readonly viewBuffer: GPUBuffer;
+	readonly lightingBuffer: GPUBuffer;
 	readonly planetBuffer: GPUBuffer;
 	readonly scaleBuffer: GPUBuffer;
 	readonly localFrameBuffer: GPUBuffer;
@@ -59,6 +67,10 @@ export class TerrainPass {
 			size: UNIFORM_ALIGN,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		});
+		this.lightingBuffer = device.createBuffer({
+			size: LIGHTING_UNIFORM_SIZE,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
 		this.planetBuffer = createPlanetParamsBuffer(device);
 		this.scaleBuffer = createScaleContextBuffer(device);
 		this.localFrameBuffer = createLocalFrameBuffer(device);
@@ -75,7 +87,10 @@ export class TerrainPass {
 
 		this.cubeViewBg = device.createBindGroup({
 			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.frame),
-			entries: [{ binding: 0, resource: { buffer: this.viewBuffer } }]
+			entries: [
+				{ binding: 0, resource: { buffer: this.viewBuffer } },
+				{ binding: 1, resource: { buffer: this.lightingBuffer } }
+			]
 		});
 		this.cubePlanetBg = device.createBindGroup({
 			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.planet),
@@ -107,7 +122,7 @@ export class TerrainPass {
 	private createCubeLayout(): GPUPipelineLayout {
 		return this.device.createPipelineLayout({
 			bindGroupLayouts: [
-				this.uniformBgl(),
+				this.frameBgl(),
 				this.uniformBgl(),
 				this.uniformBgl(),
 				this.storageBgl()
@@ -118,10 +133,27 @@ export class TerrainPass {
 	private createSurfaceLayout(): GPUPipelineLayout {
 		return this.device.createPipelineLayout({
 			bindGroupLayouts: [
-				this.uniformBgl(),
+				this.frameBgl(),
 				this.uniformBgl(),
 				this.scaleAndLocalFrameBgl(),
 				this.storageBgl()
+			]
+		});
+	}
+
+	private frameBgl(): GPUBindGroupLayout {
+		return this.device.createBindGroupLayout({
+			entries: [
+				{
+					binding: 0,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					buffer: { type: 'uniform' }
+				},
+				{
+					binding: 1,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: { type: 'uniform' }
+				}
 			]
 		});
 	}
@@ -248,6 +280,11 @@ export class TerrainPass {
 		};
 		writeViewUniforms(viewStaging, viewUniforms);
 		this.device.queue.writeBuffer(this.viewBuffer, 0, viewStaging);
+
+		const lightingStaging = new ArrayBuffer(LIGHTING_UNIFORM_SIZE);
+		writeLightingUniforms(lightingStaging, frame.lighting);
+		this.device.queue.writeBuffer(this.lightingBuffer, 0, lightingStaging);
+
 		const dist = Math.hypot(...frame.camera.position);
 		const scaleCtx = buildScaleContext(
 			frame.camera.mode,
@@ -370,6 +407,7 @@ export class TerrainPass {
 
 	destroy(): void {
 		this.viewBuffer.destroy();
+		this.lightingBuffer.destroy();
 		this.planetBuffer.destroy();
 		this.scaleBuffer.destroy();
 		this.localFrameBuffer.destroy();

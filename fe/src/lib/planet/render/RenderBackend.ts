@@ -2,6 +2,7 @@ import type { PlanetParameters } from '../params/planetParams.js';
 import type { CameraState } from '../camera/cameraModes.js';
 import type { LocalFrame } from '../math/localFrame.js';
 import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
+import type { LightingUniforms } from './uniformLayouts.js';
 
 export interface OrbitScheduleMeta {
 	buckets: Map<number, CubeSpherePatch[]>;
@@ -26,6 +27,7 @@ export interface RenderFrame {
 		showPatchBorders: boolean;
 		showRingColors: boolean;
 	};
+	lighting: LightingUniforms;
 }
 
 export interface RenderStats {
