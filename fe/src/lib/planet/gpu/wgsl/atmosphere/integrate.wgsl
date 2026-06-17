@@ -64,7 +64,7 @@ fn integrate_atmosphere(
     return vec4f(0.0, 0.0, 0.0, 1.0); // ray misses the atmosphere: no inscatter, full transmittance
   }
 
-  let step_count = u32(clamp(atmo.integrate_steps, 4.0, 24.0));
+  let step_count = u32(clamp(atmo.integrate_steps, 4.0, 64.0));
   let dt = (t_end - t_start) / f32(step_count);
   let beta_r = rayleigh_beta(atmo);
   let beta_m = mie_beta(atmo);

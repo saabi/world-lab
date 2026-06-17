@@ -113,6 +113,6 @@ export function atmosphereSliders(radius: number): AtmosphereSliderDef[] {
 		{ key: 'mieG', label: 'Haze Direction', min: 0, max: 0.99, step: 0.01 },
 		{ key: 'groundFogDensity', label: 'Ground Fog', min: 0, max: 3, step: 0.05 },
 		{ key: 'sunDiskIntensity', label: 'Sun Brightness', min: 0, max: 60, step: 0.5 },
-		{ key: 'integrateSteps', label: 'Quality', min: 4, max: 32, step: 1 }
+		{ key: 'integrateSteps', label: 'Quality', min: 4, max: 64, step: 1 }
 	];
 }
