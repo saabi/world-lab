@@ -59,16 +59,20 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
 
   let dims = vec2f(textureDimensions(scene_depth));
   let texel = vec2i(in.uv * dims);
-  let depth = textureLoad(scene_depth, texel, 0);
-
   let shell_hit = ray_sphere_intersect(eye, omega, atmo.planet_center, atmo.outer_radius);
   let t_atmo = select(shell_hit.y, 1e5, shell_hit.y < 0.0);
 
-  var t_max = t_atmo;
-  var scene_rgb = vec3f(0.0);
-  var has_terrain = false;
+  // Terrain vs. sky comes from the rendered alpha (1 where terrain drew, 0 on the
+  // cleared sky), which is precision-safe at any distance — unlike a depth
+  // threshold, whose hyperbolic value approaches the clear value as the far plane
+  // grows with camera distance, which dropped distant terrain.
+  let scene = textureLoad(scene_color, texel, 0);
+  let has_terrain = scene.a > 0.5;
+  let scene_rgb = scene.rgb;
 
-  if (depth < 0.9999) {
+  var t_max = t_atmo;
+  if (has_terrain) {
+    let depth = textureLoad(scene_depth, texel, 0);
     let ndc_x = in.uv.x * 2.0 - 1.0;
     let ndc_y = (1.0 - in.uv.y) * 2.0 - 1.0;
     let clip = vec4f(ndc_x, ndc_y, depth, 1.0);
@@ -76,8 +80,6 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     let world_pt = world_h.xyz / world_h.w;
     let t_terrain = length(world_pt - eye);
     t_max = min(t_atmo, t_terrain);
-    scene_rgb = textureLoad(scene_color, texel, 0).rgb;
-    has_terrain = true;
   }
 
   let scatter = integrate_atmosphere(eye, omega, t_max, sun_dir, atmo);

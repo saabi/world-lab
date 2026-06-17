@@ -50,23 +50,38 @@ fn integrate_atmosphere(
   sun_dir: vec3f,
   atmo: AtmosphereParams,
 ) -> vec4f {
+  // March only the segment of the ray that lies inside the atmosphere shell,
+  // clamped to the occluder distance (terrain) in `t_max`. The step size then
+  // depends on the shell-crossing length, not the camera distance — so a fixed
+  // step budget keeps the same sampling quality near the surface and from far
+  // orbit. Marching from the eye instead wastes nearly every step in the vacuum
+  // before the shell once the camera leaves the atmosphere, and the thin shell
+  // gets under one sample.
+  let shell = ray_sphere_intersect(eye, omega, atmo.planet_center, atmo.outer_radius);
+  let t_start = max(shell.x, 0.0);
+  let t_end = min(shell.y, max(t_max, 0.0));
+  if (shell.y <= 0.0 || t_end <= t_start) {
+    return vec4f(0.0, 0.0, 0.0, 1.0); // ray misses the atmosphere: no inscatter, full transmittance
+  }
+
   let step_count = u32(clamp(atmo.integrate_steps, 4.0, 24.0));
-  let dt = max(t_max, 0.001) / f32(step_count);
+  let dt = (t_end - t_start) / f32(step_count);
   let beta_r = rayleigh_beta(atmo);
   let beta_m = mie_beta(atmo);
   let sigma_t = beta_r + beta_m;
+  let shell_h = atmo.outer_radius - atmo.planet_radius;
+
+  // Phase depends only on the (constant) view/sun angle — hoist out of the loop.
+  let cos_theta = dot(omega, sun_dir);
+  let phase = beta_r * rayleigh_phase(cos_theta) + beta_m * mie_phase(cos_theta, atmo.mie_g);
 
   var transmittance = vec3f(1.0);
   var inscatter = vec3f(0.0);
 
   for (var i = 0u; i < step_count; i++) {
-    let t = (f32(i) + 0.5) * dt;
-    if (t > t_max) {
-      break;
-    }
+    let t = t_start + (f32(i) + 0.5) * dt;
     let pos = eye + omega * t;
     let h = altitude_at(pos, atmo.planet_center, atmo.planet_radius);
-    let shell_h = atmo.outer_radius - atmo.planet_radius;
     if (h < 0.0 || h > shell_h) {
       continue;
     }
@@ -74,8 +89,6 @@ fn integrate_atmosphere(
     let ext = rho * sigma_t;
     let sample_trans = exp(-ext * dt);
     let sun_trans = sun_transmittance(pos, sun_dir, atmo, sigma_t);
-    let cos_theta = dot(omega, sun_dir);
-    let phase = beta_r * rayleigh_phase(cos_theta) + beta_m * mie_phase(cos_theta, atmo.mie_g);
     inscatter += transmittance * (vec3f(1.0) - sample_trans) * sun_trans * phase * atmo.sun_radiance;
     transmittance *= sample_trans;
   }

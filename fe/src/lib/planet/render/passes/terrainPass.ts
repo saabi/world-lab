@@ -413,7 +413,10 @@ export class TerrainPass {
 			colorAttachments: [
 				{
 					view: this.colorView!,
-					clearValue: { r: 0.02, g: 0.03, b: 0.08, a: 1 },
+					// Alpha 0 on clear marks "no terrain"; drawn terrain writes alpha 1.
+					// The atmosphere pass uses this (not depth, which loses precision and
+					// drops distant terrain) to decide terrain vs. sky per pixel.
+					clearValue: { r: 0.02, g: 0.03, b: 0.08, a: 0 },
 					loadOp: 'clear',
 					storeOp: 'store'
 				}
