@@ -53,3 +53,56 @@ export function findByKind<K extends SceneNode['kind']>(
 export function listSceneNodes(scene: PlanetScene): SceneNode[] {
 	return [...scene.nodes.values()];
 }
+
+export function isNodeEnabled(scene: PlanetScene, nodeId: string): boolean {
+	let id: string | null = nodeId;
+	while (id != null) {
+		const node = scene.nodes.get(id);
+		if (!node || !node.enabled) return false;
+		id = node.parentId;
+	}
+	return true;
+}
+
+export interface SceneTreeRow {
+	node: SceneNode;
+	depth: number;
+}
+
+/** Depth-first rows for tree UI (root first). */
+export function listSceneTreeRows(scene: PlanetScene): SceneTreeRow[] {
+	const rows: SceneTreeRow[] = [];
+	function walk(nodeId: string, depth: number): void {
+		const node = scene.nodes.get(nodeId);
+		if (!node) return;
+		rows.push({ node, depth });
+		const children = getChildren(scene, nodeId);
+		children.sort((a, b) => a.name.localeCompare(b.name));
+		for (const child of children) {
+			walk(child.id, depth + 1);
+		}
+	}
+	walk(scene.rootId, 0);
+	return rows;
+}
+
+export function setNodeEnabled(scene: PlanetScene, nodeId: string, enabled: boolean): PlanetScene {
+	const node = scene.nodes.get(nodeId);
+	if (!node || node.enabled === enabled) return scene;
+	const nodes = new Map(scene.nodes);
+	nodes.set(nodeId, { ...node, enabled });
+	return { rootId: scene.rootId, nodes };
+}
+
+export function nodeKindLabel(kind: SceneNode['kind']): string {
+	switch (kind) {
+		case 'group':
+			return 'group';
+		case 'directional_light':
+			return 'directional light';
+		case 'point_light':
+			return 'point light';
+		case 'ambient_light':
+			return 'ambient';
+	}
+}

@@ -13,6 +13,7 @@ export interface SceneNodeBase {
 	name: string;
 	parentId: string | null;
 	transform: Transform;
+	enabled: boolean;
 }
 
 export interface GroupNode extends SceneNodeBase {
@@ -32,7 +33,13 @@ export interface PointLightNode extends SceneNodeBase {
 	range: number;
 }
 
-export type SceneNode = GroupNode | DirectionalLightNode | PointLightNode;
+export interface AmbientLightNode extends SceneNodeBase {
+	kind: 'ambient_light';
+	color: Vec3;
+	intensity: number;
+}
+
+export type SceneNode = GroupNode | DirectionalLightNode | PointLightNode | AmbientLightNode;
 
 export interface PlanetScene {
 	rootId: string;

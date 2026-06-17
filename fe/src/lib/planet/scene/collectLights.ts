@@ -1,14 +1,22 @@
-import { DEFAULT_AMBIENT } from './defaults.js';
-import { visitScene } from './sceneTree.js';
+import type { Vec3 } from '../math/vec.js';
+import { visitScene, isNodeEnabled } from './sceneTree.js';
 import { worldPositiveX } from './transform.js';
 import type { CollectedLighting, PlanetScene, SceneLight } from './types.js';
 
-/** Walk the scene tree and collect world-space lights for GPU upload. */
+const ZERO_AMBIENT: Vec3 = [0, 0, 0];
+
+/** Walk the scene tree and collect world-space lights + ambient for GPU upload. */
 export function collectSceneLights(scene: PlanetScene): CollectedLighting {
 	const lights: SceneLight[] = [];
+	const ambient: Vec3 = [0, 0, 0];
 
 	visitScene(scene, (node, world) => {
-		if (node.kind === 'directional_light') {
+		if (!isNodeEnabled(scene, node.id)) return;
+		if (node.kind === 'ambient_light') {
+			ambient[0] += node.color[0] * node.intensity;
+			ambient[1] += node.color[1] * node.intensity;
+			ambient[2] += node.color[2] * node.intensity;
+		} else if (node.kind === 'directional_light') {
 			lights.push({
 				kind: 'directional',
 				directionOrPosition: worldPositiveX(world),
@@ -27,5 +35,17 @@ export function collectSceneLights(scene: PlanetScene): CollectedLighting {
 		}
 	});
 
-	return { ambient: DEFAULT_AMBIENT, lights };
+	const hasAmbient = ambient[0] > 0 || ambient[1] > 0 || ambient[2] > 0;
+	return { ambient: hasAmbient ? ambient : ZERO_AMBIENT, lights };
+}
+
+/** Collected lighting for GPU upload; skips scene when editor illumination is off. */
+export function collectSceneLighting(
+	scene: PlanetScene,
+	illuminationOn: boolean
+): CollectedLighting {
+	if (!illuminationOn) {
+		return { ambient: [0, 0, 0], lights: [] };
+	}
+	return collectSceneLights(scene);
 }

@@ -4,15 +4,12 @@
 	import { PARAM_EDITOR_SECTIONS } from '../params/paramEditorSchema.js';
 	import type { StoredPlanetDocument } from '../documents/types.js';
 	import { parseSelection } from '../documents/selection.js';
-	import { listSceneNodes } from '../scene/sceneTree.js';
-	import type { PlanetScene } from '../scene/types.js';
 	import type { MaterialOverrides } from '../material/biomes.js';
 	import Range from './controls/Range.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
 
 	interface Props {
 		params: PlanetParameters;
-		scene: PlanetScene;
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
@@ -25,7 +22,6 @@
 
 	let {
 		params = $bindable(),
-		scene,
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
@@ -41,10 +37,6 @@
 	let parsedSelection = $derived(parseSelection(selection));
 	let canSaveDocument = $derived(parsedSelection?.kind === 'document');
 	let canDeleteDocument = $derived(parsedSelection?.kind === 'document');
-
-	const sceneLights = $derived(
-		listSceneNodes(scene).filter((n) => n.kind === 'directional_light' || n.kind === 'point_light')
-	);
 
 	function handleSelectChange(e: Event) {
 		const value = (e.currentTarget as HTMLSelectElement).value;
@@ -121,15 +113,16 @@
 			step={0.05}
 			bind:value={materialOverrides.waterGloss}
 		/>
-		<li><header>Scene</header></li>
-		{#each sceneLights as light (light.id)}
-			<li class="scene-node">
-				<span class="scene-name">{light.name}</span>
-				<span class="scene-kind">{light.kind.replace('_', ' ')}</span>
-			</li>
-		{/each}
+		<Range
+			id="fog-density"
+			label="Fog"
+			min={0}
+			max={2}
+			step={0.05}
+			bind:value={materialOverrides.fogDensity}
+		/>
 		<li class="flag-row">
-			<label class="flag-label" for="illumination">Illumination</label>
+			<label class="flag-label" for="illumination">Scene lighting</label>
 			<input
 				id="illumination"
 				class="flag-input"
@@ -256,23 +249,5 @@
 
 	.flag-input {
 		accent-color: #6b9fff;
-	}
-
-	.scene-node {
-		display: flex;
-		justify-content: space-between;
-		gap: 8px;
-		margin: 2px 0;
-		padding: 0 4px;
-		font-size: 12px;
-	}
-
-	.scene-name {
-		opacity: 0.95;
-	}
-
-	.scene-kind {
-		opacity: 0.55;
-		text-transform: capitalize;
 	}
 </style>

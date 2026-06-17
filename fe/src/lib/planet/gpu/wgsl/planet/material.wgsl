@@ -35,13 +35,17 @@ struct MaterialOverrides {
   roughness_mult: f32,
   water_gloss: f32,
   material_debug: f32,
+  fog_density: f32,
+  _pad0: f32,
+  _pad1: f32,
+  _pad2: f32,
 }
 
 fn biome_props(biome_id: u32) -> BiomeProps {
   switch (biome_id) {
     case BIOME_VEGETATION: { return BiomeProps(0.8, 0.0, 1.0); }
     case BIOME_SAND: { return BiomeProps(0.6, 0.0, 1.0); }
-    case BIOME_WATER: { return BiomeProps(0.04, 0.0, 1.33); }
+    case BIOME_WATER: { return BiomeProps(0.06, 0.0, 1.33); }
     case BIOME_ICE: { return BiomeProps(0.3, 0.0, 1.31); }
     default: { return BiomeProps(0.9, 0.0, 1.0); }
   }

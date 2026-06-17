@@ -17,6 +17,7 @@
 	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
+	import SceneTreePanel from './SceneTreePanel.svelte';
 	import {
 		builtinSelection,
 		defaultSelection,
@@ -35,8 +36,7 @@
 	} from '../documents/storage.js';
 	import type { StoredPlanetDocument } from '../documents/types.js';
 	import { createDefaultPlanetScene } from '../scene/defaults.js';
-	import type { PlanetScene } from '../scene/types.js';
-	import { collectSceneLights } from '../scene/collectLights.js';
+	import { collectSceneLighting } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
 	import {
 		DEFAULT_MATERIAL_OVERRIDES,
@@ -57,7 +57,7 @@
 	let savedDocuments = $state<StoredPlanetDocument[]>([]);
 	let hydrated = $state(false);
 
-	const scene: PlanetScene = createDefaultPlanetScene();
+	let scene = $state(createDefaultPlanetScene());
 
 	let wireframe = $state(false);
 	let faceColors = $state(false);
@@ -89,6 +89,17 @@
 			selection,
 			activeDocumentId ? savedDocuments.find((d) => d.id === activeDocumentId)?.name : null
 		)
+	);
+
+	let sceneLighting = $derived(
+		packSceneLighting(collectSceneLighting(scene, params.illumination > 0.5))
+	);
+
+	let activeLightCount = $derived(sceneLighting.lightCount);
+	let ambientActive = $derived(
+		sceneLighting.ambient[0] > 0 ||
+			sceneLighting.ambient[1] > 0 ||
+			sceneLighting.ambient[2] > 0
 	);
 
 	function currentSnapshotInput() {
@@ -287,7 +298,7 @@
 			surfacePatches,
 			orbitSchedule,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
-			lighting: packSceneLighting(collectSceneLights(scene)),
+			lighting: sceneLighting,
 			materialOverrides
 		};
 	}
@@ -402,56 +413,60 @@
 		onwheel={onWheel}
 	></canvas>
 
-	<aside class="debug-panel">
-		<h2>Virtual Planet</h2>
-		<p class="backend">{backendLabel}</p>
-		<p class="preset-readout">{selectionReadout}</p>
-		{#if initError}
-			<p class="error">{initError}</p>
-		{/if}
-
-		<div class="debug-toggles">
-			<p class="section-label">Debug</p>
-			<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
-			<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
-			<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
-			<label class="material-debug-row">
-				Material
-				<select
-					value={materialOverrides.materialDebug}
-					onchange={(e) =>
-						(materialOverrides = {
-							...materialOverrides,
-							materialDebug: e.currentTarget.value as MaterialDebugMode
-						})}
-				>
-					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
-						<option value={opt.value}>{opt.label}</option>
-					{/each}
-				</select>
-			</label>
-		</div>
-
-		<div class="stats">
-			<div>FPS: {hud.fps}</div>
-			<div>Frame: {stats.frameMs.toFixed(1)} ms</div>
-			<div>Mode: {hud.mode}</div>
-			<div>Altitude: {hud.altitude.toFixed(0)} m</div>
-			<div>Patches: {stats.patchCount}{#if stats.candidatePatches != null} / {stats.candidatePatches} cand{/if}</div>
-			<div>Vertices: {stats.vertexCount.toLocaleString()}{#if stats.vertexBudget != null} / {stats.vertexBudget.toLocaleString()} budget{/if}</div>
-			{#if stats.budgetDropped != null && stats.budgetDropped > 0}
-				<div>Budget dropped: {stats.budgetDropped}</div>
+	<div class="left-stack">
+		<aside class="debug-panel">
+			<h2>Virtual Planet</h2>
+			<p class="backend">{backendLabel}</p>
+			<p class="preset-readout">{selectionReadout}</p>
+			{#if initError}
+				<p class="error">{initError}</p>
 			{/if}
-			<div>Rebases: {hud.rebases}</div>
+
+			<div class="debug-toggles">
+				<p class="section-label">Debug</p>
+				<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
+				<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
+				<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
+				<label class="material-debug-row">
+					Material
+					<select
+						value={materialOverrides.materialDebug}
+						onchange={(e) =>
+							(materialOverrides = {
+								...materialOverrides,
+								materialDebug: e.currentTarget.value as MaterialDebugMode
+							})}
+					>
+						{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+			</div>
+
+			<div class="stats">
+				<div>FPS: {hud.fps}</div>
+				<div>Frame: {stats.frameMs.toFixed(1)} ms</div>
+				<div>Mode: {hud.mode}</div>
+				<div>Altitude: {hud.altitude.toFixed(0)} m</div>
+				<div>Patches: {stats.patchCount}{#if stats.candidatePatches != null} / {stats.candidatePatches} cand{/if}</div>
+				<div>Vertices: {stats.vertexCount.toLocaleString()}{#if stats.vertexBudget != null} / {stats.vertexBudget.toLocaleString()} budget{/if}</div>
+				{#if stats.budgetDropped != null && stats.budgetDropped > 0}
+					<div>Budget dropped: {stats.budgetDropped}</div>
+				{/if}
+				<div>Rebases: {hud.rebases}</div>
 			<div>Distance: {distance.toFixed(0)}</div>
+			<div>Lights: {activeLightCount} · Ambient: {ambientActive ? 'on' : 'off'}</div>
 		</div>
-	</aside>
+		</aside>
+
+		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
+	</div>
 
 	<PlanetEditorPanel
 		bind:params
 		bind:wireframe
 		bind:materialOverrides
-		{scene}
 		{selection}
 		{savedDocuments}
 		onSelectionChange={handleSelectionChange}
@@ -481,18 +496,29 @@
 		cursor: grabbing;
 	}
 
-	.debug-panel {
+	.left-stack {
 		position: absolute;
 		top: 12px;
 		left: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		max-height: calc(100vh - 24px);
+		z-index: 1;
+		width: 220px;
+	}
+
+	.debug-panel {
 		padding: 12px 14px;
 		background: rgba(8, 10, 20, 0.82);
 		border: 1px solid rgba(255, 255, 255, 0.12);
 		border-radius: 8px;
 		color: #e8ecf8;
 		font: 13px/1.4 system-ui, sans-serif;
-		min-width: 180px;
-		max-width: 220px;
+		min-width: 0;
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.debug-panel h2 {

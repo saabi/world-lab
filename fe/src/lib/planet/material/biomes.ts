@@ -19,7 +19,7 @@ export const BIOME_PROPS: Record<BiomeId, BiomeProps> = {
 	[BIOME.rock]: { roughness: 0.9, metallic: 0, ior: 1.0 },
 	[BIOME.vegetation]: { roughness: 0.8, metallic: 0, ior: 1.0 },
 	[BIOME.sand]: { roughness: 0.6, metallic: 0, ior: 1.0 },
-	[BIOME.water]: { roughness: 0.04, metallic: 0, ior: 1.33 },
+	[BIOME.water]: { roughness: 0.06, metallic: 0, ior: 1.33 },
 	[BIOME.ice]: { roughness: 0.3, metallic: 0, ior: 1.31 }
 };
 
@@ -48,11 +48,13 @@ export interface MaterialOverrides {
 	roughnessMult: number;
 	waterGloss: number;
 	materialDebug: MaterialDebugMode;
+	fogDensity: number;
 }
 
 export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	exposure: 1.0,
 	roughnessMult: 1.0,
 	waterGloss: 1.5,
-	materialDebug: 'off'
+	materialDebug: 'off',
+	fogDensity: 0.8
 };

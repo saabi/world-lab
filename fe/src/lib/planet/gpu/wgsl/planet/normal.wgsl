@@ -40,5 +40,5 @@ fn planet_surface_normal(
 
   let tangent_e = p_e - p0;
   let tangent_n = p_n - p0;
-  return normalize(cross(tangent_n, tangent_e));
+  return normalize(cross(tangent_e, tangent_n));
 }
