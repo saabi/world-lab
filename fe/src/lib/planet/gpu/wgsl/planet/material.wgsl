@@ -7,13 +7,54 @@ const ROCK: vec3f = vec3f(0.50, 0.35, 0.15);
 const TREE: vec3f = vec3f(0.05, 1.15, 0.10);
 const SAND: vec3f = vec3f(1.00, 1.00, 0.85);
 const ICE: vec3f = vec3f(0.85, 1.00, 1.20);
-const SHALLOW_WATER: vec3f = vec3f(0.4, 1.0, 1.9);
-const DEEP_WATER: vec3f = vec3f(0.0, 0.1, 0.7);
+const SHALLOW_WATER: vec3f = vec3f(0.12, 0.35, 0.55);
+const DEEP_WATER: vec3f = vec3f(0.01, 0.04, 0.12);
+
+const BIOME_ROCK: u32 = 0u;
+const BIOME_VEGETATION: u32 = 1u;
+const BIOME_SAND: u32 = 2u;
+const BIOME_WATER: u32 = 3u;
+const BIOME_ICE: u32 = 4u;
+
+struct BiomeProps {
+  roughness: f32,
+  metallic: f32,
+  ior: f32,
+}
 
 struct SurfaceMaterial {
   albedo: vec3f,
   roughness: f32,
   metallic: f32,
+  ior: f32,
+  biome_id: u32,
+}
+
+struct MaterialOverrides {
+  exposure: f32,
+  roughness_mult: f32,
+  water_gloss: f32,
+  material_debug: f32,
+}
+
+fn biome_props(biome_id: u32) -> BiomeProps {
+  switch (biome_id) {
+    case BIOME_VEGETATION: { return BiomeProps(0.8, 0.0, 1.0); }
+    case BIOME_SAND: { return BiomeProps(0.6, 0.0, 1.0); }
+    case BIOME_WATER: { return BiomeProps(0.04, 0.0, 1.33); }
+    case BIOME_ICE: { return BiomeProps(0.3, 0.0, 1.31); }
+    default: { return BiomeProps(0.9, 0.0, 1.0); }
+  }
+}
+
+fn apply_material_overrides(material: SurfaceMaterial, overrides: MaterialOverrides) -> SurfaceMaterial {
+  var out = material;
+  var rough = material.roughness * overrides.roughness_mult;
+  if (material.biome_id == BIOME_WATER) {
+    rough /= max(overrides.water_gloss, 0.1);
+  }
+  out.roughness = clamp(rough, 0.02, 1.0);
+  return out;
 }
 
 fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> SurfaceMaterial {
@@ -24,8 +65,7 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
   spots *= sample.detail * (1.0 - params.detail_albedo) + params.detail_albedo;
 
   var col = ROCK * vec3f(spots);
-  var roughness = 0.9;
-  var metallic = 0.0;
+  var biome_id = BIOME_ROCK;
   let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
 
   var tn = 0.0;
@@ -42,25 +82,33 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
 
   if (tl < pow(params.vegetation_level, 2.0)) {
     col = TREE * vec3f(spots);
-    roughness = 0.75;
+    biome_id = BIOME_VEGETATION;
   }
   if (tl < pow(params.sand_cutoff, 2.0)) {
     col = SAND * vec3f(spots);
-    roughness = 0.55;
+    biome_id = BIOME_SAND;
   }
   if (params.render_water > 0.5 && sample.height_meters <= wl) {
     let depth = sqrt(spots);
     col = mix(SHALLOW_WATER, DEEP_WATER, depth);
-    roughness = 0.05;
+    biome_id = BIOME_WATER;
   }
   if (tl > pow(params.snow_cover, 2.0)) {
     col = ICE + vec3f(tl);
-    roughness = 0.35;
+    biome_id = BIOME_ICE;
     if (params.render_water > 0.5 && sample.height_meters > wl) {
       col *= vec3f(spots);
     }
   }
-  return SurfaceMaterial(col, roughness, metallic);
+
+  let props = biome_props(biome_id);
+  var roughness = props.roughness;
+  if (should_eval_layer(5.0, scale)) {
+    let micro = (sample.detail - 0.5) * 0.25 + (tn / max(params.texture_noise_amplitude, 0.001)) * 0.1;
+    roughness = clamp(roughness + micro, 0.02, 1.0);
+  }
+
+  return SurfaceMaterial(col, roughness, props.metallic, props.ior, biome_id);
 }
 
 fn shade_planet(sample: PlanetSample, params: PlanetParams, scale: ScaleContext) -> vec3f {

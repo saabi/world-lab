@@ -38,6 +38,12 @@
 	import type { PlanetScene } from '../scene/types.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
+	import {
+		DEFAULT_MATERIAL_OVERRIDES,
+		MATERIAL_DEBUG_LABELS,
+		type MaterialDebugMode,
+		type MaterialOverrides
+	} from '../material/biomes.js';
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let backend = $state<RenderBackend | null>(null);
@@ -57,6 +63,8 @@
 	let faceColors = $state(false);
 	let showPatchBorders = $state(false);
 	let showRingColors = $state(false);
+
+	let materialOverrides = $state<MaterialOverrides>({ ...DEFAULT_MATERIAL_OVERRIDES });
 
 	let azimuth = $state(0.6);
 	let elevation = $state(0.35);
@@ -279,7 +287,8 @@
 			surfacePatches,
 			orbitSchedule,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
-			lighting: packSceneLighting(collectSceneLights(scene))
+			lighting: packSceneLighting(collectSceneLights(scene)),
+			materialOverrides
 		};
 	}
 
@@ -406,6 +415,21 @@
 			<label><input type="checkbox" bind:checked={faceColors} /> Face colors</label>
 			<label><input type="checkbox" bind:checked={showPatchBorders} /> Patch borders</label>
 			<label><input type="checkbox" bind:checked={showRingColors} /> Ring colors</label>
+			<label class="material-debug-row">
+				Material
+				<select
+					value={materialOverrides.materialDebug}
+					onchange={(e) =>
+						(materialOverrides = {
+							...materialOverrides,
+							materialDebug: e.currentTarget.value as MaterialDebugMode
+						})}
+				>
+					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+			</label>
 		</div>
 
 		<div class="stats">
@@ -426,6 +450,7 @@
 	<PlanetEditorPanel
 		bind:params
 		bind:wireframe
+		bind:materialOverrides
 		{scene}
 		{selection}
 		{savedDocuments}
@@ -509,6 +534,16 @@
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 6px;
+		font-size: 12px;
+	}
+
+	.material-debug-row select {
+		flex: 1;
+		min-width: 0;
+		background: #1a1f30;
+		color: inherit;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
 		font-size: 12px;
 	}
 

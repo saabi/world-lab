@@ -7,11 +7,11 @@ import { worldPositiveX } from './transform.js';
 import { writeLightingUniforms, type LightingUniforms } from '../render/uniformLayouts.js';
 
 describe('collectSceneLights', () => {
-	it('default scene has two directional lights', () => {
+	it('default scene has a single sun directional light', () => {
 		const scene = createDefaultPlanetScene();
 		const collected = collectSceneLights(scene);
-		expect(collected.lights).toHaveLength(2);
-		expect(collected.lights.every((l) => l.kind === 'directional')).toBe(true);
+		expect(collected.lights).toHaveLength(1);
+		expect(collected.lights[0].kind).toBe('directional');
 		expect(collected.ambient[0]).toBeGreaterThan(0);
 	});
 
@@ -23,27 +23,18 @@ describe('collectSceneLights', () => {
 		expect(axis[1]).toBeCloseTo(0, 4);
 		expect(axis[2]).toBeCloseTo(0, 4);
 	});
-
-	it('fill light is rotated away from sun', () => {
-		const scene = createDefaultPlanetScene();
-		const collected = collectSceneLights(scene);
-		const sun = collected.lights.find((l) => l.directionOrPosition[0] > 0.9);
-		const fill = collected.lights.find((l) => l.directionOrPosition[0] < 0);
-		expect(sun).toBeDefined();
-		expect(fill).toBeDefined();
-	});
 });
 
 describe('packSceneLighting', () => {
 	it('round-trips into lighting uniform buffer', () => {
 		const scene = createDefaultPlanetScene();
 		const packed = packSceneLighting(collectSceneLights(scene));
-		expect(packed.lightCount).toBe(2);
+		expect(packed.lightCount).toBe(1);
 
 		const buf = new ArrayBuffer(256);
 		writeLightingUniforms(buf, packed);
 		const view = new DataView(buf);
-		expect(view.getUint32(16, true)).toBe(2);
+		expect(view.getUint32(16, true)).toBe(1);
 		expect(view.getFloat32(32 + 0, true)).toBeCloseTo(1, 3);
 	});
 

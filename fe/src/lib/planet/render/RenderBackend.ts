@@ -3,6 +3,7 @@ import type { CameraState } from '../camera/cameraModes.js';
 import type { LocalFrame } from '../math/localFrame.js';
 import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
 import type { LightingUniforms } from './uniformLayouts.js';
+import type { MaterialOverrides } from '../material/biomes.js';
 
 export interface OrbitScheduleMeta {
 	buckets: Map<number, CubeSpherePatch[]>;
@@ -28,6 +29,7 @@ export interface RenderFrame {
 		showRingColors: boolean;
 	};
 	lighting: LightingUniforms;
+	materialOverrides: MaterialOverrides;
 }
 
 export interface RenderStats {

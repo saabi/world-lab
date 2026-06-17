@@ -18,8 +18,9 @@ fn planet_surface_normal(
   scale: ScaleContext,
 ) -> vec3f {
   let radius = max(params.radius, 1.0);
-  let angular_eps = clamp(scale.meters_per_pixel / radius, 1e-6, 0.02);
-  if (angular_eps >= 0.015) {
+  let angular_eps = clamp(scale.meters_per_pixel / radius, 1e-6, 0.06);
+  // Sphere fallback only at very coarse orbit LOD.
+  if (angular_eps >= 0.055) {
     return normalize(unit_dir);
   }
 

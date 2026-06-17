@@ -6,6 +6,7 @@
 	import { parseSelection } from '../documents/selection.js';
 	import { listSceneNodes } from '../scene/sceneTree.js';
 	import type { PlanetScene } from '../scene/types.js';
+	import type { MaterialOverrides } from '../material/biomes.js';
 	import Range from './controls/Range.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
 
@@ -15,6 +16,7 @@
 		selection: string;
 		savedDocuments: StoredPlanetDocument[];
 		wireframe: boolean;
+		materialOverrides: MaterialOverrides;
 		onSelectionChange: (selection: string) => void;
 		onSave: () => void;
 		onSaveAs: () => void;
@@ -27,6 +29,7 @@
 		selection,
 		savedDocuments,
 		wireframe = $bindable(),
+		materialOverrides = $bindable(),
 		onSelectionChange,
 		onSave,
 		onSaveAs,
@@ -93,6 +96,31 @@
 
 		<li><header>Rendering</header></li>
 		<CheckBox id="wireframe" label="Wireframe" bind:checked={wireframe} />
+		<li><header>Material</header></li>
+		<Range
+			id="exposure"
+			label="Exposure"
+			min={0.5}
+			max={3}
+			step={0.05}
+			bind:value={materialOverrides.exposure}
+		/>
+		<Range
+			id="roughness-mult"
+			label="Roughness"
+			min={0.5}
+			max={2}
+			step={0.05}
+			bind:value={materialOverrides.roughnessMult}
+		/>
+		<Range
+			id="water-gloss"
+			label="Water gloss"
+			min={0.5}
+			max={3}
+			step={0.05}
+			bind:value={materialOverrides.waterGloss}
+		/>
 		<li><header>Scene</header></li>
 		{#each sceneLights as light (light.id)}
 			<li class="scene-node">

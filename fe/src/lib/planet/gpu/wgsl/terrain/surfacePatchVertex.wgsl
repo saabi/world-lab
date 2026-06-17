@@ -1,6 +1,7 @@
 #include "../planet/material.wgsl"
 #include "../planet/normal.wgsl"
 #include "../planet/lighting.wgsl"
+#include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
 
 struct ViewUniforms {
@@ -12,6 +13,7 @@ struct ViewUniforms {
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
 @group(0) @binding(1) var<uniform> lighting: LightingUniforms;
+@group(0) @binding(2) var<uniform> mat_overrides: MaterialOverrides;
 @group(1) @binding(0) var<uniform> planet: PlanetParams;
 @group(2) @binding(0) var<uniform> scale_ctx: ScaleContext;
 @group(2) @binding(1) var<uniform> local_frame: LocalFrame;
@@ -54,7 +56,7 @@ fn vs_main(
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
   let sample = sample_planet(in.unit_dir, planet, scale_ctx);
-  let material = surface_material(sample, planet, scale_ctx);
+  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.w > 0.5) {
     col = ring_debug_color(in.ring);
@@ -65,10 +67,28 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
       col = mix(col, vec3f(1.0), 0.5);
     }
   }
+
+  var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
+  var n = normalize(sample.world_pos);
   if (planet.illumination > 0.5) {
-    let n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
+    n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
     let v = view_u.camera_pos.xyz - sample.world_pos;
-    col = evaluate_pbr(material, n, v, sample.world_pos, lighting);
+    lit = evaluate_pbr(
+      material,
+      n,
+      v,
+      sample.world_pos,
+      lighting,
+      scale_ctx.camera_altitude_meters,
+      mat_overrides,
+    );
+    col = lit.color;
   }
+
+  let debug_mode = u32(mat_overrides.material_debug + 0.5);
+  if (debug_mode > 0u) {
+    col = apply_material_debug(debug_mode, n, material, lit);
+  }
+
   return vec4f(col, 1.0);
 }
