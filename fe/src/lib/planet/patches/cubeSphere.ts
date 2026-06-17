@@ -1,7 +1,35 @@
 import type { Vec3 } from '../math/vec.js';
 import { normalize3 } from '../math/vec.js';
-import { cullCubeSpherePatches } from './culling.js';
+import {
+	groupPatchesByResolution,
+	scheduleAdaptiveOrbitPatches,
+	totalVertexCount,
+	type OrbitSchedulerInput
+} from './cubeSphereScheduler.js';
 import type { CubeSpherePatch } from './types.js';
+import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
+import type { ViewportSize } from './screenSpace.js';
+import { MAX_CUBE_PATCHES } from '../params/gpuBuffers.js';
+
+/** Reuse last successful spacing so we rarely repeat the coarse-to-fine search loop. */
+let orbitSpacingHint = 6;
+
+function estimateInitialOrbitSpacing(
+	cameraPos: Vec3,
+	planetRadius: number,
+	baseSpacing: number
+): number {
+	const altitude = Math.max(
+		Math.hypot(cameraPos[0], cameraPos[1], cameraPos[2]) - planetRadius,
+		0
+	);
+	const altRatio = altitude / Math.max(planetRadius, 1);
+	if (altRatio > 2) return Math.max(baseSpacing, 15);
+	if (altRatio > 0.5) return Math.max(baseSpacing, 12);
+	if (altRatio > 0.15) return Math.max(baseSpacing, 24);
+	if (altRatio > 0.05) return Math.max(baseSpacing, 30);
+	return Math.max(baseSpacing, 39);
+}
 
 /** Vertices per instanced cube patch (two triangles per grid cell). */
 export function cubePatchVertexCount(resolution: number): number {
@@ -79,16 +107,66 @@ export function buildOrbitPatchGrid(
 	return patches;
 }
 
+export interface OrbitScheduleOptions {
+	viewport: ViewportSize;
+	focalLengthPx?: number;
+	targetVertexSpacingPx?: number;
+	maxVertices?: number;
+}
+
+export interface OrbitScheduleResult {
+	patches: CubeSpherePatch[];
+	buckets: Map<number, CubeSpherePatch[]>;
+	candidatePatches: number;
+	budgetDropped: number;
+	vertexBudget: number;
+	estimatedVertices: number;
+}
+
 export function scheduleOrbitPatches(
 	cameraPos: Vec3,
 	planetRadius: number,
 	viewProj: Float32Array,
-	facesPerSide?: number,
-	patchResolution?: number
-): CubeSpherePatch[] {
-	const altitude = Math.max(Math.hypot(cameraPos[0], cameraPos[1], cameraPos[2]) - planetRadius, 0);
-	const faces = facesPerSide ?? chooseOrbitFacesPerSide(altitude, planetRadius);
-	const resolution = patchResolution ?? chooseOrbitPatchResolution(altitude, planetRadius);
-	const grid = buildOrbitPatchGrid(faces, resolution);
-	return cullCubeSpherePatches(grid, cameraPos, planetRadius, viewProj);
+	options: OrbitScheduleOptions
+): OrbitScheduleResult {
+	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
+	const baseSpacing = options.targetVertexSpacingPx ?? 6;
+	let spacing = Math.max(
+		baseSpacing,
+		orbitSpacingHint,
+		estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing)
+	);
+	let candidates = scheduleAdaptiveOrbitPatches({
+		cameraPos,
+		planetRadius,
+		viewProj,
+		viewport: options.viewport,
+		targetVertexSpacingPx: spacing
+	});
+	let spacingSteps = 0;
+	while (candidates.length > MAX_CUBE_PATCHES && spacing < 256 && spacingSteps < 12) {
+		spacing *= 1.6;
+		candidates = scheduleAdaptiveOrbitPatches({
+			cameraPos,
+			planetRadius,
+			viewProj,
+			viewport: options.viewport,
+			targetVertexSpacingPx: spacing
+		});
+		spacingSteps++;
+	}
+	orbitSpacingHint = spacing;
+	const candidateCount = candidates.length;
+	const budgeted = applyVertexBudget(candidates, maxVertices);
+	const patches = budgeted.patches;
+	return {
+		patches,
+		buckets: groupPatchesByResolution(patches),
+		candidatePatches: candidateCount,
+		budgetDropped: budgeted.dropped,
+		vertexBudget: maxVertices,
+		estimatedVertices: totalVertexCount(patches)
+	};
 }
+
+export type { OrbitSchedulerInput };

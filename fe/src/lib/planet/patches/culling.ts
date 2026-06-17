@@ -1,11 +1,18 @@
 import type { Vec3 } from '../math/vec.js';
 import { dot3, len3, normalize3 } from '../math/vec.js';
 import { cubeFaceUvToUnitDir } from './cubeSphere.js';
+import { patchSampleUvs, patchWorldCorners } from './screenSpace.js';
 import type { CubeSpherePatch } from './types.js';
 
 export interface FrustumPlanes {
-	planes: Vec3[]; // normal xyz + distance in w stored separately
+	planes: Vec3[];
 	dists: number[];
+}
+
+export interface CullParams {
+	backfaceDot: number;
+	horizonDot: number;
+	useHorizonCull: boolean;
 }
 
 export function extractFrustumPlanes(viewProj: Float32Array): FrustumPlanes {
@@ -28,19 +35,98 @@ export function extractFrustumPlanes(viewProj: Float32Array): FrustumPlanes {
 	return { planes, dists };
 }
 
-function sphereInFrustum(
-	center: Vec3,
-	radius: number,
+export function buildCullParams(cameraPos: Vec3, planetRadius: number): CullParams {
+	const camLen = len3(cameraPos);
+	const altRatio = Math.max(camLen - planetRadius, 0) / Math.max(planetRadius, 1);
+	return {
+		backfaceDot: altRatio < 0.3 ? -0.2 : altRatio < 1 ? -0.05 : 0.02,
+		horizonDot: altRatio < 1 ? -0.05 : 0.08,
+		useHorizonCull: camLen > planetRadius * 1.5 && altRatio >= 1
+	};
+}
+
+export function patchCenterDir(patch: CubeSpherePatch): Vec3 {
+	const u = (patch.uvMin[0] + patch.uvMax[0]) * 0.5;
+	const v = (patch.uvMin[1] + patch.uvMax[1]) * 0.5;
+	return cubeFaceUvToUnitDir(patch.face, u, v);
+}
+
+/** Any sample on the patch faces the camera hemisphere (limb-safe tile coverage). */
+export function patchIntersectsFrontHemisphere(
+	patch: CubeSpherePatch,
+	cameraPos: Vec3,
+	epsilon = -0.02
+): boolean {
+	const camDir = normalize3(cameraPos);
+	for (const [u, v] of patchSampleUvs(patch)) {
+		const dir = cubeFaceUvToUnitDir(patch.face, u, v);
+		if (dot3(dir, camDir) > epsilon) return true;
+	}
+	return false;
+}
+
+export function isPatchBackfacing(
+	patch: CubeSpherePatch,
+	cameraPos: Vec3,
+	params: CullParams
+): boolean {
+	const camDir = normalize3(cameraPos);
+	return dot3(patchCenterDir(patch), camDir) < params.backfaceDot;
+}
+
+export function isPatchAboveHorizon(
+	patch: CubeSpherePatch,
+	cameraPos: Vec3,
+	params: CullParams
+): boolean {
+	if (!params.useHorizonCull) return true;
+	const camDir = normalize3(cameraPos);
+	return dot3(patchCenterDir(patch), camDir) >= params.horizonDot;
+}
+
+/** True when the patch lies entirely outside one frustum plane (corner-based). */
+export function isPatchFullyOutsideFrustum(
+	patch: CubeSpherePatch,
+	planetRadius: number,
 	frustum: FrustumPlanes
 ): boolean {
+	const corners = patchWorldCorners(patch, planetRadius);
 	for (let i = 0; i < 6; i++) {
-		const d = dot3(frustum.planes[i], center) + frustum.dists[i];
-		if (d < -radius) return false;
+		let allOutside = true;
+		for (const corner of corners) {
+			const d = dot3(frustum.planes[i], corner) + frustum.dists[i];
+			if (d >= 0) {
+				allOutside = false;
+				break;
+			}
+		}
+		if (allOutside) return true;
 	}
+	return false;
+}
+
+export function isPatchInFrustum(
+	patch: CubeSpherePatch,
+	planetRadius: number,
+	frustum: FrustumPlanes
+): boolean {
+	return !isPatchFullyOutsideFrustum(patch, planetRadius, frustum);
+}
+
+export function isPatchVisible(
+	patch: CubeSpherePatch,
+	cameraPos: Vec3,
+	planetRadius: number,
+	frustum: FrustumPlanes,
+	params: CullParams
+): boolean {
+	if (isPatchBackfacing(patch, cameraPos, params)) return false;
+	if (!isPatchInFrustum(patch, planetRadius, frustum)) return false;
+	if (!isPatchAboveHorizon(patch, cameraPos, params)) return false;
 	return true;
 }
 
-/** Cull patches behind planet horizon relative to camera. */
+/** Legacy grid path — filter pre-built patches. */
 export function cullCubeSpherePatches(
 	patches: CubeSpherePatch[],
 	cameraPos: Vec3,
@@ -48,29 +134,6 @@ export function cullCubeSpherePatches(
 	viewProj: Float32Array
 ): CubeSpherePatch[] {
 	const frustum = extractFrustumPlanes(viewProj);
-	const camLen = len3(cameraPos);
-	const altRatio = Math.max(camLen - planetRadius, 0) / Math.max(planetRadius, 1);
-	// When close, limb patches are screen-large — keep a wider visible band than at orbit altitude.
-	const backfaceDot = altRatio < 0.3 ? -0.2 : altRatio < 1 ? -0.05 : 0.02;
-	const horizonDot = altRatio < 1 ? -0.05 : 0.08;
-	const frustumPad = planetRadius * (altRatio < 0.3 ? 0.35 : altRatio < 1 ? 0.15 : 0.05);
-	const useHorizonCull = camLen > planetRadius * 1.5 && altRatio >= 1;
-
-	return patches.filter((patch) => {
-		const u = (patch.uvMin[0] + patch.uvMax[0]) * 0.5;
-		const v = (patch.uvMin[1] + patch.uvMax[1]) * 0.5;
-		const dir = cubeFaceUvToUnitDir(patch.face, u, v);
-		const center: Vec3 = [
-			dir[0] * planetRadius,
-			dir[1] * planetRadius,
-			dir[2] * planetRadius
-		];
-		const camDir = normalize3(cameraPos);
-		if (dot3(dir, camDir) < backfaceDot) return false;
-		const patchRadius =
-			planetRadius * 0.5 * Math.hypot(patch.uvMax[0] - patch.uvMin[0], patch.uvMax[1] - patch.uvMin[1]);
-		if (!sphereInFrustum(center, patchRadius + frustumPad, frustum)) return false;
-		if (useHorizonCull && dot3(dir, camDir) < horizonDot) return false;
-		return true;
-	});
+	const params = buildCullParams(cameraPos, planetRadius);
+	return patches.filter((patch) => isPatchVisible(patch, cameraPos, planetRadius, frustum, params));
 }

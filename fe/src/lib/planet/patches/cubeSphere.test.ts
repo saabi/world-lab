@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { createOrbitCamera } from '../camera/orbitCamera.js';
 import {
 	chooseOrbitPatchResolution,
 	cubeFaceUvToPosition,
 	cubeFaceUvToUnitDir,
-	cubePatchVertexCount
+	cubePatchVertexCount,
+	scheduleOrbitPatches
 } from './cubeSphere.js';
+import { isCubeFaceOnScreen, scheduleAdaptiveOrbitPatches } from './cubeSphereScheduler.js';
+import { DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
 describe('cubeSphere mapping', () => {
 	it('maps face center UV to axis direction', () => {
 		const pos = cubeFaceUvToPosition(0, 0.5, 0.5);
@@ -35,5 +39,63 @@ describe('cubeSphere mapping', () => {
 		expect(chooseOrbitPatchResolution(10, 100)).toBe(64);
 		expect(chooseOrbitPatchResolution(5, 100)).toBe(96);
 		expect(cubePatchVertexCount(96)).toBe(96 * 96 * 6);
+	});
+
+	it('schedules adaptive patches within vertex budget at close zoom', () => {
+		const cam = createOrbitCamera({
+			distance: 105,
+			azimuth: 0.6,
+			elevation: 0.35,
+			fovDeg: 60,
+			aspect: 16 / 9,
+			near: 0.1,
+			far: 10_000,
+			planetRadius: 100
+		});
+		const result = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport: { width: 1920, height: 1080 },
+			focalLengthPx: cam.focalLengthPx,
+			maxVertices: DEFAULT_MAX_VERTICES_PER_FRAME
+		});
+		expect(result.patches.length).toBeGreaterThan(0);
+		expect(result.patches.length).toBeLessThanOrEqual(4096);
+		expect(result.estimatedVertices).toBeLessThanOrEqual(DEFAULT_MAX_VERTICES_PER_FRAME);
+		expect(result.buckets.size).toBeGreaterThan(0);
+	});
+
+	it('keeps grazing faces that still intersect the viewport', () => {
+		const cam = createOrbitCamera({
+			distance: 320,
+			azimuth: 0.6,
+			elevation: 0.35,
+			fovDeg: 60,
+			aspect: 16 / 9,
+			near: 0.1,
+			far: 10_000,
+			planetRadius: 100
+		});
+		let facesOnScreen = 0;
+		for (let face = 0; face < 6; face++) {
+			if (
+				isCubeFaceOnScreen(face, cam.position, 100, cam.viewProjectionMatrix, {
+					width: 1920,
+					height: 1080
+				})
+			) {
+				facesOnScreen++;
+			}
+		}
+		expect(facesOnScreen).toBeGreaterThanOrEqual(3);
+		expect(facesOnScreen).toBeLessThanOrEqual(6);
+
+		const patches = scheduleAdaptiveOrbitPatches({
+			cameraPos: cam.position,
+			planetRadius: 100,
+			viewProj: cam.viewProjectionMatrix,
+			viewport: { width: 1920, height: 1080 }
+		});
+		const facesUsed = new Set(patches.map((p) => p.face));
+		expect(facesUsed.size).toBeGreaterThanOrEqual(3);
+		expect(facesUsed.size).toBeLessThanOrEqual(facesOnScreen);
 	});
 });

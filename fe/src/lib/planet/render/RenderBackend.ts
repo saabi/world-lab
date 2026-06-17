@@ -3,6 +3,13 @@ import type { CameraState } from '../camera/cameraModes.js';
 import type { LocalFrame } from '../math/localFrame.js';
 import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
 
+export interface OrbitScheduleMeta {
+	buckets: Map<number, CubeSpherePatch[]>;
+	candidatePatches: number;
+	budgetDropped: number;
+	vertexBudget: number;
+}
+
 export interface RenderFrame {
 	time: number;
 	viewportWidthPx: number;
@@ -12,6 +19,7 @@ export interface RenderFrame {
 	localFrame: LocalFrame;
 	cubeSpherePatches: CubeSpherePatch[];
 	surfacePatches: SurfacePatch[];
+	orbitSchedule?: OrbitScheduleMeta;
 	debug: {
 		wireframe: boolean;
 		faceColors: boolean;
@@ -25,6 +33,10 @@ export interface RenderStats {
 	patchCount: number;
 	vertexCount: number;
 	mode: string;
+	candidatePatches?: number;
+	visiblePatches?: number;
+	budgetDropped?: number;
+	vertexBudget?: number;
 }
 
 export interface PickingResult {

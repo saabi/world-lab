@@ -11,8 +11,9 @@
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
 	import { scheduleOrbitPatches } from '../patches/cubeSphere.js';
+	import type { CubeSpherePatch } from '../patches/types.js';
 	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
-	import type { RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
+	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 
@@ -44,6 +45,8 @@
 	let raf = 0;
 	let lastFpsTime = 0;
 	let frames = 0;
+	let canvasWidth = 0;
+	let canvasHeight = 0;
 
 	const presetNames = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
 
@@ -84,9 +87,22 @@
 			localFrame.rebaseCount = maybeRebaseFrame(localFrame, camera.ecef).rebaseCount;
 		}
 
-		const cubeSpherePatches = modes.cubeSphere
-			? scheduleOrbitPatches(activeCamera.position, p.radius, activeCamera.viewProjectionMatrix)
-			: [];
+		let cubeSpherePatches: CubeSpherePatch[] = [];
+		let orbitSchedule: OrbitScheduleMeta | undefined;
+
+		if (modes.cubeSphere) {
+			const scheduled = scheduleOrbitPatches(activeCamera.position, p.radius, activeCamera.viewProjectionMatrix, {
+				viewport: { width, height },
+				focalLengthPx: camera.focalLengthPx
+			});
+			cubeSpherePatches = scheduled.patches;
+			orbitSchedule = {
+				buckets: scheduled.buckets,
+				candidatePatches: scheduled.candidatePatches,
+				budgetDropped: scheduled.budgetDropped,
+				vertexBudget: scheduled.vertexBudget
+			};
+		}
 
 		const surfacePatches = modes.surface
 			? buildSurfacePatchRings({
@@ -107,6 +123,7 @@
 			localFrame,
 			cubeSpherePatches,
 			surfacePatches,
+			orbitSchedule,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors }
 		};
 	}
@@ -143,9 +160,13 @@
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
 		if (width > 0 && height > 0) {
-			canvas.width = width;
-			canvas.height = height;
-			backend.resize(width, height);
+			if (width !== canvasWidth || height !== canvasHeight) {
+				canvas.width = width;
+				canvas.height = height;
+				backend.resize(width, height);
+				canvasWidth = width;
+				canvasHeight = height;
+			}
 			const camera = buildCamera(width, height, params);
 			const frame = buildFrame(time * 0.001, camera, width, height, params);
 			stats = backend.render(frame);
@@ -240,8 +261,11 @@
 			<div>Frame: {stats.frameMs.toFixed(1)} ms</div>
 			<div>Mode: {hud.mode}</div>
 			<div>Altitude: {hud.altitude.toFixed(0)} m</div>
-			<div>Patches: {stats.patchCount}</div>
-			<div>Vertices: {stats.vertexCount}</div>
+			<div>Patches: {stats.patchCount}{#if stats.candidatePatches != null} / {stats.candidatePatches} cand{/if}</div>
+			<div>Vertices: {stats.vertexCount.toLocaleString()}{#if stats.vertexBudget != null} / {stats.vertexBudget.toLocaleString()} budget{/if}</div>
+			{#if stats.budgetDropped != null && stats.budgetDropped > 0}
+				<div>Budget dropped: {stats.budgetDropped}</div>
+			{/if}
 			<div>Rebases: {hud.rebases}</div>
 			<div>Distance: {distance.toFixed(0)}</div>
 		</div>

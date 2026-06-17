@@ -7,7 +7,6 @@ import {
 	uploadPlanetParams,
 	writeLocalFrameToBuffer,
 	writeScaleContextToBuffer,
-	writeCubeSpherePatchesToBuffer,
 	writeSurfacePatchesToBuffer
 } from '../../params/gpuBuffers.js';
 import {
@@ -20,8 +19,18 @@ import { buildScaleContext, gatedParams } from '../../planet/layers.js';
 import { BIND_GROUP, UNIFORM_ALIGN, writeViewUniforms, type ViewUniforms } from '../uniformLayouts.js';
 import type { RenderFrame, RenderStats } from '../RenderBackend.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
+import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
+import { uploadCubeSpherePatches } from '../../params/gpuBuffers.js';
+import { PatchCullPass } from './patchCullPass.js';
 
-export const VERTS_PER_PATCH = 6; // legacy minimum; cube draws use cubePatchVertexCount(resolution)
+export const VERTS_PER_PATCH = 6;
+
+interface CubeBucketDraw {
+	resolution: number;
+	patchBuffer: GPUBuffer;
+	instanceCount: number;
+	vertexCount: number;
+}
 
 export class TerrainPass {
 	readonly cubePipeline: GPURenderPipeline;
@@ -30,12 +39,17 @@ export class TerrainPass {
 	readonly planetBuffer: GPUBuffer;
 	readonly scaleBuffer: GPUBuffer;
 	readonly localFrameBuffer: GPUBuffer;
+	readonly patchCull: PatchCullPass;
 	depthTexture: GPUTexture | null = null;
 	depthView: GPUTextureView | null = null;
-	cubePatchBuffer: GPUBuffer | null = null;
 	surfacePatchBuffer: GPUBuffer | null = null;
-	cubePatchCount = 0;
 	surfacePatchCount = 0;
+	private cubeBucketDraws: CubeBucketDraw[] = [];
+	private readonly cubeViewBg: GPUBindGroup;
+	private readonly cubePlanetBg: GPUBindGroup;
+	private readonly cubeScaleBg: GPUBindGroup;
+	private readonly cubePatchBgs = new Map<number, GPUBindGroup>();
+	private readonly surfaceScaleLocalBg: GPUBindGroup;
 
 	constructor(
 		private readonly device: GPUDevice,
@@ -48,6 +62,7 @@ export class TerrainPass {
 		this.planetBuffer = createPlanetParamsBuffer(device);
 		this.scaleBuffer = createScaleContextBuffer(device);
 		this.localFrameBuffer = createLocalFrameBuffer(device);
+		this.patchCull = new PatchCullPass(device);
 
 		const cubeLayout = this.createCubeLayout();
 		const surfaceLayout = this.createSurfaceLayout();
@@ -57,6 +72,36 @@ export class TerrainPass {
 
 		this.cubePipeline = this.createPipeline(cubeLayout, cubeModule);
 		this.surfacePipeline = this.createPipeline(surfaceLayout, surfaceModule);
+
+		this.cubeViewBg = device.createBindGroup({
+			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.frame),
+			entries: [{ binding: 0, resource: { buffer: this.viewBuffer } }]
+		});
+		this.cubePlanetBg = device.createBindGroup({
+			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.planet),
+			entries: [{ binding: 0, resource: { buffer: this.planetBuffer } }]
+		});
+		this.cubeScaleBg = device.createBindGroup({
+			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.scale),
+			entries: [{ binding: 0, resource: { buffer: this.scaleBuffer } }]
+		});
+		this.surfaceScaleLocalBg = device.createBindGroup({
+			layout: this.surfacePipeline.getBindGroupLayout(BIND_GROUP.scale),
+			entries: [
+				{ binding: 0, resource: { buffer: this.scaleBuffer } },
+				{ binding: 1, resource: { buffer: this.localFrameBuffer } }
+			]
+		});
+		for (const resolution of RESOLUTION_LEVELS) {
+			const patchBuffer = this.patchCull.getBucketBuffers(resolution).visibleBuffer;
+			this.cubePatchBgs.set(
+				resolution,
+				device.createBindGroup({
+					layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.patches),
+					entries: [{ binding: 0, resource: { buffer: patchBuffer } }]
+				})
+			);
+		}
 	}
 
 	private createCubeLayout(): GPUPipelineLayout {
@@ -151,21 +196,41 @@ export class TerrainPass {
 		this.depthView = this.depthTexture.createView();
 	}
 
-	updatePatches(frame: RenderFrame): void {
-		this.cubePatchBuffer?.destroy();
+	updateSurfacePatches(frame: RenderFrame): void {
 		this.surfacePatchBuffer?.destroy();
-		this.cubePatchCount = frame.cubeSpherePatches.length;
 		this.surfacePatchCount = frame.surfacePatches.length;
-		if (this.cubePatchCount > 0) {
-			this.cubePatchBuffer = writeCubeSpherePatchesToBuffer(frame.cubeSpherePatches, this.device);
-		} else {
-			this.cubePatchBuffer = null;
-		}
 		if (this.surfacePatchCount > 0) {
 			this.surfacePatchBuffer = writeSurfacePatchesToBuffer(frame.surfacePatches, this.device);
 		} else {
 			this.surfacePatchBuffer = null;
 		}
+	}
+
+	private prepareCubeBuckets(frame: RenderFrame): CubeBucketDraw[] {
+		const buckets = frame.orbitSchedule?.buckets;
+		if (!buckets || buckets.size === 0) return [];
+
+		const draws: CubeBucketDraw[] = [];
+
+		for (const resolution of RESOLUTION_LEVELS) {
+			const candidates = buckets.get(resolution);
+			if (!candidates?.length) continue;
+
+			const visible = candidates;
+
+			const bucketGpu = this.patchCull.getBucketBuffers(resolution);
+			uploadCubeSpherePatches(this.device, bucketGpu.visibleBuffer, visible);
+
+			const vertsPerPatch = cubePatchVertexCount(resolution);
+			draws.push({
+				resolution,
+				patchBuffer: bucketGpu.visibleBuffer,
+				instanceCount: visible.length,
+				vertexCount: visible.length * vertsPerPatch
+			});
+		}
+
+		return draws;
 	}
 
 	uploadUniforms(frame: RenderFrame): void {
@@ -231,6 +296,7 @@ export class TerrainPass {
 		const t0 = performance.now();
 		this.ensureDepth(width, height);
 		this.uploadUniforms(frame);
+		this.cubeBucketDraws = this.prepareCubeBuckets(frame);
 
 		const passEncoder = encoder.beginRenderPass({
 			colorAttachments: [
@@ -249,36 +315,26 @@ export class TerrainPass {
 			}
 		});
 
-		const viewBg = this.device.createBindGroup({
-			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.frame),
-			entries: [{ binding: 0, resource: { buffer: this.viewBuffer } }]
-		});
-		const planetBg = this.device.createBindGroup({
-			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.planet),
-			entries: [{ binding: 0, resource: { buffer: this.planetBuffer } }]
-		});
-		const scaleBg = this.device.createBindGroup({
-			layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.scale),
-			entries: [{ binding: 0, resource: { buffer: this.scaleBuffer } }]
-		});
+		const viewBg = this.cubeViewBg;
+		const planetBg = this.cubePlanetBg;
+		const scaleBg = this.cubeScaleBg;
 
 		let patchCount = 0;
 		let vertexCount = 0;
 
-		if (this.cubePatchBuffer && this.cubePatchCount > 0) {
-			const cubeVerts = cubePatchVertexCount(frame.cubeSpherePatches[0]?.resolution ?? 16);
-			const patchBg = this.device.createBindGroup({
-				layout: this.cubePipeline.getBindGroupLayout(BIND_GROUP.patches),
-				entries: [{ binding: 0, resource: { buffer: this.cubePatchBuffer } }]
-			});
+		for (const bucket of this.cubeBucketDraws) {
+			if (bucket.instanceCount === 0) continue;
+			const patchBg = this.cubePatchBgs.get(bucket.resolution);
+			if (!patchBg) continue;
 			passEncoder.setPipeline(this.cubePipeline);
 			passEncoder.setBindGroup(0, viewBg);
 			passEncoder.setBindGroup(1, planetBg);
 			passEncoder.setBindGroup(2, scaleBg);
 			passEncoder.setBindGroup(3, patchBg);
-			passEncoder.draw(cubeVerts, this.cubePatchCount);
-			patchCount += this.cubePatchCount;
-			vertexCount += this.cubePatchCount * cubeVerts;
+			const vertsPerPatch = cubePatchVertexCount(bucket.resolution);
+			passEncoder.draw(vertsPerPatch, bucket.instanceCount);
+			patchCount += bucket.instanceCount;
+			vertexCount += bucket.vertexCount;
 		}
 
 		if (this.surfacePatchBuffer && this.surfacePatchCount > 0) {
@@ -286,13 +342,7 @@ export class TerrainPass {
 				layout: this.surfacePipeline.getBindGroupLayout(BIND_GROUP.patches),
 				entries: [{ binding: 0, resource: { buffer: this.surfacePatchBuffer } }]
 			});
-			const scaleLocalBg = this.device.createBindGroup({
-				layout: this.surfacePipeline.getBindGroupLayout(BIND_GROUP.scale),
-				entries: [
-					{ binding: 0, resource: { buffer: this.scaleBuffer } },
-					{ binding: 1, resource: { buffer: this.localFrameBuffer } }
-				]
-			});
+			const scaleLocalBg = this.surfaceScaleLocalBg;
 			passEncoder.setPipeline(this.surfacePipeline);
 			passEncoder.setBindGroup(0, viewBg);
 			passEncoder.setBindGroup(1, planetBg);
@@ -305,7 +355,17 @@ export class TerrainPass {
 
 		passEncoder.end();
 		const frameMs = performance.now() - t0;
-		return { frameMs, patchCount, vertexCount, mode: frame.camera.mode };
+		const schedule = frame.orbitSchedule;
+		return {
+			frameMs,
+			patchCount,
+			vertexCount,
+			mode: frame.camera.mode,
+			candidatePatches: schedule?.candidatePatches,
+			visiblePatches: patchCount,
+			budgetDropped: schedule?.budgetDropped,
+			vertexBudget: schedule?.vertexBudget
+		};
 	}
 
 	destroy(): void {
@@ -313,7 +373,7 @@ export class TerrainPass {
 		this.planetBuffer.destroy();
 		this.scaleBuffer.destroy();
 		this.localFrameBuffer.destroy();
-		this.cubePatchBuffer?.destroy();
+		this.patchCull.destroy();
 		this.surfacePatchBuffer?.destroy();
 		this.depthTexture?.destroy();
 	}

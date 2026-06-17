@@ -12,6 +12,9 @@ import {
 import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
 import { CUBE_SPHERE_PATCH_BYTE_SIZE } from '../params/planetParams.js';
 
+export const MAX_CUBE_PATCHES = 4096;
+export const CUBE_PATCH_RING_BYTES = MAX_CUBE_PATCHES * CUBE_SPHERE_PATCH_BYTE_SIZE;
+
 export { writePlanetParamsToBuffer };
 
 export function writeScaleContextToBuffer(
@@ -50,12 +53,14 @@ export function writeLocalFrameToBuffer(
 	writeVec4(80, frame.camera_local);
 }
 
-export function writeCubeSpherePatchesToBuffer(
+export function encodeCubeSpherePatches(
 	patches: CubeSpherePatch[],
-	device: GPUDevice
-): GPUBuffer {
-	const data = new ArrayBuffer(patches.length * CUBE_SPHERE_PATCH_BYTE_SIZE);
-	const view = new DataView(data);
+	target?: ArrayBuffer
+): ArrayBuffer {
+	const byteLength = patches.length * CUBE_SPHERE_PATCH_BYTE_SIZE;
+	const data =
+		target && target.byteLength >= byteLength ? target : new ArrayBuffer(byteLength);
+	const view = new DataView(data, 0, byteLength);
 	for (let i = 0; i < patches.length; i++) {
 		const p = patches[i];
 		const o = i * CUBE_SPHERE_PATCH_BYTE_SIZE;
@@ -68,11 +73,40 @@ export function writeCubeSpherePatchesToBuffer(
 		view.setFloat32(o + 24, p.morph, true);
 		view.setUint32(o + 28, 0, true);
 	}
-	const buffer = device.createBuffer({
-		size: Math.max(data.byteLength, CUBE_SPHERE_PATCH_BYTE_SIZE),
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+	return data;
+}
+
+let patchUploadStaging: ArrayBuffer | null = null;
+
+export function uploadCubeSpherePatches(
+	device: GPUDevice,
+	buffer: GPUBuffer,
+	patches: CubeSpherePatch[],
+	byteOffset = 0
+): void {
+	if (patches.length === 0) return;
+	const byteLength = patches.length * CUBE_SPHERE_PATCH_BYTE_SIZE;
+	if (!patchUploadStaging || patchUploadStaging.byteLength < byteLength) {
+		patchUploadStaging = new ArrayBuffer(Math.max(byteLength, CUBE_PATCH_RING_BYTES));
+	}
+	const data = encodeCubeSpherePatches(patches, patchUploadStaging);
+	device.queue.writeBuffer(buffer, byteOffset, data, 0, byteLength);
+}
+
+export function createCubeSpherePatchRingBuffer(device: GPUDevice): GPUBuffer {
+	return device.createBuffer({
+		size: Math.max(CUBE_PATCH_RING_BYTES, CUBE_SPHERE_PATCH_BYTE_SIZE),
+		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
 	});
-	device.queue.writeBuffer(buffer, 0, data);
+}
+
+/** @deprecated Use uploadCubeSpherePatches with a ring buffer. */
+export function writeCubeSpherePatchesToBuffer(
+	patches: CubeSpherePatch[],
+	device: GPUDevice
+): GPUBuffer {
+	const buffer = createCubeSpherePatchRingBuffer(device);
+	uploadCubeSpherePatches(device, buffer, patches);
 	return buffer;
 }
 

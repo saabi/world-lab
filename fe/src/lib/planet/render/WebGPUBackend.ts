@@ -28,7 +28,7 @@ export class WebGPUBackend implements RenderBackend {
 		if (!this.device || !this.context || !this.terrain) {
 			return { frameMs: 0, patchCount: 0, vertexCount: 0, mode: frame.camera.mode };
 		}
-		this.terrain.updatePatches(frame);
+		this.terrain.updateSurfacePatches(frame);
 		const texture = this.context.getCurrentTexture();
 		const encoder = this.device.createCommandEncoder();
 		const stats = this.terrain.render(encoder, texture.createView(), frame, this.width, this.height);
