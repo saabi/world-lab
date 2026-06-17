@@ -100,6 +100,9 @@
 	let spaceflightActive = $state(false);
 	let spaceflightVelocity = $state<Vec3>([0, 0, 0]);
 	let spaceflightGravity = $state(9.8);
+	let overlayCanvas = $state<HTMLCanvasElement | null>(null);
+	let predictionHorizonSeconds = $state(600);
+	let predictionAutoPeriod = $state(true);
 
 	// Derived HUD statistics
 	let sfOrbitalSpeed = $derived(len3(spaceflightVelocity));
@@ -341,6 +344,8 @@
 		void spaceflightActive;
 		void spaceflightVelocity;
 		void spaceflightGravity;
+		void predictionHorizonSeconds;
+		void predictionAutoPeriod;
 		requestRender();
 	});
 
@@ -654,6 +659,223 @@
 		spaceflightVelocity = [0, 0, 0];
 		needsRender = true;
 		requestRender();
+	}
+
+	function project3DTo2D(P: Vec3, M: Float32Array, width: number, height: number) {
+		const cx = M[0] * P[0] + M[4] * P[1] + M[8] * P[2] + M[12];
+		const cy = M[1] * P[0] + M[5] * P[1] + M[9] * P[2] + M[13];
+		const cz = M[2] * P[0] + M[6] * P[1] + M[10] * P[2] + M[14];
+		const cw = M[3] * P[0] + M[7] * P[1] + M[11] * P[2] + M[15];
+		if (cw <= 0) return null;
+		const ndcx = cx / cw;
+		const ndcy = cy / cw;
+		return {
+			x: ((ndcx + 1) / 2) * width,
+			y: ((1 - ndcy) / 2) * height
+		};
+	}
+
+	function drawOrbitalProjection(camera: CameraState) {
+		if (!overlayCanvas || !spaceflightActive) return;
+
+		const ctx = overlayCanvas.getContext('2d');
+		if (!ctx) return;
+
+		const width = overlayCanvas.clientWidth;
+		const height = overlayCanvas.clientHeight;
+		if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
+			overlayCanvas.width = width;
+			overlayCanvas.height = height;
+		}
+
+		ctx.clearRect(0, 0, width, height);
+
+		const R = seaLevelRadius(params);
+		const mu = spaceflightGravity * R * R;
+		const dist = len3(freeFlyPosition);
+
+		// Calculate lookahead time T
+		let T = predictionHorizonSeconds;
+		if (predictionAutoPeriod) {
+			const period = 2 * Math.PI * Math.sqrt(Math.pow(dist, 3) / (mu || 1));
+			T = Math.min(3600, period); // cap at 1 hour
+		}
+
+		// Numerical integration
+		const N = 250;
+		const dt = T / N;
+		let p = [...freeFlyPosition] as Vec3;
+		let v = [...spaceflightVelocity] as Vec3;
+
+		const pathPoints: Vec3[] = [[...p]];
+		let crashed = false;
+
+		for (let i = 0; i < N; i++) {
+			const d = len3(p);
+			if (d < params.radius + 1.0) {
+				crashed = true;
+				break;
+			}
+			const gAccMagnitude = mu / (d * d * d || 1);
+			const ax = -p[0] * gAccMagnitude;
+			const ay = -p[1] * gAccMagnitude;
+			const az = -p[2] * gAccMagnitude;
+
+			v = [v[0] + ax * dt, v[1] + ay * dt, v[2] + az * dt];
+			p = [p[0] + v[0] * dt, p[1] + v[1] * dt, p[2] + v[2] * dt];
+			pathPoints.push([...p]);
+		}
+
+		// Detect landmarks (Ap/Pe)
+		let pePoint: Vec3 | null = null;
+		let apPoint: Vec3 | null = null;
+
+		for (let i = 1; i < pathPoints.length - 1; i++) {
+			const dPrev = len3(pathPoints[i - 1]);
+			const dCurr = len3(pathPoints[i]);
+			const dNext = len3(pathPoints[i + 1]);
+
+			if (dCurr < dPrev && dCurr < dNext) {
+				if (dCurr > params.radius + 1.05) {
+					pePoint = pathPoints[i];
+				}
+			}
+			if (dCurr > dPrev && dCurr > dNext) {
+				apPoint = pathPoints[i];
+			}
+		}
+
+		// Project points to screen coordinates and compute occlusion
+		const projectedPoints: ({ sx: number; sy: number; occluded: boolean } | null)[] = [];
+		const M = camera.viewProjectionMatrix;
+		const camPos = camera.position;
+
+		for (const pt of pathPoints) {
+			const proj = project3DTo2D(pt, M, width, height);
+			if (!proj) {
+				projectedPoints.push(null);
+				continue;
+			}
+
+			// Occlusion check
+			const rx = pt[0] - camPos[0];
+			const ry = pt[1] - camPos[1];
+			const rz = pt[2] - camPos[2];
+
+			const A = rx * rx + ry * ry + rz * rz;
+			const B = 2 * (camPos[0] * rx + camPos[1] * ry + camPos[2] * rz);
+			const C_coeff =
+				camPos[0] * camPos[0] +
+				camPos[1] * camPos[1] +
+				camPos[2] * camPos[2] -
+				params.radius * params.radius;
+
+			const disc = B * B - 4 * A * C_coeff;
+			let occluded = false;
+			if (disc >= 0) {
+				const t1 = (-B - Math.sqrt(disc)) / (2 * A);
+				if (t1 > 0 && t1 < 1.0) {
+					occluded = true;
+				}
+			}
+
+			projectedPoints.push({ sx: proj.x, sy: proj.y, occluded });
+		}
+
+		// Draw the line segments
+		ctx.lineWidth = 2.5;
+		ctx.shadowBlur = 4;
+		ctx.shadowColor = '#00f0ff';
+
+		for (let i = 1; i < projectedPoints.length; i++) {
+			const p0 = projectedPoints[i - 1];
+			const p1 = projectedPoints[i];
+			if (!p0 || !p1) continue;
+
+			ctx.beginPath();
+			ctx.moveTo(p0.sx, p0.sy);
+			ctx.lineTo(p1.sx, p1.sy);
+
+			if (p1.occluded) {
+				ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+				ctx.setLineDash([4, 4]);
+			} else {
+				ctx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
+				ctx.setLineDash([]);
+			}
+			ctx.stroke();
+		}
+
+		ctx.setLineDash([]);
+		ctx.shadowBlur = 0;
+
+		// Draw landmarks
+		ctx.font = 'bold 11px Courier New, Courier, monospace';
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = '#000000';
+
+		// Draw Pe
+		if (pePoint) {
+			const proj = project3DTo2D(pePoint, M, width, height);
+			if (proj) {
+				const peAlt = len3(pePoint) - params.radius;
+				ctx.beginPath();
+				ctx.arc(proj.x, proj.y, 4, 0, 2 * Math.PI);
+				ctx.fillStyle = '#00ff66';
+				ctx.fill();
+
+				const text = `Pe: Alt ${peAlt.toFixed(0)} m`;
+				ctx.strokeText(text, proj.x + 8, proj.y + 4);
+				ctx.fillText(text, proj.x + 8, proj.y + 4);
+			}
+		}
+
+		// Draw Ap
+		if (apPoint) {
+			const proj = project3DTo2D(apPoint, M, width, height);
+			if (proj) {
+				const apAlt = len3(apPoint) - params.radius;
+				ctx.beginPath();
+				ctx.arc(proj.x, proj.y, 4, 0, 2 * Math.PI);
+				ctx.fillStyle = '#ff3366';
+				ctx.fill();
+
+				const text = `Ap: Alt ${apAlt.toFixed(0)} m`;
+				ctx.strokeText(text, proj.x + 8, proj.y + 4);
+				ctx.fillText(text, proj.x + 8, proj.y + 4);
+			}
+		}
+
+		// Draw Impact Site
+		if (crashed) {
+			const crashPt = pathPoints[pathPoints.length - 1];
+			const proj = project3DTo2D(crashPt, M, width, height);
+			if (proj) {
+				ctx.strokeStyle = '#ff3333';
+				ctx.lineWidth = 2.5;
+
+				// Draw X
+				ctx.beginPath();
+				ctx.moveTo(proj.x - 5, proj.y - 5);
+				ctx.lineTo(proj.x + 5, proj.y + 5);
+				ctx.moveTo(proj.x + 5, proj.y - 5);
+				ctx.lineTo(proj.x - 5, proj.y + 5);
+				ctx.stroke();
+
+				ctx.fillStyle = '#ff3333';
+				const text = 'IMPACT SITE';
+				ctx.strokeText(text, proj.x + 8, proj.y + 4);
+				ctx.fillText(text, proj.x + 8, proj.y + 4);
+			}
+		}
+	}
+
+	function clearOverlayCanvas() {
+		if (!overlayCanvas) return;
+		const ctx = overlayCanvas.getContext('2d');
+		if (ctx) {
+			ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+		}
 	}
 
 	function handlePointerLockChange() {
@@ -976,6 +1198,11 @@
 				rebases: localFrame.rebaseCount,
 				fps: hud.fps
 			};
+			if (spaceflightActive) {
+				drawOrbitalProjection(camera);
+			} else {
+				clearOverlayCanvas();
+			}
 			frames++;
 			if (time - lastFpsTime > 500) {
 				hud = { ...hud, fps: Math.round((frames * 1000) / (time - lastFpsTime)) };
@@ -1074,6 +1301,11 @@
 		onwheel={onWheel}
 	></canvas>
 
+	<canvas
+		bind:this={overlayCanvas}
+		class="overlay-canvas"
+	></canvas>
+
 	{#if spaceflightActive}
 		<div class="spaceflight-hud" onpointerdown={stopPointerPropagation}>
 			<div class="hud-header">ORBITAL FLIGHT HUD</div>
@@ -1103,6 +1335,27 @@
 					<span class="hud-label">Gravity Accel</span>
 					<span class="hud-value">{sfGravityAcc.toFixed(2)} m/s²</span>
 				</div>
+			</div>
+			<div class="hud-projection-controls">
+				<div class="hud-control-row">
+					<label class="hud-checkbox-label">
+						<input type="checkbox" bind:checked={predictionAutoPeriod} />
+						Auto-Period Projection
+					</label>
+				</div>
+				{#if !predictionAutoPeriod}
+					<div class="hud-control-row">
+						<span class="hud-label">Lookahead: {predictionHorizonSeconds}s</span>
+						<input
+							type="range"
+							min="10"
+							max="3600"
+							step="10"
+							class="hud-range-slider"
+							bind:value={predictionHorizonSeconds}
+						/>
+					</div>
+				{/if}
 			</div>
 			<div class="hud-controls-hint">
 				RCS translation: W/S (Fwd/Bwd), A/D (L/R), Space/Ctrl (Up/Dn) & Q/E roll
@@ -1494,5 +1747,67 @@
 	.hud-action-btn.abort-btn:hover {
 		background: rgba(255, 85, 85, 0.35);
 		box-shadow: 0 0 12px rgba(255, 85, 85, 0.4);
+	}
+
+	.overlay-canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 5;
+	}
+
+	.hud-projection-controls {
+		width: 100%;
+		border-top: 1px solid rgba(0, 240, 255, 0.2);
+		padding-top: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.hud-control-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 11px;
+		width: 100%;
+	}
+
+	.hud-checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: #00f0ff;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.hud-checkbox-label input[type="checkbox"] {
+		accent-color: #00f0ff;
+		cursor: pointer;
+	}
+
+	.hud-range-slider {
+		flex: 1;
+		margin-left: 12px;
+		height: 3px;
+		background: rgba(0, 240, 255, 0.2);
+		border-radius: 2px;
+		outline: none;
+		-webkit-appearance: none;
+	}
+
+	.hud-range-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: #00f0ff;
+		cursor: pointer;
+		box-shadow: 0 0 6px rgba(0, 240, 255, 0.8);
 	}
 </style>
