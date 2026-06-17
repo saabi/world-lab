@@ -131,11 +131,11 @@ export function scheduleOrbitPatches(
 ): OrbitScheduleResult {
 	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
 	const baseSpacing = options.targetVertexSpacingPx ?? 6;
-	let spacing = Math.max(
-		baseSpacing,
-		orbitSpacingHint,
-		estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing)
-	);
+	const estimate = estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing);
+	// Start from the altitude-appropriate estimate. The hint only eases the search
+	// loop's coarsening from the previous frame; it must decay toward the estimate
+	// so spacing recovers after a zoom-out instead of ratcheting up permanently.
+	let spacing = Math.max(baseSpacing, estimate, orbitSpacingHint * 0.8);
 	let candidates = scheduleAdaptiveOrbitPatches({
 		cameraPos,
 		planetRadius,

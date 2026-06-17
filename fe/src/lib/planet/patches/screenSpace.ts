@@ -19,6 +19,8 @@ export interface ScreenBounds {
 	maxX: number;
 	maxY: number;
 	anyVisible: boolean;
+	/** At least one sampled corner projected behind the camera (near-plane straddle). */
+	anyBehind?: boolean;
 }
 
 /** Column-major mat4 × vec3 (w=1). */
@@ -110,10 +112,14 @@ export function patchScreenBounds(
 	let maxX = -Infinity;
 	let maxY = -Infinity;
 	let anyVisible = false;
+	let anyBehind = false;
 
 	for (const world of corners) {
 		const proj = projectWorldPoint(viewProj, viewport, world);
-		if (proj.behindCamera) continue;
+		if (proj.behindCamera) {
+			anyBehind = true;
+			continue;
+		}
 		anyVisible = true;
 		minX = Math.min(minX, proj.screenPx[0]);
 		minY = Math.min(minY, proj.screenPx[1]);
@@ -122,10 +128,10 @@ export function patchScreenBounds(
 	}
 
 	if (!anyVisible) {
-		return { minX: 0, minY: 0, maxX: 0, maxY: 0, anyVisible: false };
+		return { minX: 0, minY: 0, maxX: 0, maxY: 0, anyVisible: false, anyBehind };
 	}
 
-	return { minX, minY, maxX, maxY, anyVisible };
+	return { minX, minY, maxX, maxY, anyVisible, anyBehind };
 }
 
 export function patchScreenDiameterPx(bounds: ScreenBounds): number {

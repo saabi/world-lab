@@ -162,8 +162,16 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			const bounds = patchScreenBounds(viewProj, viewport, planetRadius, patch, {
 				cornersOnly: true
 			});
-			const onOrNearScreen = patchIntersectsViewport(bounds, viewport, VIEWPORT_CULL_MARGIN_PX);
-			const diameterPx = patchScreenDiameterPx(bounds);
+			// A patch with corners on both sides of the near plane has untrustworthy
+			// 2D bounds (the behind-camera corners are dropped, so its footprint is
+			// underestimated). It sits right at the camera, so treat it as maximally
+			// large: force subdivision and, at the leaf, max resolution + priority.
+			const straddlesNearPlane = bounds.anyBehind === true && bounds.anyVisible;
+			const onOrNearScreen =
+				straddlesNearPlane || patchIntersectsViewport(bounds, viewport, VIEWPORT_CULL_MARGIN_PX);
+			const diameterPx = straddlesNearPlane
+				? Number.POSITIVE_INFINITY
+				: patchScreenDiameterPx(bounds);
 			const inSearchRegion =
 				onOrNearScreen ||
 				patchIntersectsViewport(bounds, viewport, searchMarginPx) ||
@@ -194,15 +202,21 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 				!isScreenBoundsOutsideViewport(emitBounds, viewport, 0);
 			if (!onOrNearScreen && !limbTile && !overlapsViewport) continue;
 
-			const emitDiameterPx = patchScreenDiameterPx(emitBounds);
+			const emitDiameterPx = straddlesNearPlane
+				? Number.POSITIVE_INFINITY
+				: patchScreenDiameterPx(emitBounds);
 			const res = resolutionFromDiameter(
 				Math.max(emitDiameterPx, onOrNearScreen ? targetVertexSpacingPx : targetVertexSpacingPx * 2),
 				targetVertexSpacingPx,
 				maxRes
 			);
 			const finalPatch = nodeToPatch(node, nextId++, res);
-			const area = patchScreenAreaPx(emitBounds);
 			const facing = Math.max(0, dot3(patchCenterDir(finalPatch), camDir));
+			// Straddling tiles are closest to the camera; their truncated screen area
+			// would under-rank them, so give them a full-viewport-area priority.
+			const area = straddlesNearPlane
+				? viewport.width * viewport.height
+				: patchScreenAreaPx(emitBounds);
 			finalPatch.priority = area * facing;
 			leaves.push(finalPatch);
 		}
