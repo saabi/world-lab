@@ -152,7 +152,7 @@ export function updateOrbitCamera(
 	});
 }
 
-function lookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
+export function lookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
 	const f = normalize3(sub3(center, eye));
 	let right = cross3(f, up);
 	if (len3(right) < 1e-6) {
@@ -170,7 +170,7 @@ function lookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
 	]);
 }
 
-function perspective(fovDeg: number, aspect: number, near: number, far: number): Float32Array {
+export function perspective(fovDeg: number, aspect: number, near: number, far: number): Float32Array {
 	const f = 1 / Math.tan((fovDeg * Math.PI) / 360);
 	const nf = 1 / (near - far);
 	return new Float32Array([
@@ -181,7 +181,7 @@ function perspective(fovDeg: number, aspect: number, near: number, far: number):
 	]);
 }
 
-function multiply4(a: Float32Array, b: Float32Array): Float32Array {
+export function multiply4(a: Float32Array, b: Float32Array): Float32Array {
 	const out = new Float32Array(16);
 	for (let col = 0; col < 4; col++) {
 		for (let row = 0; row < 4; row++) {

@@ -3,10 +3,11 @@
 	import { browser } from '$app/environment';
 	import type { CameraState } from '../camera/cameraModes.js';
 	import { blendPatchModes, selectRenderMode } from '../camera/cameraModes.js';
-	import { createOrbitCamera, quatFromAzimuthElevation } from '../camera/orbitCamera.js';
+	import { createOrbitCamera, quatFromAzimuthElevation, lookAt, perspective, multiply4 } from '../camera/orbitCamera.js';
 	import type { Quat } from '../scene/types.js';
-	import { quatFromAxisAngle, quatMultiply, rotateVec3 } from '../scene/transform.js';
-	import { len3, normalize3, cross3, type Vec3 } from '../math/vec.js';
+	import { quatFromAxisAngle, quatMultiply, rotateVec3, quatFromRotationMatrix } from '../scene/transform.js';
+	import { len3, normalize3, cross3, add3, type Vec3 } from '../math/vec.js';
+	import { geodeticToEcef } from '../math/geodetic.js';
 	import {
 		altitudeToDistance,
 		distanceToAltitude,
@@ -90,6 +91,18 @@
 	let spinSpeedRadPerSec = $state(0);
 	let axialTilt = $state(0);
 	let cameraRotation = $state<Quat>([0, 0, 0, 1]);
+
+	let freeFlyActive = $state(false);
+	let freeFlyPosition = $state<Vec3>([0, 0, 0]);
+	let freeFlyRotation = $state<Quat>([0, 0, 0, 1]);
+
+	const keysPressed = {
+		w: false,
+		a: false,
+		s: false,
+		d: false,
+		shift: false
+	};
 
 	let planetRotation = $derived.by(() => {
 		const tiltRad = (axialTilt * Math.PI) / 180;
@@ -295,10 +308,14 @@
 		void spinSpeedRadPerSec;
 		void axialTilt;
 		void cameraRotation;
+		void freeFlyActive;
+		void freeFlyPosition;
+		void freeFlyRotation;
 		requestRender();
 	});
 
 	$effect(() => {
+		if (freeFlyActive) return;
 		// Calculate the decomposed angles of cameraRotation
 		const pos = rotateVec3(cameraRotation, [cameraDistance, 0, 0]);
 		const dist = len3(pos);
@@ -417,7 +434,134 @@
 		};
 	}
 
+	function buildFreeFlyCamera(width: number, height: number, p: PlanetParameters): CameraState {
+		const aspect = width / Math.max(height, 1);
+		const dist = len3(freeFlyPosition);
+		const far = Math.max(p.radius * 20, dist * 4);
+		const fovDeg = 60;
+		const near = 0.1;
+
+		const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+		const up = rotateVec3(freeFlyRotation, [0, 1, 0]);
+		const target = add3(freeFlyPosition, forward);
+
+		const view = lookAt(freeFlyPosition, target, up);
+		const projection = perspective(fovDeg, aspect, near, far);
+		const viewProjection = multiply4(projection, view);
+
+		const altitudeMetersVal = Math.max(dist - p.radius, 0);
+		const currentAzimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
+		const currentElevation = Math.asin(freeFlyPosition[1] / (dist || 1));
+
+		const geo = { latRad: currentElevation, lonRad: currentAzimuth, altitudeMeters: altitudeMetersVal };
+		const ecef = geodeticToEcef(geo);
+		const focalLengthPx = (0.5 * 1080) / Math.tan((fovDeg * Math.PI) / 360);
+
+		return {
+			mode: selectRenderMode(altitudeMetersVal, modeState, p.radius),
+			geodetic: geo,
+			ecef,
+			altitudeMeters: altitudeMetersVal,
+			viewMatrix: view,
+			projectionMatrix: projection,
+			viewProjectionMatrix: viewProjection,
+			focalLengthPx,
+			position: freeFlyPosition,
+			target,
+			cameraRotation: freeFlyRotation
+		};
+	}
+
+	function enterFreeFly() {
+		if (freeFlyActive) return;
+
+		const camera = buildCamera(canvasWidth || 800, canvasHeight || 600, params);
+		freeFlyPosition = camera.position;
+
+		const vm = camera.viewMatrix;
+		const s: Vec3 = [vm[0], vm[4], vm[8]];
+		const u: Vec3 = [vm[1], vm[5], vm[9]];
+		const b: Vec3 = [vm[2], vm[6], vm[10]];
+
+		freeFlyRotation = quatFromRotationMatrix(s, u, b);
+		freeFlyActive = true;
+
+		// Lock keys
+		keysPressed.w = false;
+		keysPressed.a = false;
+		keysPressed.s = false;
+		keysPressed.d = false;
+		keysPressed.shift = false;
+
+		canvas?.requestPointerLock();
+	}
+
+	function exitFreeFly() {
+		if (!freeFlyActive) return;
+		document.exitPointerLock();
+	}
+
+	function toggleFreeFly() {
+		if (freeFlyActive) {
+			exitFreeFly();
+		} else {
+			enterFreeFly();
+		}
+	}
+
+	function handlePointerLockChange() {
+		if (document.pointerLockElement !== canvas) {
+			if (freeFlyActive) {
+				const camera = buildFreeFlyCamera(canvasWidth || 800, canvasHeight || 600, params);
+				const vm = camera.viewMatrix;
+				const s: Vec3 = [vm[0], vm[4], vm[8]];
+				const u: Vec3 = [vm[1], vm[5], vm[9]];
+				const outward = normalize3(camera.position);
+
+				altitudeMeters = Math.max(0, len3(freeFlyPosition) - params.radius);
+				azimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
+				elevation = Math.max(-1.55, Math.min(1.55, Math.asin(freeFlyPosition[1] / (len3(freeFlyPosition) || 1))));
+				cameraRotation = quatFromRotationMatrix(outward, u, s);
+
+				freeFlyActive = false;
+				needsRender = true;
+				requestRender();
+			}
+		}
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (!freeFlyActive) return;
+		const key = e.key.toLowerCase();
+
+		if (e.key === 'Escape') {
+			exitFreeFly();
+			return;
+		}
+
+		let changed = false;
+		if (key === 'w' && !keysPressed.w) { keysPressed.w = true; changed = true; }
+		if (key === 'a' && !keysPressed.a) { keysPressed.a = true; changed = true; }
+		if (key === 's' && !keysPressed.s) { keysPressed.s = true; changed = true; }
+		if (key === 'd' && !keysPressed.d) { keysPressed.d = true; changed = true; }
+		if (e.shiftKey) keysPressed.shift = true;
+
+		if (changed) {
+			requestRender();
+		}
+	}
+
+	function handleKeyUp(e: KeyboardEvent) {
+		const key = e.key.toLowerCase();
+		if (key === 'w') keysPressed.w = false;
+		if (key === 'a') keysPressed.a = false;
+		if (key === 's') keysPressed.s = false;
+		if (key === 'd') keysPressed.d = false;
+		if (!e.shiftKey) keysPressed.shift = false;
+	}
+
 	function onPointerDown(e: PointerEvent) {
+		if (freeFlyActive) return;
 		dragging = true;
 		lastX = e.clientX;
 		lastY = e.clientY;
@@ -425,6 +569,23 @@
 	}
 
 	function onPointerMove(e: PointerEvent) {
+		if (freeFlyActive) {
+			const dx = e.movementX;
+			const dy = e.movementY;
+			const sensitivity = 0.0025;
+
+			const qYaw = quatFromAxisAngle([0, 1, 0], -dx * sensitivity);
+			const qPitch = quatFromAxisAngle([1, 0, 0], -dy * sensitivity);
+
+			let nextRot = quatMultiply(freeFlyRotation, qYaw);
+			nextRot = quatMultiply(nextRot, qPitch);
+			freeFlyRotation = nextRot;
+
+			needsRender = true;
+			requestRender();
+			return;
+		}
+
 		if (!dragging) return;
 		const dx = e.clientX - lastX;
 		const dy = e.clientY - lastY;
@@ -462,13 +623,19 @@
 	}
 
 	function onPointerUp(e: PointerEvent) {
+		if (freeFlyActive) return;
 		dragging = false;
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
 	}
 
 	function onWheel(e: WheelEvent) {
+		if (freeFlyActive) return;
 		e.preventDefault();
 		altitudeMeters = nudgeAltitudeASL(params, altitudeMeters, e.deltaY, atmosphere);
+	}
+
+	function isMoving() {
+		return keysPressed.w || keysPressed.a || keysPressed.s || keysPressed.d;
 	}
 
 	function tick(time: number) {
@@ -487,11 +654,37 @@
 			spinAngle += spinSpeedRadPerSec * dt;
 		}
 
+		if (freeFlyActive && dt > 0) {
+			const altitude = Math.max(10, len3(freeFlyPosition) - params.radius);
+			let speed = altitude * 0.5;
+			if (keysPressed.shift) {
+				speed *= 5;
+			}
+
+			const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
+
+			let moveDir: Vec3 = [0, 0, 0];
+			if (keysPressed.w) moveDir = [moveDir[0] + forward[0], moveDir[1] + forward[1], moveDir[2] + forward[2]];
+			if (keysPressed.s) moveDir = [moveDir[0] - forward[0], moveDir[1] - forward[1], moveDir[2] - forward[2]];
+			if (keysPressed.d) moveDir = [moveDir[0] + right[0], moveDir[1] + right[1], moveDir[2] + right[2]];
+			if (keysPressed.a) moveDir = [moveDir[0] - right[0], moveDir[1] - right[1], moveDir[2] - right[2]];
+
+			const moveLen = len3(moveDir);
+			if (moveLen > 0) {
+				const dx = (moveDir[0] / moveLen) * speed * dt;
+				const dy = (moveDir[1] / moveLen) * speed * dt;
+				const dz = (moveDir[2] / moveLen) * speed * dt;
+				freeFlyPosition = [freeFlyPosition[0] + dx, freeFlyPosition[1] + dy, freeFlyPosition[2] + dz];
+				needsRender = true;
+			}
+		}
+
 		const width = canvas.clientWidth;
 		const height = canvas.clientHeight;
 		const resized =
 			width > 0 && height > 0 && (width !== canvasWidth || height !== canvasHeight);
-		const animating = orbitSpeedRadPerSec !== 0 || spinSpeedRadPerSec !== 0;
+		const animating = orbitSpeedRadPerSec !== 0 || spinSpeedRadPerSec !== 0 || (freeFlyActive && isMoving());
 
 		if ((needsRender || resized || animating) && width > 0 && height > 0) {
 			if (resized) {
@@ -501,11 +694,13 @@
 				canvasWidth = width;
 				canvasHeight = height;
 			}
-			const camera = buildCamera(width, height, params);
+			const camera = freeFlyActive
+				? buildFreeFlyCamera(width, height, params)
+				: buildCamera(width, height, params);
 			const frame = buildFrame(time * 0.001, camera, width, height, params);
 			stats = backend.render(frame);
 			hud = {
-				altitude: altitudeMeters,
+				altitude: freeFlyActive ? len3(freeFlyPosition) - params.radius : altitudeMeters,
 				sphereAltitude: camera.altitudeMeters,
 				mode: modeState,
 				rebases: localFrame.rebaseCount,
@@ -565,12 +760,30 @@
 		const resizeObserver = new ResizeObserver(() => requestRender());
 		resizeObserver.observe(canvas);
 
+		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('keyup', handleKeyUp);
+		document.addEventListener('pointerlockchange', handlePointerLockChange);
+
+		const handleBlur = () => {
+			keysPressed.w = false;
+			keysPressed.a = false;
+			keysPressed.s = false;
+			keysPressed.d = false;
+			keysPressed.shift = false;
+		};
+		window.addEventListener('blur', handleBlur);
+
 		return () => {
 			resizeObserver.disconnect();
 			cancelAnimationFrame(raf);
 			rafActive = false;
 			backend?.destroy();
 			backend = null;
+
+			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('keyup', handleKeyUp);
+			document.removeEventListener('pointerlockchange', handlePointerLockChange);
+			window.removeEventListener('blur', handleBlur);
 		};
 	});
 </script>
@@ -610,7 +823,15 @@
 				<div>Rebases: {hud.rebases}</div>
 			<div>Distance: {cameraDistance.toFixed(0)}</div>
 			<div>Lights: {activeLightCount} · Ambient: {ambientActive ? 'on' : 'off'}</div>
-		</div>
+			</div>
+			<button
+				type="button"
+				class="nav-toggle-btn"
+				class:active={freeFlyActive}
+				onclick={toggleFreeFly}
+			>
+				{freeFlyActive ? 'Fly Mode: Active (Esc)' : 'Enter WASD Fly Mode'}
+			</button>
 		</aside>
 
 		<SceneTreePanel bind:scene illuminationOn={params.illumination > 0.5} />
@@ -717,5 +938,34 @@
 		gap: 2px;
 		font-variant-numeric: tabular-nums;
 		font-size: 12px;
+	}
+
+	.nav-toggle-btn {
+		width: 100%;
+		margin-top: 12px;
+		padding: 8px 12px;
+		background: rgba(92, 60, 0, 0.45);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 6px;
+		color: #f0e6d8;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease;
+	}
+
+	.nav-toggle-btn:hover {
+		background: rgba(120, 80, 0, 0.55);
+		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.nav-toggle-btn.active {
+		background: rgba(0, 120, 60, 0.45);
+		border-color: rgba(0, 255, 128, 0.3);
+		color: #e6f7ed;
+	}
+
+	.nav-toggle-btn.active:hover {
+		background: rgba(0, 150, 80, 0.55);
 	}
 </style>

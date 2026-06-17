@@ -63,3 +63,44 @@ export function transformPoint(world: WorldTransform, local: Vec3): Vec3 {
 		world.position[2] + rotated[2]
 	];
 }
+
+export function quatFromRotationMatrix(s: Vec3, u: Vec3, b: Vec3): Quat {
+	const r00 = s[0], r01 = u[0], r02 = b[0];
+	const r10 = s[1], r11 = u[1], r12 = b[1];
+	const r20 = s[2], r21 = u[2], r22 = b[2];
+
+	const tr = r00 + r11 + r22;
+	if (tr > 0) {
+		const S = Math.sqrt(tr + 1.0) * 2;
+		return [
+			(r21 - r12) / S,
+			(r02 - r20) / S,
+			(r10 - r01) / S,
+			0.25 * S
+		];
+	} else if (r00 > r11 && r00 > r22) {
+		const S = Math.sqrt(1.0 + r00 - r11 - r22) * 2;
+		return [
+			0.25 * S,
+			(r01 + r10) / S,
+			(r02 + r20) / S,
+			(r21 - r12) / S
+		];
+	} else if (r11 > r22) {
+		const S = Math.sqrt(1.0 + r11 - r00 - r22) * 2;
+		return [
+			(r01 + r10) / S,
+			0.25 * S,
+			(r12 + r21) / S,
+			(r02 - r20) / S
+		];
+	} else {
+		const S = Math.sqrt(1.0 + r22 - r00 - r11) * 2;
+		return [
+			(r02 + r20) / S,
+			(r12 + r21) / S,
+			0.25 * S,
+			(r10 - r01) / S
+		];
+	}
+}
