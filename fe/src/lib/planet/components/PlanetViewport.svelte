@@ -106,6 +106,9 @@
 	let predictionAutoPeriod = $state(false);
 	let topDownCanvas = $state<HTMLCanvasElement | null>(null);
 	let monitorOrientationMode = $state<'ship' | 'fixed'>('fixed');
+	let spaceflightOrientationMode = $state<'free' | 'prograde' | 'retrograde'>('free');
+	let mouseOffsetRot = $state<Quat>([0, 0, 0, 1]);
+	let spaceflightThrustMultiplier = $state(1.0);
 	let hudPeAltitude = $state<number | null>(null);
 	let hudApAltitude = $state<number | null>(null);
 
@@ -352,6 +355,8 @@
 		void predictionHorizonSeconds;
 		void predictionAutoPeriod;
 		void monitorOrientationMode;
+		void spaceflightOrientationMode;
+		void spaceflightThrustMultiplier;
 		requestRender();
 	});
 
@@ -672,38 +677,38 @@
 		const speed = len3(spaceflightVelocity);
 		if (speed < 0.01) return; // velocity is too small to orient
 
+		spaceflightOrientationMode = direction;
+		mouseOffsetRot = [0, 0, 0, 1]; // Reset offset to look straight
+
+		// Do an initial immediate calculation to avoid 1-frame lag
 		const velDir = normalize3(spaceflightVelocity);
 		const lookDir = direction === 'prograde' ? velDir : scale3(velDir, -1);
-
-		// b_vec points opposite to lookDir (camera's back vector)
 		const b_vec = scale3(lookDir, -1);
 
-		// Align Up vector as closely as possible to the outward radial direction
 		const outward = normalize3(freeFlyPosition);
 		let dotVal = dot3(outward, b_vec);
 		let u_vec = sub3(outward, scale3(b_vec, dotVal));
 		let lenU = len3(u_vec);
 
 		if (lenU < 1e-4) {
-			// Fallback 1: project planet's North Pole [0, 1, 0]
 			const north = [0, 1, 0] as Vec3;
 			dotVal = dot3(north, b_vec);
 			u_vec = sub3(north, scale3(b_vec, dotVal));
 			lenU = len3(u_vec);
 		}
 
-		if (lenU < 1e-4) {
-			// Fallback 2: project X-axis [1, 0, 0]
-			const refX = [1, 0, 0] as Vec3;
-			dotVal = dot3(refX, b_vec);
-			u_vec = sub3(refX, scale3(b_vec, dotVal));
-			lenU = len3(u_vec);
-		}
-
 		u_vec = scale3(u_vec, 1 / (lenU || 1));
 		const s_vec = normalize3(cross3(u_vec, b_vec));
 
-		freeFlyRotation = quatFromRotationMatrix(s_vec, u_vec, b_vec);
+		const autoRot = quatFromRotationMatrix(s_vec, u_vec, b_vec);
+		freeFlyRotation = autoRot;
+
+		needsRender = true;
+		requestRender();
+	}
+
+	function releaseOrientation() {
+		spaceflightOrientationMode = 'free';
 		needsRender = true;
 		requestRender();
 	}
@@ -795,14 +800,141 @@
 		hudPeAltitude = pePoint ? len3(pePoint) - params.radius : null;
 		hudApAltitude = apPoint ? len3(apPoint) - params.radius : null;
 
-		// Clear overlay canvas so nothing is drawn in the 3D viewport
+		// Clear overlay canvas
 		ctx.clearRect(0, 0, width, height);
+
+		// Draw prograde and retrograde indicators directly on the 3D display
+		const speed = len3(spaceflightVelocity);
+		if (speed > 0.05) {
+			const velDir = normalize3(spaceflightVelocity);
+			const M = camera.viewProjectionMatrix;
+			const camPos = camera.position;
+
+			// Prograde
+			const pProj = add3(camPos, scale3(velDir, 1000.0));
+			const pProjScreen = project3DTo2D(pProj, M, width, height);
+			if (pProjScreen) {
+				// Occlusion check
+				const rx = pProj[0] - camPos[0];
+				const ry = pProj[1] - camPos[1];
+				const rz = pProj[2] - camPos[2];
+				const A = rx * rx + ry * ry + rz * rz;
+				const B = 2 * (camPos[0] * rx + camPos[1] * ry + camPos[2] * rz);
+				const C_coeff = camPos[0] * camPos[0] + camPos[1] * camPos[1] + camPos[2] * camPos[2] - params.radius * params.radius;
+				const disc = B * B - 4 * A * C_coeff;
+				let occluded = false;
+				if (disc >= 0) {
+					const t1 = (-B - Math.sqrt(disc)) / (2 * A);
+					if (t1 > 0 && t1 < 1.0) occluded = true;
+				}
+				drawMarkerSymbol(ctx, pProjScreen.x, pProjScreen.y, 'PROGRADE', occluded);
+			}
+
+			// Retrograde
+			const rProj = add3(camPos, scale3(velDir, -1000.0));
+			const rProjScreen = project3DTo2D(rProj, M, width, height);
+			if (rProjScreen) {
+				// Occlusion check
+				const rx = rProj[0] - camPos[0];
+				const ry = rProj[1] - camPos[1];
+				const rz = rProj[2] - camPos[2];
+				const A = rx * rx + ry * ry + rz * rz;
+				const B = 2 * (camPos[0] * rx + camPos[1] * ry + camPos[2] * rz);
+				const C_coeff = camPos[0] * camPos[0] + camPos[1] * camPos[1] + camPos[2] * camPos[2] - params.radius * params.radius;
+				const disc = B * B - 4 * A * C_coeff;
+				let occluded = false;
+				if (disc >= 0) {
+					const t1 = (-B - Math.sqrt(disc)) / (2 * A);
+					if (t1 > 0 && t1 < 1.0) occluded = true;
+				}
+				drawMarkerSymbol(ctx, rProjScreen.x, rProjScreen.y, 'RETROGRADE', occluded);
+			}
+		}
 
 		// Draw top-down monitor
 		drawOrbitMonitor(pathPoints, crashed, pePoint, apPoint);
 
 		// Draw new floating top-down overlay view
 		drawTopDownOverlay(pathPoints, crashed, pePoint, apPoint);
+	}
+
+	function drawMarkerSymbol(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		type: 'PROGRADE' | 'RETROGRADE',
+		occluded: boolean
+	) {
+		ctx.save();
+		if (occluded) {
+			ctx.globalAlpha = 0.25;
+		} else {
+			ctx.globalAlpha = 0.85;
+		}
+
+		ctx.lineWidth = 2;
+		ctx.shadowBlur = occluded ? 0 : 4;
+
+		if (type === 'PROGRADE') {
+			ctx.strokeStyle = '#00ff66';
+			ctx.fillStyle = '#00ff66';
+			ctx.shadowColor = '#00ff66';
+
+			// Circle
+			ctx.beginPath();
+			ctx.arc(x, y, 8, 0, 2 * Math.PI);
+			ctx.stroke();
+
+			// Center dot
+			ctx.beginPath();
+			ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
+			ctx.fill();
+
+			// Ticks
+			ctx.beginPath();
+			ctx.moveTo(x, y - 8);
+			ctx.lineTo(x, y - 13);
+			ctx.moveTo(x - 8, y);
+			ctx.lineTo(x - 13, y);
+			ctx.moveTo(x + 8, y);
+			ctx.lineTo(x + 13, y);
+			ctx.stroke();
+
+			// Text
+			ctx.font = 'bold 9px Courier New, monospace';
+			ctx.fillText('PRG', x + 12, y + 3);
+		} else {
+			ctx.strokeStyle = '#ff5555';
+			ctx.fillStyle = '#ff5555';
+			ctx.shadowColor = '#ff5555';
+
+			// Circle
+			ctx.beginPath();
+			ctx.arc(x, y, 8, 0, 2 * Math.PI);
+			ctx.stroke();
+
+			// Inner 'X'
+			ctx.beginPath();
+			ctx.moveTo(x - 5, y - 5);
+			ctx.lineTo(x + 5, y + 5);
+			ctx.moveTo(x + 5, y - 5);
+			ctx.lineTo(x - 5, y + 5);
+			ctx.stroke();
+
+			// Ticks
+			ctx.beginPath();
+			ctx.moveTo(x, y - 8);
+			ctx.lineTo(x, y - 13);
+			ctx.moveTo(x - 8, y);
+			ctx.lineTo(x - 13, y);
+			ctx.stroke();
+
+			// Text
+			ctx.font = 'bold 9px Courier New, monospace';
+			ctx.fillText('RET', x + 12, y + 3);
+		}
+
+		ctx.restore();
 	}
 
 	function drawOrbitMonitor(
@@ -1301,9 +1433,15 @@
 			const qYaw = quatFromAxisAngle([0, 1, 0], -dx * sensitivity);
 			const qPitch = quatFromAxisAngle([1, 0, 0], -dy * sensitivity);
 
-			let nextRot = quatMultiply(freeFlyRotation, qYaw);
-			nextRot = quatMultiply(nextRot, qPitch);
-			freeFlyRotation = nextRot;
+			if (spaceflightActive && spaceflightOrientationMode !== 'free') {
+				let nextOffset = quatMultiply(mouseOffsetRot, qYaw);
+				nextOffset = quatMultiply(nextOffset, qPitch);
+				mouseOffsetRot = nextOffset;
+			} else {
+				let nextRot = quatMultiply(freeFlyRotation, qYaw);
+				nextRot = quatMultiply(nextRot, qPitch);
+				freeFlyRotation = nextRot;
+			}
 
 			needsRender = true;
 			requestRender();
@@ -1417,6 +1555,43 @@
 		}
 
 		if (spaceflightActive && dt > 0) {
+			// Autopilot orientation tracking
+			if (spaceflightOrientationMode !== 'free') {
+				const speed = len3(spaceflightVelocity);
+				if (speed > 0.01) {
+					const velDir = normalize3(spaceflightVelocity);
+					const lookDir = spaceflightOrientationMode === 'prograde' ? velDir : scale3(velDir, -1);
+					const b_vec = scale3(lookDir, -1);
+
+					const outward = normalize3(freeFlyPosition);
+					let dotVal = dot3(outward, b_vec);
+					let u_vec = sub3(outward, scale3(b_vec, dotVal));
+					let lenU = len3(u_vec);
+
+					if (lenU < 1e-4) {
+						const north = [0, 1, 0] as Vec3;
+						dotVal = dot3(north, b_vec);
+						u_vec = sub3(north, scale3(b_vec, dotVal));
+						lenU = len3(u_vec);
+					}
+
+					if (lenU < 1e-4) {
+						const refX = [1, 0, 0] as Vec3;
+						dotVal = dot3(refX, b_vec);
+						u_vec = sub3(refX, scale3(b_vec, dotVal));
+						lenU = len3(u_vec);
+					}
+
+					u_vec = scale3(u_vec, 1 / (lenU || 1));
+					const s_vec = normalize3(cross3(u_vec, b_vec));
+
+					const autoRot = quatFromRotationMatrix(s_vec, u_vec, b_vec);
+					freeFlyRotation = quatMultiply(autoRot, mouseOffsetRot);
+				} else {
+					spaceflightOrientationMode = 'free';
+				}
+			}
+
 			const pos = freeFlyPosition;
 			const dist = len3(pos);
 			const R = seaLevelRadius(params);
@@ -1429,10 +1604,47 @@
 
 			// 2. Thruster translation force
 			const altitude = Math.max(1, dist - params.radius);
-			const thrusterPower = Math.max(5.0, altitude * 0.15);
-			const forward = rotateVec3(freeFlyRotation, [0, 0, -1]);
-			const right = rotateVec3(freeFlyRotation, [1, 0, 0]);
-			const up = rotateVec3(freeFlyRotation, [0, 1, 0]);
+			const thrusterPower = Math.max(5.0, altitude * 0.15) * spaceflightThrustMultiplier;
+			
+			const camForward = rotateVec3(freeFlyRotation, [0, 0, -1]);
+			const camRight = rotateVec3(freeFlyRotation, [1, 0, 0]);
+			const camUp = rotateVec3(freeFlyRotation, [0, 1, 0]);
+
+			let forward = camForward;
+			let right = camRight;
+			let up = camUp;
+
+			if (spaceflightOrientationMode !== 'free' && len3(spaceflightVelocity) > 0.01) {
+				const velDir = normalize3(spaceflightVelocity);
+				const t_forward = spaceflightOrientationMode === 'prograde' ? velDir : scale3(velDir, -1);
+				const b_vec = scale3(t_forward, -1);
+
+				const outward = normalize3(freeFlyPosition);
+				let dotVal = dot3(outward, b_vec);
+				let u_vec = sub3(outward, scale3(b_vec, dotVal));
+				let lenU = len3(u_vec);
+
+				if (lenU < 1e-4) {
+					const north = [0, 1, 0] as Vec3;
+					dotVal = dot3(north, b_vec);
+					u_vec = sub3(north, scale3(b_vec, dotVal));
+					lenU = len3(u_vec);
+				}
+
+				if (lenU < 1e-4) {
+					const refX = [1, 0, 0] as Vec3;
+					dotVal = dot3(refX, b_vec);
+					u_vec = sub3(refX, scale3(b_vec, dotVal));
+					lenU = len3(u_vec);
+				}
+
+				u_vec = scale3(u_vec, 1 / (lenU || 1));
+				const s_vec = normalize3(cross3(u_vec, b_vec));
+
+				forward = t_forward;
+				right = s_vec;
+				up = u_vec;
+			}
 
 			let thrustDir: Vec3 = [0, 0, 0];
 			if (keysPressed.w) thrustDir = add3(thrustDir, forward);
@@ -1481,7 +1693,11 @@
 			if (rollDir !== 0) {
 				const rollSpeed = 1.0;
 				const qRoll = quatFromAxisAngle([0, 0, -1], rollDir * rollSpeed * dt);
-				freeFlyRotation = quatMultiply(freeFlyRotation, qRoll);
+				if (spaceflightOrientationMode !== 'free') {
+					mouseOffsetRot = quatMultiply(mouseOffsetRot, qRoll);
+				} else {
+					freeFlyRotation = quatMultiply(freeFlyRotation, qRoll);
+				}
 			}
 
 			needsRender = true;
@@ -1679,6 +1895,17 @@
 								/>
 							</div>
 						{/if}
+						<div class="hud-control-row">
+							<span class="hud-label" style="min-width: 95px;">Thrust: {spaceflightThrustMultiplier.toFixed(1)}x</span>
+							<input
+								type="range"
+								min="0.1"
+								max="10.0"
+								step="0.1"
+								class="hud-range-slider"
+								bind:value={spaceflightThrustMultiplier}
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -1710,12 +1937,27 @@
 				<button type="button" class="hud-action-btn abort-btn" onclick={killVelocity}>
 					Kill Velocity
 				</button>
-				<button type="button" class="hud-action-btn" onclick={() => orientTo('prograde')}>
+				<button
+					type="button"
+					class="hud-action-btn"
+					class:active={spaceflightOrientationMode === 'prograde'}
+					onclick={() => orientTo('prograde')}
+				>
 					Prograde
 				</button>
-				<button type="button" class="hud-action-btn" onclick={() => orientTo('retrograde')}>
+				<button
+					type="button"
+					class="hud-action-btn"
+					class:active={spaceflightOrientationMode === 'retrograde'}
+					onclick={() => orientTo('retrograde')}
+				>
 					Retrograde
 				</button>
+				{#if spaceflightOrientationMode !== 'free'}
+					<button type="button" class="hud-action-btn release-btn" onclick={releaseOrientation}>
+						Release
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -1819,6 +2061,19 @@
 							bind:value={predictionHorizonSeconds}
 						/>
 					{/if}
+					<div class="gravity-label-row" style="margin-top: 8px;">
+						<span>Thrust Power</span>
+						<span class="gravity-val">{spaceflightThrustMultiplier.toFixed(1)}x</span>
+					</div>
+					<input
+						type="range"
+						min="0.1"
+						max="10.0"
+						step="0.1"
+						class="gravity-range-slider"
+						style="background: rgba(0, 240, 255, 0.2);"
+						bind:value={spaceflightThrustMultiplier}
+					/>
 				</div>
 
 				<div class="sidebar-spaceflight-actions" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
@@ -1831,12 +2086,38 @@
 						</button>
 					</div>
 					<div style="display: flex; gap: 6px; width: 100%;">
-						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={() => orientTo('prograde')}>
+						<button
+							type="button"
+							class="sidebar-action-btn"
+							style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;"
+							style:background={spaceflightOrientationMode === 'prograde' ? 'rgba(0, 255, 102, 0.2)' : ''}
+							style:border-color={spaceflightOrientationMode === 'prograde' ? '#00ff66' : ''}
+							style:color={spaceflightOrientationMode === 'prograde' ? '#00ff66' : ''}
+							onclick={() => orientTo('prograde')}
+						>
 							Prograde
 						</button>
-						<button type="button" class="sidebar-action-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;" onclick={() => orientTo('retrograde')}>
+						<button
+							type="button"
+							class="sidebar-action-btn"
+							style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(0,240,255,0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; font-weight: bold;"
+							style:background={spaceflightOrientationMode === 'retrograde' ? 'rgba(255, 51, 102, 0.2)' : ''}
+							style:border-color={spaceflightOrientationMode === 'retrograde' ? '#ff3366' : ''}
+							style:color={spaceflightOrientationMode === 'retrograde' ? '#ff3366' : ''}
+							onclick={() => orientTo('retrograde')}
+						>
 							Retrograde
 						</button>
+						{#if spaceflightOrientationMode !== 'free'}
+							<button
+								type="button"
+								class="sidebar-action-btn"
+								style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); color: #ffffff; font-family: monospace; border-radius: 4px; font-weight: bold;"
+								onclick={releaseOrientation}
+							>
+								Release
+							</button>
+						{/if}
 					</div>
 				</div>
 			{/if}
@@ -2162,6 +2443,26 @@
 	.hud-action-btn.abort-btn:hover {
 		background: rgba(255, 85, 85, 0.35);
 		box-shadow: 0 0 12px rgba(255, 85, 85, 0.4);
+	}
+
+	.hud-action-btn.active {
+		background: rgba(0, 240, 255, 0.45);
+		box-shadow: 0 0 16px rgba(0, 240, 255, 0.7);
+		color: #ffffff;
+		text-shadow: 0 0 6px #00f0ff;
+		border-color: #00f0ff;
+	}
+
+	.hud-action-btn.release-btn {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: rgba(255, 255, 255, 0.4);
+		color: #ffffff;
+		text-shadow: none;
+	}
+
+	.hud-action-btn.release-btn:hover {
+		background: rgba(255, 255, 255, 0.25);
+		box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 	}
 
 	.overlay-canvas {
