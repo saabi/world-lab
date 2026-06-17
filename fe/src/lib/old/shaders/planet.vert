@@ -1,9 +1,14 @@
 #define PI 3.141592653589793
 const int SAMPLES = 4;
-uniform vec3 ares;
 
+attribute vec3 position;
 attribute float aIdx;
 
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat3 normalMatrix;
+uniform vec3 cameraPosition;
+uniform vec3 ares;
 uniform mat4 inverseModelMatrix;
 
 uniform float angle;

@@ -1,3 +1,9 @@
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+
 varying vec3 vor;
 varying float detail;
 varying float distortion;
@@ -38,6 +44,7 @@ uniform float voronoi_distortion_scale;
 uniform float voronoi_distortion_amplitude;
 uniform float erosion;
 
+uniform mat4 viewMatrix;
 
 const vec3 ROCK = vec3(0.50, 0.35, 0.15);
 const vec3 TREE = vec3(0.05, 1.15, 0.10);

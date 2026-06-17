@@ -38,7 +38,7 @@
 	let controls: OrbitControls | undefined;
 	let canvasEl: HTMLCanvasElement | undefined;
 	let geometry: THREE.InstancedBufferGeometry | undefined;
-	let material: THREE.ShaderMaterial | undefined;
+	let material: THREE.RawShaderMaterial | undefined;
 	let mesh: THREE.Mesh | undefined;
 
 	$effect(() => {
@@ -78,10 +78,15 @@
 		}
 		geometry.setAttribute('aIdx', indexes);
 
-		material = new THREE.ShaderMaterial({
+		material = new THREE.RawShaderMaterial({
 			vertexShader: planetVertexShader,
 			fragmentShader: planetFragmentShader,
 			uniforms: {
+				modelViewMatrix: { value: new THREE.Matrix4() },
+				projectionMatrix: { value: new THREE.Matrix4() },
+				viewMatrix: { value: new THREE.Matrix4() },
+				normalMatrix: { value: new THREE.Matrix3() },
+				cameraPosition: { value: new THREE.Vector3() },
 				time: { value: 1.0 },
 				angle: { value: Math.PI / 2 },
 				radius: { value: 100 },
