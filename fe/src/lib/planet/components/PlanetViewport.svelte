@@ -595,7 +595,24 @@
 
 	function exitSpaceflight() {
 		if (!spaceflightActive) return;
-		document.exitPointerLock();
+		spaceflightActive = false;
+		if (document.pointerLockElement === canvas) {
+			document.exitPointerLock();
+		}
+		// transition camera back to orbit mode
+		const camera = buildFreeFlyCamera(canvasWidth || 800, canvasHeight || 600, params);
+		const vm = camera.viewMatrix;
+		const s: Vec3 = [vm[0], vm[4], vm[8]];
+		const u: Vec3 = [vm[1], vm[5], vm[9]];
+		const outward = normalize3(camera.position);
+
+		altitudeMeters = Math.max(0, len3(freeFlyPosition) - params.radius);
+		azimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
+		elevation = Math.max(-1.55, Math.min(1.55, Math.asin(freeFlyPosition[1] / (len3(freeFlyPosition) || 1))));
+		cameraRotation = quatFromRotationMatrix(outward, u, s);
+
+		needsRender = true;
+		requestRender();
 	}
 
 	function toggleSpaceflight() {
@@ -642,18 +659,8 @@
 	function handlePointerLockChange() {
 		if (document.pointerLockElement !== canvas) {
 			if (spaceflightActive) {
-				const camera = buildFreeFlyCamera(canvasWidth || 800, canvasHeight || 600, params);
-				const vm = camera.viewMatrix;
-				const s: Vec3 = [vm[0], vm[4], vm[8]];
-				const u: Vec3 = [vm[1], vm[5], vm[9]];
-				const outward = normalize3(camera.position);
-
-				altitudeMeters = Math.max(0, len3(freeFlyPosition) - params.radius);
-				azimuth = Math.atan2(freeFlyPosition[2], freeFlyPosition[0]);
-				elevation = Math.max(-1.55, Math.min(1.55, Math.asin(freeFlyPosition[1] / (len3(freeFlyPosition) || 1))));
-				cameraRotation = quatFromRotationMatrix(outward, u, s);
-
-				spaceflightActive = false;
+				// We do NOT exit spaceflight mode when pointer lock is lost.
+				// This allows the user to click HUD overlay buttons.
 				needsRender = true;
 				requestRender();
 			} else if (freeFlyActive) {
@@ -681,7 +688,11 @@
 
 		if (e.key === 'Escape') {
 			if (spaceflightActive) {
-				exitSpaceflight();
+				if (document.pointerLockElement === canvas) {
+					document.exitPointerLock();
+				} else {
+					exitSpaceflight();
+				}
 			} else {
 				exitFreeFly();
 			}
@@ -722,7 +733,13 @@
 	}
 
 	function onPointerDown(e: PointerEvent) {
-		if (freeFlyActive || spaceflightActive) return;
+		if (spaceflightActive) {
+			if (document.pointerLockElement !== canvas) {
+				canvas?.requestPointerLock();
+			}
+			return;
+		}
+		if (freeFlyActive) return;
 		dragging = true;
 		lastX = e.clientX;
 		lastY = e.clientY;
@@ -731,6 +748,7 @@
 
 	function onPointerMove(e: PointerEvent) {
 		if (freeFlyActive || spaceflightActive) {
+			if (document.pointerLockElement !== canvas) return;
 			const dx = e.movementX;
 			const dy = e.movementY;
 			const sensitivity = 0.0025;
@@ -1053,7 +1071,7 @@
 	></canvas>
 
 	{#if spaceflightActive}
-		<div class="spaceflight-hud">
+		<div class="spaceflight-hud" onpointerdown={(e) => e.stopPropagation()}>
 			<div class="hud-header">ORBITAL FLIGHT HUD</div>
 			<div class="hud-grid">
 				<div class="hud-stat">
@@ -1134,7 +1152,7 @@
 				class:active={spaceflightActive}
 				onclick={toggleSpaceflight}
 			>
-				{spaceflightActive ? 'Spaceflight: Active (Esc)' : 'Enter Spaceflight'}
+				{spaceflightActive ? 'Exit Spaceflight' : 'Enter Spaceflight'}
 			</button>
 			<div class="gravity-control-container">
 				<div class="gravity-label-row">
