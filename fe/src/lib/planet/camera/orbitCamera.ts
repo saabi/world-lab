@@ -23,8 +23,8 @@ export interface OrbitCameraInput {
 }
 
 export function quatFromAzimuthElevation(azimuth: number, elevation: number): Quat {
-	const qAz = quatFromAxisAngle([0, 1, 0], azimuth);
-	const localRight: Vec3 = [Math.sin(azimuth), 0, -Math.cos(azimuth)];
+	const qAz = quatFromAxisAngle([0, -1, 0], azimuth);
+	const localRight: Vec3 = [-Math.sin(azimuth), 0, Math.cos(azimuth)];
 	const qEl = quatFromAxisAngle(localRight, elevation);
 	return quatMultiply(qEl, qAz);
 }
@@ -94,7 +94,7 @@ export function createOrbitCamera(input: OrbitCameraInput): CameraState {
 
 	if (lookMode === 'horizon') {
 		const travel = cameraRotation
-			? rotateVec3(cameraRotation, [0, 0, -1])
+			? rotateVec3(cameraRotation, [0, 0, 1])
 			: orbitTravelDirection(azimuth, elevation, orbitSpeedRadPerSec);
 		target = horizonLookTarget(position, planetRadius, travel);
 		// Up = radial outward orthogonalized against the gaze, so up ⟂ gaze at every

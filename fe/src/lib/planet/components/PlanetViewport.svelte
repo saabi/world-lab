@@ -421,12 +421,12 @@
 		lastY = e.clientY;
 
 		const sensitivity = 0.005;
-		// 1. Yaw: rotate around world Up [0, 1, 0]
-		const qYaw = quatFromAxisAngle([0, 1, 0], dx * sensitivity);
+		// 1. Yaw: rotate around world Up [0, -1, 0]
+		const qYaw = quatFromAxisAngle([0, -1, 0], dx * sensitivity);
 		let nextRot = quatMultiply(qYaw, cameraRotation);
 
 		// 2. Pitch: rotate around local Right axis
-		const localRight = rotateVec3(nextRot, [0, 0, -1]);
+		const localRight = rotateVec3(nextRot, [0, 0, 1]);
 		const qPitch = quatFromAxisAngle(localRight, -dy * sensitivity);
 		nextRot = quatMultiply(qPitch, nextRot);
 
