@@ -164,13 +164,14 @@ test (`height ≤ wl_dir`). The bulge therefore lifts the actual rendered water
 surface, not just the shading.
 
 ### New scene concept: tidal bodies / moons
-The star is already in the scene (the directional sun → reuse its direction).
-**Moons** are new: lightweight scene entities carrying a direction (or an orbit)
-and a tidal strength, passed to the shader as a small array `(n_b, k_b)`, exactly
-like the lights array. Moons can later also be *rendered* and cast light/shadow,
-but for tides they only need `(direction, strength)`. Optionally apply a small
-fraction of the same field to the **solid** surface (body tide) for rocky/airless
-worlds; oceans are the dominant visible effect, so v1 can be water-only.
+The `(n_b, k_b)` per body comes from real celestial bodies (the star + moons) at
+real orbital positions — see [solar-system-model.md](solar-system-model.md). For
+the shader, tides only need the small array `(direction, strength)`, exactly like
+the lights array; the bodies' positions (hence directions/distances) are computed
+from the orbital hierarchy and a system clock, so the bulge animates from actual
+orbital motion. Optionally apply a small fraction of the same field to the
+**solid** surface (body tide) for rocky/airless worlds; oceans are the dominant
+visible effect, so v1 can be water-only.
 
 ## Exposed material palette
 
