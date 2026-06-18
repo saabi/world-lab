@@ -22,6 +22,18 @@ export interface CubeSpherePatch extends PatchDescriptor {
 	uvMax: [number, number];
 }
 
+/**
+ * One resolution bucket packed into GPU-upload layout (CUBE_SPHERE_PATCH_BYTE_SIZE
+ * bytes per instance). `data` aliases a reused per-schedule pool and is valid only
+ * until the next schedule — consume (upload) it the same frame. See
+ * _docs/specs/flat-patch-upload.md.
+ */
+export interface PackedBucket {
+	resolution: number;
+	instanceCount: number;
+	data: Uint8Array;
+}
+
 export interface SurfacePatch extends PatchDescriptor {
 	kind: 'surface';
 	originLocalMeters: [number, number];

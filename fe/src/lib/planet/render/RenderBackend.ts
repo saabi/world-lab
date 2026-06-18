@@ -1,7 +1,7 @@
 import type { PlanetParameters } from '../params/planetParams.js';
 import type { CameraState } from '../camera/cameraModes.js';
 import type { LocalFrame } from '../math/localFrame.js';
-import type { CubeSpherePatch, SurfacePatch } from '../patches/types.js';
+import type { CubeSpherePatch, PackedBucket, SurfacePatch } from '../patches/types.js';
 import type { LightingUniforms } from './uniformLayouts.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { AtmosphereParameters } from '../params/atmosphereParams.js';
@@ -12,6 +12,15 @@ export interface OrbitScheduleMeta {
 	candidatePatches: number;
 	budgetDropped: number;
 	vertexBudget: number;
+	/**
+	 * GPU-ready packed buckets (32-byte records, upload layout). When present,
+	 * terrainPass uploads these directly and skips re-encoding `buckets`. Optional
+	 * during the additive migration step; see _docs/specs/flat-patch-upload.md.
+	 * Aliases a reused per-schedule pool — consume the same frame.
+	 */
+	packedBuckets?: PackedBucket[];
+	/** Survivor count; replaces `cubeSpherePatches.length` once that field is dropped. */
+	patchCount?: number;
 }
 
 export interface RenderFrame {

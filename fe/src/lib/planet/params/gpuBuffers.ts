@@ -53,6 +53,33 @@ export function writeLocalFrameToBuffer(
 	writeVec4(80, frame.camera_local);
 }
 
+/**
+ * Write one cube-sphere patch GPU record (CUBE_SPHERE_PATCH_BYTE_SIZE bytes) at
+ * `offset`. Shared by the object encoder and the flat-buffer packer so both
+ * produce byte-identical layout. Layout: face:u32, uvMin:vec2f, uvMax:vec2f,
+ * resolution:u32, morph:f32, pad:u32.
+ */
+export function writeCubePatchRecord(
+	view: DataView,
+	offset: number,
+	face: number,
+	uvMinX: number,
+	uvMinY: number,
+	uvMaxX: number,
+	uvMaxY: number,
+	resolution: number,
+	morph: number
+): void {
+	view.setUint32(offset, face, true);
+	view.setFloat32(offset + 4, uvMinX, true);
+	view.setFloat32(offset + 8, uvMinY, true);
+	view.setFloat32(offset + 12, uvMaxX, true);
+	view.setFloat32(offset + 16, uvMaxY, true);
+	view.setUint32(offset + 20, resolution, true);
+	view.setFloat32(offset + 24, morph, true);
+	view.setUint32(offset + 28, 0, true);
+}
+
 export function encodeCubeSpherePatches(
 	patches: CubeSpherePatch[],
 	target?: ArrayBuffer
@@ -63,17 +90,30 @@ export function encodeCubeSpherePatches(
 	const view = new DataView(data, 0, byteLength);
 	for (let i = 0; i < patches.length; i++) {
 		const p = patches[i];
-		const o = i * CUBE_SPHERE_PATCH_BYTE_SIZE;
-		view.setUint32(o, p.face, true);
-		view.setFloat32(o + 4, p.uvMin[0], true);
-		view.setFloat32(o + 8, p.uvMin[1], true);
-		view.setFloat32(o + 12, p.uvMax[0], true);
-		view.setFloat32(o + 16, p.uvMax[1], true);
-		view.setUint32(o + 20, p.resolution, true);
-		view.setFloat32(o + 24, p.morph, true);
-		view.setUint32(o + 28, 0, true);
+		writeCubePatchRecord(
+			view,
+			i * CUBE_SPHERE_PATCH_BYTE_SIZE,
+			p.face,
+			p.uvMin[0],
+			p.uvMin[1],
+			p.uvMax[0],
+			p.uvMax[1],
+			p.resolution,
+			p.morph
+		);
 	}
 	return data;
+}
+
+/** Upload a pre-packed bucket's bytes straight to a GPU buffer (no re-encode). */
+export function uploadPackedBucket(
+	device: GPUDevice,
+	buffer: GPUBuffer,
+	data: Uint8Array,
+	byteOffset = 0
+): void {
+	if (data.byteLength === 0) return;
+	device.queue.writeBuffer(buffer, byteOffset, data, 0, data.byteLength);
 }
 
 let patchUploadStaging: ArrayBuffer | null = null;
