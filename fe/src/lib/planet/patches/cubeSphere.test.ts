@@ -65,15 +65,15 @@ describe('cubeSphere mapping', () => {
 		expect(result.buckets.size).toBeGreaterThan(0);
 	});
 
-	it('reuses the schedule for sub-threshold camera motion and refreshes past it', () => {
+	it('reuses the schedule for orientation/sub-threshold position change, refreshes on a large move', () => {
 		resetOrbitScheduleCache();
 		const viewport = { width: 1280, height: 720 };
-		const make = (distance: number) =>
+		const make = (distance: number, fovDeg = 60) =>
 			createOrbitCamera({
 				distance,
 				azimuth: 0.6,
 				elevation: 0.35,
-				fovDeg: 60,
+				fovDeg,
 				aspect: viewport.width / viewport.height,
 				near: 0.1,
 				far: 10_000,
@@ -84,18 +84,19 @@ describe('cubeSphere mapping', () => {
 		const first = make(320);
 		const r1 = scheduleOrbitPatches(first.position, 100, first.viewProjectionMatrix, { viewport });
 
-		// Sub-threshold nudge (≈0.1 m « 1% of ~220 m altitude) → same cached result.
-		const nudged = make(320.1);
-		const r2 = scheduleOrbitPatches(nudged.position, 100, nudged.viewProjectionMatrix, { viewport });
+		// Same position, different view-projection (wider FOV) → still cached: the key
+		// is position-only, so changing orientation/projection doesn't re-walk the tree.
+		const reFov = make(320, 90);
+		const r2 = scheduleOrbitPatches(reFov.position, 100, reFov.viewProjectionMatrix, { viewport });
 		expect(r2).toBe(r1);
 
-		// Large move → fresh schedule.
+		// Large position move → fresh schedule.
 		const moved = make(600);
 		const r3 = scheduleOrbitPatches(moved.position, 100, moved.viewProjectionMatrix, { viewport });
 		expect(r3).not.toBe(r1);
 
 		const stats = getOrbitScheduleStats();
-		expect(stats.hits).toBe(1); // the sub-threshold nudge
+		expect(stats.hits).toBe(1); // the same-position FOV change
 		expect(stats.misses).toBe(2); // first call + the large move
 	});
 

@@ -16,23 +16,23 @@ let orbitSpacingHint = 6;
 
 // Frame-coherent scheduling cache. The render loop calls scheduleOrbitPatches every
 // frame; the quadtree walk is the main-thread hot spot (esp. in spaceflight, where
-// the camera moves continuously). Reuse the last result while the camera hasn't
-// moved/rotated enough to change tile selection — the shader still renders from the
-// live camera, so only the (stale by ≤ a couple frames) LOD selection is reused.
-// Thresholds tuned so steady flight motion reuses the schedule and the age cap
-// acts as the refresh cadence (a tight viewProj threshold made the hit rate ~0%
-// in spaceflight, where lookAt is rebuilt every frame). The schedule only drives
-// LOD/cull selection (covered by a generous search margin), so a few frames of
-// staleness is fine. Watch the hit rate via getOrbitScheduleStats() and tune.
+// the camera moves continuously). Reuse the last result while the camera POSITION
+// hasn't moved enough to change tile selection — the shader still renders from the
+// live camera, so only the (briefly stale) LOD/cull selection is reused.
+//
+// Deliberately POSITION-only: orientation is excluded from the key. Spaceflight
+// rebuilds the view matrix every frame (prograde/retrograde "look" modes rotate
+// while the position barely moves), so keying on view-projection made the hit rate
+// ~0%. The scheduler's generous search margin already covers off-screen tiles, so
+// a stale tile set tolerates rotation; the age cap bounds staleness during fast
+// turns. Watch the hit rate via getOrbitScheduleStats() and tune.
 const SCHEDULE_POS_FRACTION = 0.04; // re-schedule when the camera moves > 4% of altitude
-const SCHEDULE_VIEWPROJ_REL = 0.02; // …or the view-projection changes > 2% (rotation/zoom)
 const MAX_SCHEDULE_AGE_FRAMES = 4; // refresh cadence: a reused LOD selection is ≤ this stale
 /** Cap full quadtree re-walks per call (applyVertexBudget enforces the real caps). */
 const MAX_SPACING_RETRIES = 3;
 
 interface ScheduleCache {
 	cameraPos: Vec3;
-	viewProj: Float32Array;
 	planetRadius: number;
 	vw: number;
 	vh: number;
@@ -56,16 +56,6 @@ export function resetOrbitScheduleCache(): void {
 	scheduleCache = null;
 	scheduleHits = 0;
 	scheduleMisses = 0;
-}
-
-function viewProjRelDiff(a: Float32Array, b: Float32Array): number {
-	let num = 0;
-	let den = 1e-6;
-	for (let i = 0; i < 16; i++) {
-		num += Math.abs(a[i] - b[i]);
-		den += Math.abs(b[i]);
-	}
-	return num / den;
 }
 
 function estimateInitialOrbitSpacing(
@@ -206,8 +196,7 @@ export function scheduleOrbitPatches(
 			cameraPos[0] - cache.cameraPos[0],
 			cameraPos[1] - cache.cameraPos[1],
 			cameraPos[2] - cache.cameraPos[2]
-		) <= SCHEDULE_POS_FRACTION * altitude &&
-		viewProjRelDiff(viewProj, cache.viewProj) <= SCHEDULE_VIEWPROJ_REL
+		) <= SCHEDULE_POS_FRACTION * altitude
 	) {
 		cache.ageFrames++;
 		scheduleHits++;
@@ -255,7 +244,6 @@ export function scheduleOrbitPatches(
 	};
 	scheduleCache = {
 		cameraPos: [cameraPos[0], cameraPos[1], cameraPos[2]],
-		viewProj: viewProj.slice(),
 		planetRadius,
 		vw,
 		vh,
