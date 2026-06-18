@@ -19,9 +19,14 @@ let orbitSpacingHint = 6;
 // the camera moves continuously). Reuse the last result while the camera hasn't
 // moved/rotated enough to change tile selection — the shader still renders from the
 // live camera, so only the (stale by ≤ a couple frames) LOD selection is reused.
-const SCHEDULE_POS_FRACTION = 0.01; // re-schedule when the camera moves > 1% of altitude
-const SCHEDULE_VIEWPROJ_REL = 0.001; // …or when the view-projection changes > 0.1% (rotation/zoom)
-const MAX_SCHEDULE_AGE_FRAMES = 8; // hard refresh cap regardless of motion
+// Thresholds tuned so steady flight motion reuses the schedule and the age cap
+// acts as the refresh cadence (a tight viewProj threshold made the hit rate ~0%
+// in spaceflight, where lookAt is rebuilt every frame). The schedule only drives
+// LOD/cull selection (covered by a generous search margin), so a few frames of
+// staleness is fine. Watch the hit rate via getOrbitScheduleStats() and tune.
+const SCHEDULE_POS_FRACTION = 0.04; // re-schedule when the camera moves > 4% of altitude
+const SCHEDULE_VIEWPROJ_REL = 0.02; // …or the view-projection changes > 2% (rotation/zoom)
+const MAX_SCHEDULE_AGE_FRAMES = 4; // refresh cadence: a reused LOD selection is ≤ this stale
 /** Cap full quadtree re-walks per call (applyVertexBudget enforces the real caps). */
 const MAX_SPACING_RETRIES = 3;
 
@@ -37,10 +42,20 @@ interface ScheduleCache {
 	result: OrbitScheduleResult;
 }
 let scheduleCache: ScheduleCache | null = null;
+let scheduleHits = 0;
+let scheduleMisses = 0;
 
-/** Reset the frame-coherent schedule cache (tests). */
+/** Cache hit/miss stats — surface in the HUD or log to measure flight hit rate. */
+export function getOrbitScheduleStats(): { hits: number; misses: number; hitRate: number } {
+	const total = scheduleHits + scheduleMisses;
+	return { hits: scheduleHits, misses: scheduleMisses, hitRate: total > 0 ? scheduleHits / total : 0 };
+}
+
+/** Reset the frame-coherent schedule cache and its stats (tests). */
 export function resetOrbitScheduleCache(): void {
 	scheduleCache = null;
+	scheduleHits = 0;
+	scheduleMisses = 0;
 }
 
 function viewProjRelDiff(a: Float32Array, b: Float32Array): number {
@@ -195,8 +210,10 @@ export function scheduleOrbitPatches(
 		viewProjRelDiff(viewProj, cache.viewProj) <= SCHEDULE_VIEWPROJ_REL
 	) {
 		cache.ageFrames++;
+		scheduleHits++;
 		return cache.result;
 	}
+	scheduleMisses++;
 
 	const estimate = estimateInitialOrbitSpacing(cameraPos, planetRadius, baseSpacing);
 	// Start from the altitude-appropriate estimate (eased by the previous frame's

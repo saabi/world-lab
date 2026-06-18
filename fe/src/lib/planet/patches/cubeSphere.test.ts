@@ -5,6 +5,7 @@ import {
 	cubeFaceUvToPosition,
 	cubeFaceUvToUnitDir,
 	cubePatchVertexCount,
+	getOrbitScheduleStats,
 	resetOrbitScheduleCache,
 	scheduleOrbitPatches
 } from './cubeSphere.js';
@@ -92,6 +93,10 @@ describe('cubeSphere mapping', () => {
 		const moved = make(600);
 		const r3 = scheduleOrbitPatches(moved.position, 100, moved.viewProjectionMatrix, { viewport });
 		expect(r3).not.toBe(r1);
+
+		const stats = getOrbitScheduleStats();
+		expect(stats.hits).toBe(1); // the sub-threshold nudge
+		expect(stats.misses).toBe(2); // first call + the large move
 	});
 
 	it('keeps grazing faces that still intersect the viewport', () => {
