@@ -23,7 +23,7 @@ export class WebGLBackend implements RenderBackend {
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		return {
 			frameMs: performance.now() - t0,
-			patchCount: frame.cubeSpherePatches.length,
+			patchCount: frame.orbitSchedule?.patchCount ?? 0,
 			vertexCount: 0,
 			mode: 'webgl-fallback'
 		};

@@ -6,12 +6,12 @@ import {
 	totalVertexCount,
 	type OrbitSchedulerInput
 } from './cubeSphereScheduler.js';
-import type { CubeSpherePatch } from './types.js';
+import type { CubeSpherePatch, PackedBucket } from './types.js';
 import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudget.js';
 import type { ViewportSize } from './screenSpace.js';
-import { MAX_CUBE_PATCHES } from '../params/gpuBuffers.js';
+import { MAX_CUBE_PATCHES, encodeCubeSpherePatches } from '../params/gpuBuffers.js';
 import { initSchedulerFromUrl, scheduleCandidatesFlat } from './wasm/schedulerWasm.js';
-import { budgetAndGroupFlat } from './flatBudget.js';
+import { packBudgetedBuckets } from './flatBudget.js';
 
 // Kick off the async WASM scheduler load in the browser. Until it resolves (or
 // if it fails / WebGL fallback / Node tests), scheduleOrbitPatches uses the JS
@@ -19,18 +19,19 @@ import { budgetAndGroupFlat } from './flatBudget.js';
 if (typeof window !== 'undefined') void initSchedulerFromUrl();
 
 interface ScheduleCandidates {
-	patches: CubeSpherePatch[];
-	buckets: Map<number, CubeSpherePatch[]>;
+	packedBuckets: PackedBucket[];
+	patchCount: number;
 	candidatePatches: number;
 	budgetDropped: number;
 	estimatedVertices: number;
 }
 
 /**
- * WASM path: walk → flat candidate buffer → budget + group, materializing only
- * the survivors. Coarsens spacing first if the candidate count explodes (the
- * count is read without allocating candidate objects). Returns null when WASM is
- * unavailable so the caller falls back to the JS object path.
+ * WASM path: walk → flat candidate buffer → budget + pack survivors straight into
+ * GPU-upload byte blocks (no CubeSpherePatch objects). Coarsens spacing first if
+ * the candidate count explodes (the count is read without allocating candidate
+ * objects). Returns null when WASM is unavailable so the caller falls back to the
+ * JS object path.
  */
 function scheduleFlat(
 	base: Omit<OrbitSchedulerInput, 'targetVertexSpacingPx'>,
@@ -50,12 +51,12 @@ function scheduleFlat(
 		spacingSteps++;
 	}
 	const candidateCount = flat.count;
-	const budgeted = budgetAndGroupFlat(flat.view, flat.count, maxVertices, MAX_CUBE_PATCHES);
+	const budgeted = packBudgetedBuckets(flat.view, flat.count, maxVertices, MAX_CUBE_PATCHES);
 	return {
 		spacing,
 		result: {
-			patches: budgeted.patches,
-			buckets: budgeted.buckets,
+			packedBuckets: budgeted.packedBuckets,
+			patchCount: budgeted.patchCount,
 			candidatePatches: candidateCount,
 			budgetDropped: budgeted.dropped,
 			estimatedVertices: budgeted.estimatedVertices
@@ -63,7 +64,21 @@ function scheduleFlat(
 	};
 }
 
-/** JS fallback path: object walk → applyVertexBudget → group (oracle parity). */
+/** Pack object survivor buckets into GPU-upload byte blocks (JS/WebGL fallback). */
+function packObjectBuckets(buckets: Map<number, CubeSpherePatch[]>): PackedBucket[] {
+	const packed: PackedBucket[] = [];
+	for (const [resolution, list] of buckets) {
+		if (list.length === 0) continue;
+		packed.push({
+			resolution,
+			instanceCount: list.length,
+			data: new Uint8Array(encodeCubeSpherePatches(list))
+		});
+	}
+	return packed;
+}
+
+/** JS fallback path: object walk → applyVertexBudget → group → pack (oracle parity). */
 function scheduleObjects(
 	base: Omit<OrbitSchedulerInput, 'targetVertexSpacingPx'>,
 	spacing: number,
@@ -86,8 +101,8 @@ function scheduleObjects(
 	return {
 		spacing,
 		result: {
-			patches,
-			buckets: groupPatchesByResolution(patches),
+			packedBuckets: packObjectBuckets(groupPatchesByResolution(patches)),
+			patchCount: patches.length,
 			candidatePatches: candidateCount,
 			budgetDropped: budgeted.dropped,
 			estimatedVertices: totalVertexCount(patches)
@@ -245,8 +260,13 @@ export interface OrbitScheduleOptions {
 }
 
 export interface OrbitScheduleResult {
-	patches: CubeSpherePatch[];
-	buckets: Map<number, CubeSpherePatch[]>;
+	/**
+	 * GPU-ready packed buckets (32-byte upload layout). `data` aliases a reused
+	 * per-schedule pool on the WASM path — consume the same frame, before the next
+	 * schedule. See _docs/specs/flat-patch-upload.md.
+	 */
+	packedBuckets: PackedBucket[];
+	patchCount: number;
 	candidatePatches: number;
 	budgetDropped: number;
 	vertexBudget: number;

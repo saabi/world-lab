@@ -1,26 +1,25 @@
 import type { PlanetParameters } from '../params/planetParams.js';
 import type { CameraState } from '../camera/cameraModes.js';
 import type { LocalFrame } from '../math/localFrame.js';
-import type { CubeSpherePatch, PackedBucket, SurfacePatch } from '../patches/types.js';
+import type { PackedBucket, SurfacePatch } from '../patches/types.js';
 import type { LightingUniforms } from './uniformLayouts.js';
 import type { MaterialOverrides } from '../material/biomes.js';
 import type { AtmosphereParameters } from '../params/atmosphereParams.js';
 import type { Quat } from '../scene/types.js';
 
 export interface OrbitScheduleMeta {
-	buckets: Map<number, CubeSpherePatch[]>;
+	/**
+	 * GPU-ready packed buckets (32-byte records, upload layout). terrainPass uploads
+	 * these directly — no CubeSpherePatch objects, no re-encode. Aliases a reused
+	 * per-schedule pool on the WASM path — consume the same frame. See
+	 * _docs/specs/flat-patch-upload.md.
+	 */
+	packedBuckets: PackedBucket[];
+	/** Survivor patch count (replaces the retired RenderFrame.cubeSpherePatches.length). */
+	patchCount: number;
 	candidatePatches: number;
 	budgetDropped: number;
 	vertexBudget: number;
-	/**
-	 * GPU-ready packed buckets (32-byte records, upload layout). When present,
-	 * terrainPass uploads these directly and skips re-encoding `buckets`. Optional
-	 * during the additive migration step; see _docs/specs/flat-patch-upload.md.
-	 * Aliases a reused per-schedule pool — consume the same frame.
-	 */
-	packedBuckets?: PackedBucket[];
-	/** Survivor count; replaces `cubeSpherePatches.length` once that field is dropped. */
-	patchCount?: number;
 }
 
 export interface RenderFrame {
@@ -30,7 +29,6 @@ export interface RenderFrame {
 	camera: CameraState;
 	params: PlanetParameters;
 	localFrame: LocalFrame;
-	cubeSpherePatches: CubeSpherePatch[];
 	surfacePatches: SurfacePatch[];
 	orbitSchedule?: OrbitScheduleMeta;
 	debug: {

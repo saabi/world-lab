@@ -26,7 +26,6 @@
 		DEFAULT_TESSELLATION,
 		type TessellationSettings
 	} from '../patches/tessellationSettings.js';
-	import type { CubeSpherePatch } from '../patches/types.js';
 	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
 	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
@@ -475,7 +474,6 @@
 			localFrame.rebaseCount = maybeRebaseFrame(localFrame, camera.ecef).rebaseCount;
 		}
 
-		let cubeSpherePatches: CubeSpherePatch[] = [];
 		let orbitSchedule: OrbitScheduleMeta | undefined;
 
 		if (modes.cubeSphere) {
@@ -485,9 +483,9 @@
 				detail: tessellation.detail,
 				maxVertices: tessellation.vertexBudgetMillions * 1_000_000
 			});
-			cubeSpherePatches = scheduled.patches;
 			orbitSchedule = {
-				buckets: scheduled.buckets,
+				packedBuckets: scheduled.packedBuckets,
+				patchCount: scheduled.patchCount,
 				candidatePatches: scheduled.candidatePatches,
 				budgetDropped: scheduled.budgetDropped,
 				vertexBudget: scheduled.vertexBudget
@@ -511,7 +509,6 @@
 			camera: activeCamera,
 			params: p,
 			localFrame,
-			cubeSpherePatches,
 			surfacePatches,
 			orbitSchedule,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },

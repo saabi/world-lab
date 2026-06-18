@@ -1,6 +1,6 @@
 # Flat patch upload — packed buckets through `RenderFrame` to the GPU
 
-**Status:** proposal · **Scope:** `render/RenderBackend.ts`, `render/passes/terrainPass.ts`,
+**Status:** landed (steps 1–2; step 3 is a no-op below) · **Scope:** `render/RenderBackend.ts`, `render/passes/terrainPass.ts`,
 `render/WebGLBackend.ts`, `params/gpuBuffers.ts`, `patches/flatBudget.ts`,
 `patches/cubeSphere.ts` (all owned here) · **one ~3-line change in
 `components/PlanetViewport.svelte`** (spaceflight-agent owned — the only
@@ -127,27 +127,30 @@ misses are already throttled (~every ≤4 frames) so even per-miss allocation of
 
 ## Migration (each step shippable, `npm run check` green)
 
-1. **Additive contract.** Add `packedBuckets`/`patchCount` to `OrbitScheduleMeta`
-   as optional; keep `buckets`/`cubeSpherePatches`. Schedule populates both.
-   `terrainPass` prefers `packedBuckets` when present. **No PlanetViewport change
-   yet** — proves the GPU path on real frames behind a runtime A/B (eyeball cube
-   render: identical). Still allocates objects, so no win yet — this is the
-   de-risk step.
-2. **Flip the producer.** `packBudgetedBuckets` stops building objects;
-   `scheduleOrbitPatches` returns packed only. Apply the PlanetViewport diff
-   (the cross-agent moment). Remove `cubeSpherePatches` from `RenderFrame` and
-   the object `buckets` from `OrbitScheduleMeta`. **The allocation win lands here.**
-3. **Cleanup.** `encodeCubeSpherePatches`/`uploadCubeSpherePatches` keep only the
-   shared layout writer; delete the object-iterating bucket upload. `flatBudget`'s
-   object materializer stays **only** if the WebGL fallback needs it (below).
+1. **Additive contract.** ✅ *(commit `07110b5`)* Added `packedBuckets`/`patchCount`
+   to `OrbitScheduleMeta` as optional; kept `buckets`/`cubeSpherePatches`.
+   `terrainPass` prefers `packedBuckets` when present, with `flatPack.test.ts`
+   proving byte parity. Dormant in prod (producer still emitted objects).
+2. **Flip the producer.** ✅ `scheduleOrbitPatches` returns packed only
+   (`packBudgetedBuckets` on the WASM path; the JS/WebGL fallback packs its object
+   survivors via `packObjectBuckets`). Applied the PlanetViewport diff. Removed
+   `cubeSpherePatches` from `RenderFrame` and the object `buckets` from
+   `OrbitScheduleMeta`; `WebGLBackend` reads `orbitSchedule.patchCount`.
+   **The allocation win lands here** — no survivor objects/`Map` on the WASM path.
+3. **Cleanup.** ✅ no-op beyond step 2. The object-iterating bucket upload in
+   `terrainPass` is deleted (now a straight `uploadPackedBucket`). The shared
+   `writeCubePatchRecord` is in place. `uploadCubeSpherePatches` is **not** deleted
+   — it still backs the *dormant* GPU compute-cull path (`patchCullPass.encodeCullBucket`,
+   currently uncalled, deferred work) and the deprecated `writeCubeSpherePatchesToBuffer`;
+   removing it would touch deferred rendering work. `flatBudget`'s object form
+   (`budgetAndGroupFlat`) is retained as the **test oracle** for the byte packer.
 
 ## Risks / open checks
 
-- **WebGL cube path.** WebGLBackend only reads `.length` in the audit, implying
-  it doesn't render cube buckets itself (or does so elsewhere). **Before step 2**,
-  confirm: if WebGL renders cube patches from objects, either (a) decode
-  `packedBuckets` in WebGL, or (b) keep `budgetAndGroupFlat`'s object form for the
-  WebGL backend only. Don't delete the object path until this is settled.
+- **WebGL cube path.** ✅ Resolved. `WebGLBackend.render` only read
+  `frame.cubeSpherePatches.length` for a stat and otherwise renders a clear color —
+  it never consumed cube patches structurally. So dropping the object path is safe;
+  the stat now reads `frame.orbitSchedule?.patchCount ?? 0`.
 - **No headless GPU verification.** The upload bytes are identical to today's
   `encodeCubeSpherePatches` output (same layout fn) — assert that *in a unit test*
   (`packBudgetedBuckets` bytes == `encodeCubeSpherePatches(objectSurvivors)`),

@@ -36,7 +36,7 @@ import {
 } from '../../params/atmosphereParams.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
 import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
-import { uploadCubeSpherePatches, uploadPackedBucket } from '../../params/gpuBuffers.js';
+import { uploadPackedBucket } from '../../params/gpuBuffers.js';
 import { PatchCullPass } from './patchCullPass.js';
 
 export const VERTS_PER_PATCH = 6;
@@ -304,50 +304,24 @@ export class TerrainPass {
 	}
 
 	private prepareCubeBuckets(frame: RenderFrame): CubeBucketDraw[] {
-		// Prefer the pre-packed byte blocks (flat path): the schedule already wrote
-		// GPU-layout records, so we upload them straight with no re-encode. Falls
-		// back to the object buckets when packedBuckets is absent (JS/WebGL path).
+		// The schedule emits GPU-layout byte blocks (32-byte records) per resolution,
+		// so we upload them straight with no re-encode and no CubeSpherePatch objects.
 		const packed = frame.orbitSchedule?.packedBuckets;
-		if (packed && packed.length > 0) {
-			const draws: CubeBucketDraw[] = [];
-			for (const bucket of packed) {
-				if (bucket.instanceCount === 0) continue;
-				const bucketGpu = this.patchCull.getBucketBuffers(bucket.resolution);
-				uploadPackedBucket(this.device, bucketGpu.visibleBuffer, bucket.data);
-				const vertsPerPatch = cubePatchVertexCount(bucket.resolution);
-				draws.push({
-					resolution: bucket.resolution,
-					patchBuffer: bucketGpu.visibleBuffer,
-					instanceCount: bucket.instanceCount,
-					vertexCount: bucket.instanceCount * vertsPerPatch
-				});
-			}
-			return draws;
-		}
-
-		const buckets = frame.orbitSchedule?.buckets;
-		if (!buckets || buckets.size === 0) return [];
+		if (!packed || packed.length === 0) return [];
 
 		const draws: CubeBucketDraw[] = [];
-
-		for (const resolution of RESOLUTION_LEVELS) {
-			const candidates = buckets.get(resolution);
-			if (!candidates?.length) continue;
-
-			const visible = candidates;
-
-			const bucketGpu = this.patchCull.getBucketBuffers(resolution);
-			uploadCubeSpherePatches(this.device, bucketGpu.visibleBuffer, visible);
-
-			const vertsPerPatch = cubePatchVertexCount(resolution);
+		for (const bucket of packed) {
+			if (bucket.instanceCount === 0) continue;
+			const bucketGpu = this.patchCull.getBucketBuffers(bucket.resolution);
+			uploadPackedBucket(this.device, bucketGpu.visibleBuffer, bucket.data);
+			const vertsPerPatch = cubePatchVertexCount(bucket.resolution);
 			draws.push({
-				resolution,
+				resolution: bucket.resolution,
 				patchBuffer: bucketGpu.visibleBuffer,
-				instanceCount: visible.length,
-				vertexCount: visible.length * vertsPerPatch
+				instanceCount: bucket.instanceCount,
+				vertexCount: bucket.instanceCount * vertsPerPatch
 			});
 		}
-
 		return draws;
 	}
 

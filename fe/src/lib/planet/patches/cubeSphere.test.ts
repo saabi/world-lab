@@ -59,10 +59,13 @@ describe('cubeSphere mapping', () => {
 			focalLengthPx: cam.focalLengthPx,
 			maxVertices: DEFAULT_MAX_VERTICES_PER_FRAME
 		});
-		expect(result.patches.length).toBeGreaterThan(0);
-		expect(result.patches.length).toBeLessThanOrEqual(4096);
+		expect(result.patchCount).toBeGreaterThan(0);
+		expect(result.patchCount).toBeLessThanOrEqual(4096);
 		expect(result.estimatedVertices).toBeLessThanOrEqual(DEFAULT_MAX_VERTICES_PER_FRAME);
-		expect(result.buckets.size).toBeGreaterThan(0);
+		expect(result.packedBuckets.length).toBeGreaterThan(0);
+		// Survivors are distributed across the packed buckets.
+		const packedInstances = result.packedBuckets.reduce((n, b) => n + b.instanceCount, 0);
+		expect(packedInstances).toBe(result.patchCount);
 	});
 
 	it('reuses the schedule for orientation/sub-threshold position change, refreshes on a large move', () => {
