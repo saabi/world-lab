@@ -129,12 +129,31 @@ in their local frame. This is the standard large-world approach and reuses
   one-body system (a star can be synthesized from the current manual sun, or left
   as a manual light).
 
-## Where it lives: a parallel route (recommended)
+## Where it lives: a parallel route (decided)
 
-Build the system editor as a **new route** (e.g. `/system`) rather than mutating
-`/planet` in place — idiomatic here (`/old` vs `/planet` already follow this), and
-it keeps the working single-planet renderer as a stable reference/fallback while
-the multi-body work churns. Split by what's shared vs system-specific:
+The system editor is a **new `/system` route**, not a mutation of `/planet`.
+`/planet` becomes the **legacy per-body editor — "the new old"** (as `/old` is to
+`/planet` now): left **untouched but functional**, and reached *from* `/system` to
+edit a selected body.
+
+**Routes mirror the scene tree** — navigating into a body drills the URL:
+
+```
+/system/{system}/planet/{planet}/moon/{moon} …
+```
+
+Selecting a body in `/system` (map or tree) + an "edit" action routes into the
+per-body editor at the matching path. *(Scaffolded: `/system` hosts the map + tree;
+the "Edit in planet editor" link is a stub to `/planet` until per-body params + the
+nested routes exist.)*
+
+**Dependency rule (important):** `/planet` and `/system/**` share `lib/`. When a
+shared `/planet` dependency must change for `/system`, **either** keep the change
+backward-compatible so `/planet` still works, **or** fork a `/system`-specific copy
+— never silently alter `/planet`'s behavior. (E.g. the system tree is a separate
+`SystemTreePanel`, leaving `/planet`'s `SceneTreePanel` untouched.)
+
+Split by what's shared vs system-specific:
 
 - **Shared model → stays in `lib/`** and benefits both routes: scale-independence
   (relief ratios, log radius), the climate/temperature/palette/emissive fields,

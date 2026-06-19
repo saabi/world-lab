@@ -1,6 +1,18 @@
 # Solar system scene — bodies, orbit hierarchy, selective illumination
 
-**Status:** proposal · increment 1 in progress · **Scope (increment 1, all owned
+> **Reconciliation note.** The umbrella design is [`solar-system-model.md`](solar-system-model.md)
+> (authoritative); this doc is the **implementation track** for its `scene/` model +
+> editor. Two divergences are being settled against the model spec:
+> 1. **Route.** The editor lives at **`/system`** (its own route), not a `/planet`
+>    sidebar. `/planet` is the legacy per-body editor, left untouched. *(Corrected —
+>    `/system` now hosts the map + `SystemTreePanel`.)*
+> 2. **Body model naming.** This track shipped `kind: 'body'` with
+>    `bodyType: star|planet|gas_giant|moon`; the model spec calls for
+>    `celestial_body` with `star|planet|moon|compact` (+ a `barycentre` node) and a
+>    per-body `params: CelestialBody` + `massKg`. **To reconcile** when per-body
+>    params land: rename/extend the node kind and bodyType, add `massKg`/`params`.
+
+**Status:** implementation track (under solar-system-model.md) · `/system` scaffolded · **Scope (increment 1, all owned
 here):** `scene/types.ts` (body node + light scoping), `scene/sceneTree.ts`
 (body/owner helpers + label), `scene/collectLights.ts` (per-body collection),
 `scene/solarSystem.ts` (new — toy preset), `scene/*.test.ts`, light-touch

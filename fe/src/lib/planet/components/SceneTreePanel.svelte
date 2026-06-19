@@ -6,18 +6,14 @@
 		nodeKindLabel,
 		setNodeEnabled
 	} from '../scene/sceneTree.js';
-	import { createDefaultPlanetScene } from '../scene/defaults.js';
-	import { createToySolarSystemScene } from '../scene/solarSystem.js';
 	import type { PlanetScene, SceneNode } from '../scene/types.js';
 
 	interface Props {
 		scene: PlanetScene;
 		illuminationOn: boolean;
-		/** Shared with the system map: the selected node id. */
-		selectedId?: string | null;
 	}
 
-	let { scene = $bindable(), illuminationOn, selectedId = $bindable(null) }: Props = $props();
+	let { scene = $bindable(), illuminationOn }: Props = $props();
 
 	const rows = $derived(listSceneTreeRows(scene));
 	const collected = $derived(collectSceneLighting(scene, illuminationOn));
@@ -34,15 +30,6 @@
 		);
 	}
 
-	/** Richer label for bodies (type · radius · stand-in), plain kind otherwise. */
-	function kindLabel(node: SceneNode): string {
-		if (node.kind === 'body') {
-			const km = Math.round(node.radiusMeters / 1000).toLocaleString();
-			return `${node.bodyType.replace('_', ' ')} · ${km} km${node.standIn ? ' · stand-in' : ''}`;
-		}
-		return nodeKindLabel(node.kind);
-	}
-
 	function rowActive(node: SceneNode): boolean {
 		return isNodeEnabled(scene, node.id) && node.enabled;
 	}
@@ -54,12 +41,6 @@
 
 <aside class="scene-tree-panel" aria-label="Scene tree">
 	<h2>Scene Tree</h2>
-	<div class="preset-row">
-		<button type="button" onclick={() => (scene = createDefaultPlanetScene())}>Default</button>
-		<button type="button" onclick={() => (scene = createToySolarSystemScene())}>
-			Toy Solar System
-		</button>
-	</div>
 	<p class="scene-readout">
 		{#if illuminationOn}
 			Active lights: {activeLightCount} · Ambient: {ambientActive ? 'on' : 'off'}
@@ -69,30 +50,22 @@
 	</p>
 	<ul class="tree-list">
 		{#each rows as { node, depth } (node.id)}
-			<li
-				class="tree-row"
-				class:inactive={!rowActive(node)}
-				class:selected={node.id === selectedId}
-				style:--depth={depth}
-			>
-				<div class="tree-label">
+			<li class="tree-row" class:inactive={!rowActive(node)} style:--depth={depth}>
+				<label class="tree-label">
 					<input
 						type="checkbox"
-						aria-label="enabled"
 						checked={node.enabled}
 						onchange={(e) => toggleEnabled(node.id, e.currentTarget.checked)}
 					/>
-					<button type="button" class="tree-name" onclick={() => (selectedId = node.id)}>
-						{node.name}
-					</button>
+					<span class="tree-name">{node.name}</span>
 					{#if isLightNode(node)}
 						<span class="tree-status" class:active={rowActive(node)}>
 							{rowActive(node) ? 'on' : 'off'}
 						</span>
 					{:else}
-						<span class="tree-kind">{kindLabel(node)}</span>
+						<span class="tree-kind">{nodeKindLabel(node.kind)}</span>
 					{/if}
-				</div>
+				</label>
 			</li>
 		{/each}
 	</ul>
@@ -118,27 +91,6 @@
 		font-weight: 600;
 	}
 
-	.preset-row {
-		display: flex;
-		gap: 6px;
-		margin: 0 0 6px;
-	}
-
-	.preset-row button {
-		flex: 1;
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 3px 6px;
-		border-radius: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		background: #1a1f30;
-		color: inherit;
-		cursor: pointer;
-	}
-
-	.preset-row button:hover {
-		background: #252d45;
-	}
-
 	.scene-readout {
 		margin: 0 0 8px;
 		font-size: 11px;
@@ -160,11 +112,6 @@
 		opacity: 0.55;
 	}
 
-	.tree-row.selected {
-		background: rgba(107, 159, 255, 0.18);
-		border-radius: 3px;
-	}
-
 	.tree-label {
 		display: flex;
 		align-items: center;
@@ -179,18 +126,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		background: none;
-		border: none;
-		padding: 0;
-		margin: 0;
-		color: inherit;
-		font: inherit;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.tree-name:hover {
-		color: #9ec0ff;
 	}
 
 	.tree-kind {
