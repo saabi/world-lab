@@ -17,8 +17,35 @@ export interface ParamToggleDef {
 	label: string;
 }
 
+export type EditorSuperSectionId =
+	| 'camera'
+	| 'shape'
+	| 'materials'
+	| 'atmosphere'
+	| 'tessellation'
+	| 'debug';
+
+export interface EditorSuperSectionDef {
+	id: EditorSuperSectionId;
+	title: string;
+	/** Open on first load when true (accordion picks the first match). */
+	defaultOpen?: boolean;
+}
+
+/** Top-level accordion groups in PlanetEditorPanel (one open at a time). */
+export const EDITOR_SUPER_SECTIONS: EditorSuperSectionDef[] = [
+	{ id: 'camera', title: 'Camera', defaultOpen: true },
+	{ id: 'shape', title: 'Shape' },
+	{ id: 'materials', title: 'Materials' },
+	{ id: 'atmosphere', title: 'Atmosphere' },
+	{ id: 'tessellation', title: 'Tessellation' },
+	{ id: 'debug', title: 'Debug' }
+];
+
 export interface ParamEditorSection {
 	title: string;
+	/** Which accordion super section owns this block. */
+	group: EditorSuperSectionId;
 	/** Collapsed by default when false. */
 	defaultOpen?: boolean;
 	sliders: ParamSliderDef[];
@@ -29,6 +56,7 @@ export interface ParamEditorSection {
 export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	{
 		title: 'Planet Body',
+		group: 'shape',
 		defaultOpen: true,
 		// Log scale: 1 m (boulder) → 1e9 m (~star). Meteor ~1e3, Moon ~1.7e6,
 		// Earth ~6.4e6, Jupiter ~7e7, Sun ~7e8.
@@ -36,6 +64,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Continents',
+		group: 'shape',
 		defaultOpen: true,
 		sliders: [
 			{ key: 'voronoi_scale', label: 'Plate Scale', min: 0, max: 10, step: 0.1 },
@@ -47,6 +76,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Plate Warp',
+		group: 'shape',
 		sliders: [
 			{ key: 'voronoi_distortion_scale', label: 'Warp Scale', min: 0, max: 10, step: 0.1 },
 			{ key: 'voronoi_distortion_amplitude', label: 'Warp Strength', min: 0, max: 50, step: 0.1 },
@@ -55,6 +85,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Terrain Detail',
+		group: 'shape',
 		sliders: [
 			{ key: 'detail_scale', label: 'Scale', min: 0, max: 100, step: 0.1 },
 			{ key: 'detail_amplitude', label: 'Height', min: 0, max: 0.5, step: 0.001 },
@@ -63,6 +94,7 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Surface Texture',
+		group: 'shape',
 		sliders: [
 			{ key: 'texture_noise_scale', label: 'Scale', min: 0, max: 10, step: 0.01 },
 			{ key: 'texture_noise_amplitude', label: 'Strength', min: 0, max: 0.1, step: 0.001 }
@@ -70,10 +102,12 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Erosion',
+		group: 'shape',
 		sliders: [{ key: 'erosion', label: 'Erosion Power', min: 0, max: 3, step: 0.01 }]
 	},
 	{
 		title: 'Biome Bands',
+		group: 'materials',
 		sliders: [
 			{ key: 'sand_cutoff', label: 'Sand Line', min: 0, max: 1, step: 0.01 },
 			{ key: 'vegetation_level', label: 'Vegetation Line', min: 0, max: 1, step: 0.01 },
@@ -82,18 +116,25 @@ export const PARAM_EDITOR_SECTIONS: ParamEditorSection[] = [
 	},
 	{
 		title: 'Oceans',
+		group: 'shape',
 		defaultOpen: true,
 		sliders: [{ key: 'water_level', label: 'Sea Level', min: 0, max: 1, step: 0.01 }],
 		toggles: [{ key: 'render_water', label: 'Render Water' }]
 	},
 	{
 		title: 'Polar Caps',
+		group: 'shape',
 		sliders: [
 			{ key: 'polar_scale', label: 'Cap Extent', min: 0, max: 1, step: 0.01 },
 			{ key: 'polar_amplitude', label: 'Cap Strength', min: 0, max: 0.3, step: 0.001 }
 		]
 	}
 ];
+
+/** Param blocks belonging to a super section (preserves PARAM_EDITOR_SECTIONS order). */
+export function paramSectionsForGroup(group: EditorSuperSectionId): ParamEditorSection[] {
+	return PARAM_EDITOR_SECTIONS.filter((s) => s.group === group);
+}
 
 export interface AtmosphereSliderDef {
 	key: Exclude<keyof AtmosphereParameters, 'enabled'>;

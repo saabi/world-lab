@@ -2,7 +2,12 @@
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { AtmosphereParameters } from '../params/atmosphereParams.js';
 	import { PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
-	import { PARAM_EDITOR_SECTIONS, atmosphereSliders } from '../params/paramEditorSchema.js';
+	import {
+		EDITOR_SUPER_SECTIONS,
+		atmosphereSliders,
+		paramSectionsForGroup,
+		type EditorSuperSectionId
+	} from '../params/paramEditorSchema.js';
 	import type { StoredPlanetDocument } from '../documents/types.js';
 	import { parseSelection } from '../documents/selection.js';
 	import {
@@ -13,6 +18,8 @@
 	import Range from './controls/Range.svelte';
 	import LogRange from './controls/LogRange.svelte';
 	import CheckBox from './controls/CheckBox.svelte';
+	import EditorSuperSection from './EditorSuperSection.svelte';
+	import EditorParamSection from './EditorParamSection.svelte';
 	import { altitudeBounds } from '../camera/seaLevel.js';
 
 	interface Props {
@@ -67,6 +74,11 @@
 
 	const presetNames = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
 
+	const defaultSuperSection =
+		EDITOR_SUPER_SECTIONS.find((s) => s.defaultOpen)?.id ?? EDITOR_SUPER_SECTIONS[0].id;
+
+	let openSuperSection = $state<EditorSuperSectionId>(defaultSuperSection);
+
 	let parsedSelection = $derived(parseSelection(selection));
 	let canSaveDocument = $derived(parsedSelection?.kind === 'document');
 	let canDeleteDocument = $derived(parsedSelection?.kind === 'document');
@@ -77,6 +89,10 @@
 	function handleSelectChange(e: Event) {
 		const value = (e.currentTarget as HTMLSelectElement).value;
 		onSelectionChange(value);
+	}
+
+	function onSuperToggle(id: EditorSuperSectionId) {
+		openSuperSection = id;
 	}
 </script>
 
@@ -108,188 +124,205 @@
 		</div>
 	</div>
 
-	<details class="section" open>
-		<summary>Orbit</summary>
-		<ul class="section-body">
-			<LogRange
-				id="orbit-altitude"
-				label="Altitude"
-				bind:value={altitudeMeters}
-				min={altBounds.min}
-				max={altBounds.max}
-			/>
-			<Range
-				id="orbit-azimuth"
-				label="Azimuth"
-				min={-3.14159}
-				max={3.14159}
-				step={0.01}
-				bind:value={azimuth}
-			/>
-			<Range
-				id="orbit-elevation"
-				label="Elevation"
-				min={-1.55}
-				max={1.55}
-				step={0.01}
-				bind:value={elevation}
-			/>
-			<Range
-				id="orbit-speed"
-				label="Speed"
-				min={0}
-				max={0.3}
-				step={0.005}
-				bind:value={orbitSpeedRadPerSec}
-			/>
-			<CheckBox id="look-at-horizon" label="Look at horizon" bind:checked={lookAtHorizon} />
-		</ul>
-	</details>
+	<div class="super-sections">
+		{#each EDITOR_SUPER_SECTIONS as superSection (superSection.id)}
+			<EditorSuperSection
+				title={superSection.title}
+				open={openSuperSection === superSection.id}
+				onToggle={() => onSuperToggle(superSection.id)}
+			>
+				{#if superSection.id === 'camera'}
+					<details class="subsection" open>
+						<summary>Orbit</summary>
+						<ul class="subsection-body">
+							<LogRange
+								id="orbit-altitude"
+								label="Altitude"
+								bind:value={altitudeMeters}
+								min={altBounds.min}
+								max={altBounds.max}
+							/>
+							<Range
+								id="orbit-azimuth"
+								label="Azimuth"
+								min={-3.14159}
+								max={3.14159}
+								step={0.01}
+								bind:value={azimuth}
+							/>
+							<Range
+								id="orbit-elevation"
+								label="Elevation"
+								min={-1.55}
+								max={1.55}
+								step={0.01}
+								bind:value={elevation}
+							/>
+							<Range
+								id="orbit-speed"
+								label="Speed"
+								min={0}
+								max={0.3}
+								step={0.005}
+								bind:value={orbitSpeedRadPerSec}
+							/>
+							<CheckBox id="look-at-horizon" label="Look at horizon" bind:checked={lookAtHorizon} />
+						</ul>
+					</details>
 
-	<details class="section">
-		<summary>Rotation</summary>
-		<ul class="section-body">
-			<Range
-				id="axial-tilt"
-				label="Axial Tilt"
-				min={-90}
-				max={90}
-				step={1}
-				bind:value={axialTilt}
-			/>
-			<Range
-				id="spin-angle"
-				label="Angle"
-				min={-3.14159}
-				max={3.14159}
-				step={0.01}
-				bind:value={spinAngle}
-			/>
-			<Range
-				id="spin-speed"
-				label="Speed"
-				min={-0.3}
-				max={0.3}
-				step={0.005}
-				bind:value={spinSpeedRadPerSec}
-			/>
-		</ul>
-	</details>
-
-	{#each PARAM_EDITOR_SECTIONS as section (section.title)}
-		<details class="section" open={section.defaultOpen ?? false}>
-			<summary>{section.title}</summary>
-			<ul class="section-body">
-				{#each section.sliders as slider (slider.key)}
-					{#if slider.log}
-						<LogRange
-							id={slider.key}
-							label={slider.label}
-							min={slider.min}
-							max={slider.max}
-							bind:value={params[slider.key]}
-						/>
-					{:else}
-						<Range
-							id={slider.key}
-							label={slider.label}
-							min={slider.min}
-							max={slider.max}
-							step={slider.step}
-							bind:value={params[slider.key]}
-						/>
-					{/if}
-				{/each}
-				{#each section.toggles ?? [] as toggle (toggle.key)}
-					<li class="flag-row">
-						<label class="flag-label" for={toggle.key}>{toggle.label}</label>
-						<input
-							id={toggle.key}
-							class="flag-input"
-							type="checkbox"
-							checked={params[toggle.key] > 0.5}
-							onchange={(e) => (params[toggle.key] = e.currentTarget.checked ? 1 : 0)}
-						/>
-					</li>
-				{/each}
-			</ul>
-		</details>
-	{/each}
-
-	<details class="section">
-		<summary>Atmosphere</summary>
-		<ul class="section-body">
-			<CheckBox id="atmosphere-enabled" label="Enabled" bind:checked={atmosphere.enabled} />
-			{#each atmoSliders as slider (slider.key)}
-				<Range
-					id="atmo-{slider.key}"
-					label={slider.label}
-					min={slider.min}
-					max={slider.max}
-					step={slider.step}
-					bind:value={atmosphere[slider.key]}
-					disabled={!atmosphere.enabled}
-				/>
-			{/each}
-		</ul>
-	</details>
-
-	<details class="section">
-		<summary>Tessellation</summary>
-		<ul class="section-body">
-			<Range id="tess-detail" label="Detail" min={0.05} max={4} step={0.05} bind:value={tessellation.detail} />
-			<Range id="tess-budget" label="Vertex Budget (M)" min={1} max={32} step={1} bind:value={tessellation.vertexBudgetMillions} />
-		</ul>
-	</details>
-
-	<details class="section">
-		<summary>Shading</summary>
-		<ul class="section-body">
-			<li class="flag-row">
-				<label class="flag-label" for="illumination">Scene Lighting</label>
-				<input
-					id="illumination"
-					class="flag-input"
-					type="checkbox"
-					checked={params.illumination > 0.5}
-					onchange={(e) => (params.illumination = e.currentTarget.checked ? 1 : 0)}
-				/>
-			</li>
-			<CheckBox id="shadows" label="Shadows" bind:checked={materialOverrides.shadows} />
-			<Range id="shadow-fill" label="Shadow Fill" min={0} max={1} step={0.01} bind:value={materialOverrides.shadowFill} />
-			<Range id="exposure" label="Exposure" min={0.5} max={3} step={0.05} bind:value={materialOverrides.exposure} />
-			<Range id="roughness-mult" label="Roughness" min={0.5} max={2} step={0.05} bind:value={materialOverrides.roughnessMult} />
-			<Range id="water-gloss" label="Water Gloss" min={0.5} max={3} step={0.05} bind:value={materialOverrides.waterGloss} />
-			<Range id="aerial-fog" label="Aerial Fog" min={0} max={2} step={0.05} bind:value={materialOverrides.fogDensity} />
-		</ul>
-	</details>
-
-	<details class="section">
-		<summary>Debug</summary>
-		<ul class="section-body">
-			<CheckBox id="wireframe" label="Wireframe" bind:checked={wireframe} />
-			<CheckBox id="face-colors" label="Face Colors" bind:checked={faceColors} />
-			<CheckBox id="patch-borders" label="Patch Borders" bind:checked={showPatchBorders} />
-			<CheckBox id="ring-colors" label="Ring Colors" bind:checked={showRingColors} />
-			<li class="select-row">
-				<label class="select-label" for="material-view">Material View</label>
-				<select
-					id="material-view"
-					class="select-input"
-					value={materialOverrides.materialDebug}
-					onchange={(e) =>
-						(materialOverrides = {
-							...materialOverrides,
-							materialDebug: e.currentTarget.value as MaterialOverrides['materialDebug']
-						})}
-				>
-					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
-						<option value={opt.value}>{opt.label}</option>
+					<details class="subsection">
+						<summary>Rotation</summary>
+						<ul class="subsection-body">
+							<Range
+								id="axial-tilt"
+								label="Axial Tilt"
+								min={-90}
+								max={90}
+								step={1}
+								bind:value={axialTilt}
+							/>
+							<Range
+								id="spin-angle"
+								label="Angle"
+								min={-3.14159}
+								max={3.14159}
+								step={0.01}
+								bind:value={spinAngle}
+							/>
+							<Range
+								id="spin-speed"
+								label="Speed"
+								min={-0.3}
+								max={0.3}
+								step={0.005}
+								bind:value={spinSpeedRadPerSec}
+							/>
+						</ul>
+					</details>
+				{:else if superSection.id === 'shape' || superSection.id === 'materials'}
+					{#each paramSectionsForGroup(superSection.id) as section (section.title)}
+						<EditorParamSection {section} bind:params />
 					{/each}
-				</select>
-			</li>
-		</ul>
-	</details>
+					{#if superSection.id === 'materials'}
+						<details class="subsection">
+							<summary>Shading</summary>
+							<ul class="subsection-body">
+								<li class="flag-row">
+									<label class="flag-label" for="illumination">Scene Lighting</label>
+									<input
+										id="illumination"
+										class="flag-input"
+										type="checkbox"
+										checked={params.illumination > 0.5}
+										onchange={(e) => (params.illumination = e.currentTarget.checked ? 1 : 0)}
+									/>
+								</li>
+								<CheckBox id="shadows" label="Shadows" bind:checked={materialOverrides.shadows} />
+								<Range
+									id="shadow-fill"
+									label="Shadow Fill"
+									min={0}
+									max={1}
+									step={0.01}
+									bind:value={materialOverrides.shadowFill}
+								/>
+								<Range
+									id="exposure"
+									label="Exposure"
+									min={0.5}
+									max={3}
+									step={0.05}
+									bind:value={materialOverrides.exposure}
+								/>
+								<Range
+									id="roughness-mult"
+									label="Roughness"
+									min={0.5}
+									max={2}
+									step={0.05}
+									bind:value={materialOverrides.roughnessMult}
+								/>
+								<Range
+									id="water-gloss"
+									label="Water Gloss"
+									min={0.5}
+									max={3}
+									step={0.05}
+									bind:value={materialOverrides.waterGloss}
+								/>
+								<Range
+									id="aerial-fog"
+									label="Aerial Fog"
+									min={0}
+									max={2}
+									step={0.05}
+									bind:value={materialOverrides.fogDensity}
+								/>
+							</ul>
+						</details>
+					{/if}
+				{:else if superSection.id === 'atmosphere'}
+					<ul class="flat-body">
+						<CheckBox id="atmosphere-enabled" label="Enabled" bind:checked={atmosphere.enabled} />
+						{#each atmoSliders as slider (slider.key)}
+							<Range
+								id="atmo-{slider.key}"
+								label={slider.label}
+								min={slider.min}
+								max={slider.max}
+								step={slider.step}
+								bind:value={atmosphere[slider.key]}
+								disabled={!atmosphere.enabled}
+							/>
+						{/each}
+					</ul>
+				{:else if superSection.id === 'tessellation'}
+					<ul class="flat-body">
+						<Range
+							id="tess-detail"
+							label="Detail"
+							min={0.0005}
+							max={4}
+							step={0.05}
+							bind:value={tessellation.detail}
+						/>
+						<Range
+							id="tess-budget"
+							label="Vertex Budget (M)"
+							min={1}
+							max={32}
+							step={1}
+							bind:value={tessellation.vertexBudgetMillions}
+						/>
+					</ul>
+				{:else if superSection.id === 'debug'}
+					<ul class="flat-body">
+						<CheckBox id="wireframe" label="Wireframe" bind:checked={wireframe} />
+						<CheckBox id="face-colors" label="Face Colors" bind:checked={faceColors} />
+						<CheckBox id="patch-borders" label="Patch Borders" bind:checked={showPatchBorders} />
+						<CheckBox id="ring-colors" label="Ring Colors" bind:checked={showRingColors} />
+						<li class="select-row">
+							<label class="select-label" for="material-view">Material View</label>
+							<select
+								id="material-view"
+								class="select-input"
+								value={materialOverrides.materialDebug}
+								onchange={(e) =>
+									(materialOverrides = {
+										...materialOverrides,
+										materialDebug: e.currentTarget.value as MaterialOverrides['materialDebug']
+									})}
+							>
+								{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+									<option value={opt.value}>{opt.label}</option>
+								{/each}
+							</select>
+						</li>
+					</ul>
+				{/if}
+			</EditorSuperSection>
+		{/each}
+	</div>
 </aside>
 
 <style>
@@ -325,49 +358,54 @@
 		margin-bottom: 8px;
 	}
 
-	.section {
-		margin: 4px 0;
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: 4px;
+	.super-sections {
+		margin-top: 4px;
+	}
+
+	.subsection {
+		margin: 3px 0;
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 3px;
 		overflow: hidden;
 	}
 
-	.section > summary {
+	.subsection > summary {
 		list-style: none;
 		cursor: pointer;
 		user-select: none;
-		padding: 4px 10px;
-		background: rgba(92, 60, 0, 0.35);
-		color: #f0e6d8;
-		font-size: 12px;
+		padding: 3px 8px;
+		background: rgba(92, 60, 0, 0.28);
+		color: #e8dcc8;
+		font-size: 11px;
 		font-weight: 600;
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 5px;
 	}
 
-	.section > summary::-webkit-details-marker {
+	.subsection > summary::-webkit-details-marker {
 		display: none;
 	}
 
-	.section > summary::before {
+	.subsection > summary::before {
 		content: '▸';
-		font-size: 10px;
+		font-size: 9px;
 		color: #c9a87a;
 		transition: transform 0.12s ease;
 	}
 
-	.section[open] > summary::before {
+	.subsection[open] > summary::before {
 		transform: rotate(90deg);
 	}
 
-	.section > summary:hover {
-		background: rgba(120, 80, 0, 0.45);
+	.subsection > summary:hover {
+		background: rgba(120, 80, 0, 0.38);
 	}
 
-	.section-body {
+	.subsection-body,
+	.flat-body {
 		margin: 0;
-		padding: 6px 6px 8px;
+		padding: 4px 4px 6px;
 		list-style: none;
 	}
 
