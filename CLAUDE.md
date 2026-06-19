@@ -6,13 +6,17 @@ Also read **`AGENTS.md`** — it holds the wave-integration workflow, stream-own
 
 ## Layout
 
-**Virtual Planet** — procedural multi-scale WebGPU planet renderer. Two top-level apps:
+**Virtual Planet** — procedural multi-scale WebGPU planet renderer. An **npm-workspaces
+monorepo** (root `package.json`, single root `package-lock.json`):
 
-- **`fe/`** — the active app (SvelteKit 2 + Svelte 5 runes + TypeScript). All work happens here.
-- **`fe.old/`** — archived Sapper / Svelte 3 reference. Do not develop here; it exists only to port from.
+- **`fe/`** — the active app (SvelteKit 2 + Svelte 5 runes + TypeScript). Most work happens here.
+- **`packages/*`** — reusable, eventually-publishable libraries (e.g. `@virtual-planet/schema`).
+  Each is its own workspace with `check`/`test` scripts.
+- **`fe.old/`** — archived Sapper / Svelte 3 reference (not a workspace). Do not develop here.
 
 Within `fe/`, routes:
-- **`/planet`** — the active WebGPU renderer.
+- **`/planet`** — the active WebGPU renderer (now also the **legacy per-body editor**).
+- **`/system`** — the solar-system editor (top-down map + body tree); see `_docs/specs/`.
 - **`/old`** — frozen legacy Three.js editor kept as a visual reference. Do not break it.
 
 ## Commands
@@ -33,6 +37,8 @@ npx vitest run -t "includes fill when enabled"              # single test by nam
 ```
 
 There is no lint/format step; `npm run check` (svelte-check) is the type/correctness gate.
+
+Monorepo: run `npm install` **from the root** (one lockfile links all workspaces). App commands still run from `fe/`. Package commands run from the package dir, or from root via `npm run check -w @virtual-planet/schema` / `npm test -w @virtual-planet/schema`.
 
 ## Architecture
 
