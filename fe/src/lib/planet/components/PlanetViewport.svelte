@@ -27,6 +27,11 @@
 		type TessellationSettings
 	} from '../patches/tessellationSettings.js';
 	import { initialTessellationSettings } from '../patches/deviceProfile.js';
+	import {
+		armDeviceTessellation,
+		commitDeviceTessellation,
+		loadDeviceTessellation
+	} from '../patches/deviceTessellation.js';
 	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
 	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
@@ -80,6 +85,14 @@
 
 	let materialOverrides = $state<MaterialOverrides>({ ...DEFAULT_MATERIAL_OVERRIDES });
 	let tessellation = $state<TessellationSettings>({ ...DEFAULT_TESSELLATION });
+	// Boot sentinel for the persisted device tessellation: arm "attempting" before
+	// the first heavy render, commit once it survives a grace period. See
+	// _docs/specs/device-tessellation-defaults.md.
+	const TESSELLATION_COMMIT_GRACE_MS = 2500;
+	let tessellationArmedKey: string | null = null;
+	let tessellationCommitted = false;
+	let tessellationCommitTimer: number | null = null;
+	let tessellationReducedAfterCrash = $state(false);
 	let atmosphere = $state<AtmosphereParameters>(
 		defaultAtmosphereParams(PLANET_PRESETS[DEFAULT_PRESET].radius)
 	);
@@ -366,6 +379,12 @@
 		return () => window.clearTimeout(timer);
 	});
 
+	/** Re-arm the boot sentinel whenever the device tessellation changes (user edits). */
+	$effect(() => {
+		if (!hydrated || !browser) return;
+		armTessellation($state.snapshot(tessellation));
+	});
+
 	/** Re-render when any GPU-visible input changes (not every animation frame). */
 	$effect(() => {
 		if (!hydrated || !backend) return;
@@ -432,6 +451,43 @@
 		if (rafActive || !backend) return;
 		rafActive = true;
 		raf = requestAnimationFrame(tick);
+	}
+
+	function clearTessellationCommit() {
+		if (tessellationCommitTimer !== null) {
+			clearTimeout(tessellationCommitTimer);
+			tessellationCommitTimer = null;
+		}
+	}
+
+	/** Persist a new tessellation as "attempting" before it drives a heavy render. */
+	function armTessellation(settings: TessellationSettings) {
+		if (!browser) return;
+		const key = JSON.stringify(settings);
+		if (key === tessellationArmedKey) return; // already armed this exact value
+		tessellationArmedKey = key;
+		tessellationCommitted = false;
+		clearTessellationCommit();
+		armDeviceTessellation(settings);
+	}
+
+	/** After a frame renders, flip the armed setting to "committed" once it survives the grace window. */
+	function scheduleTessellationCommit() {
+		if (
+			!browser ||
+			tessellationCommitted ||
+			tessellationCommitTimer !== null ||
+			tessellationArmedKey === null
+		) {
+			return;
+		}
+		const armedKey = tessellationArmedKey;
+		tessellationCommitTimer = window.setTimeout(() => {
+			tessellationCommitTimer = null;
+			if (armedKey !== tessellationArmedKey) return; // changed since scheduling
+			commitDeviceTessellation($state.snapshot(tessellation));
+			tessellationCommitted = true;
+		}, TESSELLATION_COMMIT_GRACE_MS);
 	}
 
 	function buildCamera(width: number, height: number, p: PlanetParameters): CameraState {
@@ -1735,6 +1791,8 @@
 				clearOverlayCanvas();
 			}
 			frames++;
+			// The frame rendered without crashing — start the sentinel's commit grace.
+			scheduleTessellationCommit();
 			if (time - lastFpsTime > 500) {
 				hud = { ...hud, fps: Math.round((frames * 1000) / (time - lastFpsTime)) };
 				frames = 0;
@@ -1758,8 +1816,13 @@
 
 		// Pick a safe per-device starting tessellation before the first frame: mobiles
 		// boot at the lowest settings so a weak GPU can't crash on load. Desktop keeps
-		// the full default. See _docs/specs/device-tessellation-defaults.md.
-		tessellation = initialTessellationSettings();
+		// the full default. The boot sentinel restores a previously-committed device
+		// preference, or falls back to the floor if the last session crashed mid-apply.
+		// See _docs/specs/device-tessellation-defaults.md.
+		const loadedTessellation = loadDeviceTessellation(initialTessellationSettings());
+		tessellation = loadedTessellation.settings;
+		tessellationReducedAfterCrash = loadedTessellation.fellBack;
+		armTessellation(loadedTessellation.settings);
 
 		predictorWorker = new OrbitPredictorWorker();
 		predictorWorker.onmessage = (e) => {
@@ -1837,6 +1900,7 @@
 			resizeObserver.disconnect();
 			cancelAnimationFrame(raf);
 			rafActive = false;
+			clearTessellationCommit();
 			backend?.destroy();
 			backend = null;
 
@@ -1867,6 +1931,13 @@
 		bind:this={overlayCanvas}
 		class="overlay-canvas"
 	></canvas>
+
+	{#if tessellationReducedAfterCrash}
+		<div class="crash-notice" role="status">
+			<span>Reduced quality after a render problem. Adjust in Tessellation.</span>
+			<button type="button" onclick={() => (tessellationReducedAfterCrash = false)}>Dismiss</button>
+		</div>
+	{/if}
 
 	{#if spaceflightActive}
 		<div class="spaceflight-hud" onpointerdown={stopPointerPropagation}>
@@ -2500,6 +2571,33 @@
 		height: 100%;
 		pointer-events: none;
 		z-index: 5;
+	}
+
+	.crash-notice {
+		position: absolute;
+		top: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 6px 10px;
+		background: rgba(92, 30, 0, 0.9);
+		border: 1px solid rgba(255, 150, 90, 0.5);
+		border-radius: 4px;
+		color: #ffe6d6;
+		font: 12px/1.3 system-ui, sans-serif;
+	}
+
+	.crash-notice button {
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 2px 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		background: rgba(0, 0, 0, 0.25);
+		color: inherit;
+		cursor: pointer;
 	}
 
 	.hud-projection-controls {

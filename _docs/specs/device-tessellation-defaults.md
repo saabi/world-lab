@@ -1,8 +1,9 @@
 # Device-class tessellation defaults — don't brick mobile on first frame
 
-**Status:** proposal · **Scope:** `patches/tessellationSettings.ts` (presets),
-new `patches/deviceProfile.ts` (detection), `components/PlanetViewport.svelte`
-(apply on mount) · **Driver:** the tessellation default is desktop-grade (8M
+**Status:** Layers 1–2 landed · **Scope:** `patches/tessellationSettings.ts` (presets),
+`patches/deviceProfile.ts` (detection), `patches/deviceTessellation.ts` (persistence
++ boot sentinel), `components/PlanetViewport.svelte` (apply on mount + arm/commit) ·
+**Driver:** the tessellation default is desktop-grade (8M
 vertex budget, auto resolution up to 96, depth 6). On a weak mobile GPU the
 **first frame can exceed the frame-time watchdog → TDR → device-lost / tab
 crash** — before the user can reach the sliders to lower it. The setting is a
@@ -122,25 +123,26 @@ on the desktop side; strong tablets on the mobile side), and once we save a
 user-chosen value, a too-high one would reload straight back into the crash. So
 persistence requires the safety net from the earlier discussion, layered on top:
 
-1. **This spec — device-class default.** Mobile starts at the floor; desktop keeps
-   today's behavior. *Necessary, not sufficient.*
-2. **Boot sentinel (the un-bricker).** Before the first heavy render, write
-   `{settings, attempting:true}` to the device key; after the app survives to a
-   stable state (N good frames / T s with no `device.lost`), flip to `committed`.
-   On load, an uncommitted attempt → ignore it, boot the floor, notify
-   ("reduced quality after a crash"). This is the only mechanism robust to a *hard*
-   tab crash that fires no `device.lost`.
-3. **`device.lost` handler.** On a clean loss, drop to the floor and re-init.
-4. **Watchdog auto-tune.** Start at the floor, sample frame time, step quality up
-   only while frames stay under budget; back off + lock on a spike or loss. This is
-   the real answer to "render as best they can," and it converges empirically where
-   capability detection can't.
-5. **Escape hatch.** `?tess=safe` query param / modifier-key on load that ignores
+1. ✅ **Device-class default.** Mobile starts at the floor; desktop keeps today's
+   behavior. *Necessary, not sufficient.* (`deviceProfile.ts`)
+2. ✅ **Boot sentinel + device-scoped persistence** (`deviceTessellation.ts`).
+   `armDeviceTessellation` writes `{settings, status:'attempting'}` to
+   `vp.deviceTessellation` before the first heavy render; after the app survives a
+   grace window (`TESSELLATION_COMMIT_GRACE_MS` of rendered life with no crash),
+   `commitDeviceTessellation` flips it to `committed`. On load, `decideTessellation`:
+   committed → trust; uncommitted attempt → last session crashed → floor + notice
+   ("Reduced quality after a render problem"); none/corrupt → device-class default.
+   Robust to a *hard* tab crash (no commit ever runs). Re-armed on every settings
+   change; commit timer cleared on teardown.
+3. ⏳ **`device.lost` handler.** On a clean loss, drop to the floor and re-init.
+   *(Not yet — needs `WebGPUBackend` to surface `device.lost`. Until then the
+   sentinel still catches the crash on the next load.)*
+4. ⏳ **Watchdog auto-tune.** Start at the floor, sample frame time, step quality up
+   only while frames stay under budget; back off + lock on a spike or loss. The real
+   answer to "render as best they can," converging empirically where capability
+   detection can't.
+5. ⏳ **Escape hatch.** `?tess=safe` query param / modifier-key on load that ignores
    persistence.
-
-Only after (2) is in place should the device pref be persisted to
-`vp.deviceTessellation`. Until then, the device-class default re-applies each load
-(no persistence) — which is already safe.
 
 ## Risks / open checks
 
