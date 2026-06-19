@@ -1,5 +1,5 @@
 import type { Vec3 } from '../math/vec.js';
-import type { PlanetScene, SceneNode } from './types.js';
+import type { BodyNode, PlanetScene, SceneNode } from './types.js';
 import { composeWorldTransform, IDENTITY_QUAT, type WorldTransform } from './transform.js';
 
 const ORIGIN: Vec3 = [0, 0, 0];
@@ -94,10 +94,34 @@ export function setNodeEnabled(scene: PlanetScene, nodeId: string, enabled: bool
 	return { rootId: scene.rootId, nodes };
 }
 
+/** All body nodes in the scene. */
+export function listBodies(scene: PlanetScene): BodyNode[] {
+	return findByKind(scene, 'body');
+}
+
+/**
+ * The body that owns a node's orbit: its nearest ancestor of kind 'body'. For a
+ * moon → its planet; for a planet → its star. null if there is no ancestor body.
+ * (Starts at the node's parent, so a body's owner is its parent body, not itself.)
+ */
+export function findOwnerBody(scene: PlanetScene, nodeId: string): BodyNode | null {
+	const start = scene.nodes.get(nodeId);
+	let id: string | null = start ? start.parentId : null;
+	while (id != null) {
+		const node = scene.nodes.get(id);
+		if (!node) return null;
+		if (node.kind === 'body') return node;
+		id = node.parentId;
+	}
+	return null;
+}
+
 export function nodeKindLabel(kind: SceneNode['kind']): string {
 	switch (kind) {
 		case 'group':
 			return 'group';
+		case 'body':
+			return 'body';
 		case 'directional_light':
 			return 'directional light';
 		case 'point_light':

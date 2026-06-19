@@ -49,3 +49,45 @@ export function collectSceneLighting(
 	}
 	return collectSceneLights(scene);
 }
+
+/**
+ * Selective illumination: collect the lights that illuminate one body. Includes
+ * ambient (environmental) and every enabled light that is global (`affects` null)
+ * or scoped to `bodyId`. A scoped light — e.g. a moon's reflected light bound to
+ * its parent planet — never contributes to any other body. See
+ * _docs/specs/solar-system-scene.md.
+ */
+export function collectLightsForBody(scene: PlanetScene, bodyId: string): CollectedLighting {
+	const lights: SceneLight[] = [];
+	const ambient: Vec3 = [0, 0, 0];
+
+	visitScene(scene, (node, world) => {
+		if (!isNodeEnabled(scene, node.id)) return;
+		if (node.kind === 'ambient_light') {
+			ambient[0] += node.color[0] * node.intensity;
+			ambient[1] += node.color[1] * node.intensity;
+			ambient[2] += node.color[2] * node.intensity;
+		} else if (node.kind === 'directional_light') {
+			if (node.affects != null && node.affects !== bodyId) return;
+			lights.push({
+				kind: 'directional',
+				directionOrPosition: worldPositiveX(world),
+				color: node.color,
+				intensity: node.intensity,
+				range: 0
+			});
+		} else if (node.kind === 'point_light') {
+			if (node.affects != null && node.affects !== bodyId) return;
+			lights.push({
+				kind: 'point',
+				directionOrPosition: world.position,
+				color: node.color,
+				intensity: node.intensity,
+				range: node.range
+			});
+		}
+	});
+
+	const hasAmbient = ambient[0] > 0 || ambient[1] > 0 || ambient[2] > 0;
+	return { ambient: hasAmbient ? ambient : ZERO_AMBIENT, lights };
+}

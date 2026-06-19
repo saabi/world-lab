@@ -6,6 +6,8 @@
 		nodeKindLabel,
 		setNodeEnabled
 	} from '../scene/sceneTree.js';
+	import { createDefaultPlanetScene } from '../scene/defaults.js';
+	import { createToySolarSystemScene } from '../scene/solarSystem.js';
 	import type { PlanetScene, SceneNode } from '../scene/types.js';
 
 	interface Props {
@@ -30,6 +32,15 @@
 		);
 	}
 
+	/** Richer label for bodies (type · radius · stand-in), plain kind otherwise. */
+	function kindLabel(node: SceneNode): string {
+		if (node.kind === 'body') {
+			const km = Math.round(node.radiusMeters / 1000).toLocaleString();
+			return `${node.bodyType.replace('_', ' ')} · ${km} km${node.standIn ? ' · stand-in' : ''}`;
+		}
+		return nodeKindLabel(node.kind);
+	}
+
 	function rowActive(node: SceneNode): boolean {
 		return isNodeEnabled(scene, node.id) && node.enabled;
 	}
@@ -41,6 +52,12 @@
 
 <aside class="scene-tree-panel" aria-label="Scene tree">
 	<h2>Scene Tree</h2>
+	<div class="preset-row">
+		<button type="button" onclick={() => (scene = createDefaultPlanetScene())}>Default</button>
+		<button type="button" onclick={() => (scene = createToySolarSystemScene())}>
+			Toy Solar System
+		</button>
+	</div>
 	<p class="scene-readout">
 		{#if illuminationOn}
 			Active lights: {activeLightCount} · Ambient: {ambientActive ? 'on' : 'off'}
@@ -63,7 +80,7 @@
 							{rowActive(node) ? 'on' : 'off'}
 						</span>
 					{:else}
-						<span class="tree-kind">{nodeKindLabel(node.kind)}</span>
+						<span class="tree-kind">{kindLabel(node)}</span>
 					{/if}
 				</label>
 			</li>
@@ -89,6 +106,27 @@
 		margin: 0 0 4px;
 		font-size: 14px;
 		font-weight: 600;
+	}
+
+	.preset-row {
+		display: flex;
+		gap: 6px;
+		margin: 0 0 6px;
+	}
+
+	.preset-row button {
+		flex: 1;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 6px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.preset-row button:hover {
+		background: #252d45;
 	}
 
 	.scene-readout {

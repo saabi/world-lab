@@ -20,10 +20,34 @@ export interface GroupNode extends SceneNodeBase {
 	kind: 'group';
 }
 
+export type BodyType = 'star' | 'planet' | 'gas_giant' | 'moon';
+
+/**
+ * A celestial body. Orbit ownership is the hierarchy: a moon is a child of its
+ * planet, a planet a child of its star. "Owns its orbit" = nearest ancestor body.
+ */
+export interface BodyNode extends SceneNodeBase {
+	kind: 'body';
+	bodyType: BodyType;
+	/** Body radius in meters. */
+	radiusMeters: number;
+	/**
+	 * The planet designer has no real facilities for this body yet (stars, gas
+	 * giants) — a placeholder until it does. Real rocky planets are not stand-ins.
+	 */
+	standIn: boolean;
+}
+
 export interface DirectionalLightNode extends SceneNodeBase {
 	kind: 'directional_light';
 	color: Vec3;
 	intensity: number;
+	/**
+	 * Which bodies this light illuminates. null/undefined = global (all bodies,
+	 * e.g. starlight). A bodyId scopes it to that body only — e.g. a moon's
+	 * reflected light illuminates only the planet that owns the moon's orbit.
+	 */
+	affects?: string | null;
 }
 
 export interface PointLightNode extends SceneNodeBase {
@@ -31,6 +55,8 @@ export interface PointLightNode extends SceneNodeBase {
 	color: Vec3;
 	intensity: number;
 	range: number;
+	/** See {@link DirectionalLightNode.affects}. null/undefined = global. */
+	affects?: string | null;
 }
 
 export interface AmbientLightNode extends SceneNodeBase {
@@ -39,7 +65,12 @@ export interface AmbientLightNode extends SceneNodeBase {
 	intensity: number;
 }
 
-export type SceneNode = GroupNode | DirectionalLightNode | PointLightNode | AmbientLightNode;
+export type SceneNode =
+	| GroupNode
+	| BodyNode
+	| DirectionalLightNode
+	| PointLightNode
+	| AmbientLightNode;
 
 export interface PlanetScene {
 	rootId: string;
