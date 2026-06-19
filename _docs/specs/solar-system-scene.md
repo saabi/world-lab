@@ -102,11 +102,32 @@ Default scene stays `createDefaultPlanetScene`; the toy system is opt-in. Loadin
 leaves the rendered planet lit by the global starlight only (placeholder reflections
 are disabled), so no surprise lighting.
 
+## Body LOD — distant bodies are points (`patches/bodyLod.ts`)
+
+In a solar-system view most bodies are far away and **point-like**, so the renderer
+needs an outer LOD tier *above* the patch scheduler:
+
+1. **Point-source floor.** If a body's projected radius is below a few pixels
+   (`POINT_BODY_RADIUS_PX ≈ 3`), do **not** tessellate — draw a single colored point,
+   the average of the body's albedo + atmosphere tint. (Color computation is part of
+   the future multi-body render path; the threshold decision lives here now.)
+2. **Pixel-bounded tessellation.** When a body *is* meshed, never tessellate more
+   triangles than the pixels it covers (≈ π·r²). This is the same screen-space
+   principle the cube-sphere scheduler already applies via `targetVertexSpacingPx`
+   / `resolutionFromDiameter`; the body tier just supplies the per-body cap.
+
+`classifyBodyLod(radiusMeters, distanceMeters, focalLengthPx)` (pure, tested)
+returns `{ tier: 'point' }` or `{ tier: 'mesh', maxTriangles }`. It uses the
+codebase's projection convention (`px = worldSize·focalLengthPx / distance`). The
+multi-body renderer will call this per body each frame: skip point-tier bodies'
+tessellation entirely, and feed `maxTriangles` to the scheduler's budget for
+mesh-tier bodies.
+
 ## Deferred (later increments)
 
 - **Multi-body rendering** — the big one: drawing the star/planets/moons with
-  solar-system-scale precision. The current pipeline renders one origin-centered
-  planet; this is a separate effort.
+  solar-system-scale precision, applying the body-LOD tiers above (point vs. mesh).
+  The current pipeline renders one origin-centered planet; this is a separate effort.
 - **Reflection simulation** — compute each moon's reflected directional light
   (sun colour × albedo × phase, direction moon→planet), enable the scoped lights.
 - **Orbital elements + animation** — replace static `transform.position` with
