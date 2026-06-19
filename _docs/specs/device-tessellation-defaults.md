@@ -1,14 +1,80 @@
 # Device-class tessellation defaults — don't brick mobile on first frame
 
-**Status:** Layers 1–3 landed · **Scope:** `patches/tessellationSettings.ts` (presets),
-`patches/deviceProfile.ts` (detection), `patches/deviceTessellation.ts` (persistence
-+ boot sentinel), `render/WebGPUBackend.ts` (`device.lost`), `components/PlanetViewport.svelte`
-(apply on mount + arm/commit + recover) · **Driver:** the tessellation default is desktop-grade (8M
+**Status:** Layers 1–3 landed · **⛔ LANE BLOCKED** — on the test device the *lowest*
+preset still crashes the GPU (see [Field finding](#-field-finding--floor-still-crashes-lane-blocked));
+Layers 4–5 are on hold until we have diagnostics. · **Scope:**
+`patches/tessellationSettings.ts` (presets), `patches/deviceProfile.ts` (detection),
+`patches/deviceTessellation.ts` (persistence + boot sentinel), `render/WebGPUBackend.ts`
+(`device.lost`), `components/PlanetViewport.svelte` (apply on mount + arm/commit +
+recover) · **Driver:** the tessellation default is desktop-grade (8M
 vertex budget, auto resolution up to 96, depth 6). On a weak mobile GPU the
 **first frame can exceed the frame-time watchdog → TDR → device-lost / tab
 crash** — before the user can reach the sliders to lower it. The setting is a
 **device** property, not a planet property, so the fix is a safe per-device
 starting point, beginning with a desktop/mobile split.
+
+## ⛔ Field finding — floor still crashes (lane blocked)
+
+**Observed (first on-device test):** even `MOBILE_TESSELLATION` — the absolute floor
+(`detail 0.05`, `vertexBudgetMillions 0.05`, `maxPatchResolution 8`, `maxDepth 3`,
+≈ 50k verts) — **crashes the GPU** on the test mobile device. The **web page / JS
+keeps running** — only the GPU process dies — so this is a GPU-process crash, not a
+tab crash.
+
+**What this tells us:** res 8 / ~50k vertices is tiny, so the cause is almost
+certainly **not triangle throughput**. The crash likely comes from something
+*structural* that fails regardless of mesh density — a WGSL feature / precision
+issue, a storage-buffer or binding limit, a texture format (`depth24plus`, the
+preferred canvas format), the atmosphere pass, or the (currently dormant) compute
+path. **Lowering the numbers further will not help.** The whole "start safe, scale
+up" premise assumes the floor renders; here it doesn't, so:
+
+- **Layer 4 (watchdog auto-tune) is moot** until the floor renders — there's nothing
+  to ramp up *from*.
+- **The real blocker is diagnostic visibility, not tessellation values.** We're
+  flying blind: the GPU dies and we don't know why.
+
+**Decision:** pause this lane. Do not build Layers 4–5 yet. Resume only after we can
+see *what* is failing on the device (next section).
+
+## Diagnostics needed before resuming
+
+No remote debugging on the device yet (the user will set up chrome://inspect /
+Safari Web Inspector later). But **the page survives the GPU crash**, so we can
+surface diagnostics **on-screen** — that is the highest-value next step on this lane
+and is useful regardless of remote debugging.
+
+When we pick this up, build a small **on-screen diagnostic overlay** that captures
+and displays:
+
+- **`device.lost` reason + message.** Layer 3 already runs `handleDeviceLost`;
+  right now it only drops to the floor. Surface the reason/`message` text on screen.
+  First question to answer: *does `device.lost` even fire here, or does the GPU
+  process die silently?*
+- **Uncaptured GPU errors** — `device.addEventListener('uncapturederror', …)` /
+  `device.onuncapturederror`. These are validation / out-of-memory errors that
+  **don't throw** and we currently ignore entirely. This most likely holds the
+  smoking gun. (Could also wrap suspect work in `pushErrorScope`/`popErrorScope`.)
+- **Adapter info + key limits** — `adapter.info` (vendor / architecture /
+  description) and `adapter.limits` (`maxBufferSize`, `maxStorageBufferBindingSize`,
+  `maxComputeWorkgroupStorageSize`, …), to compare against what the passes allocate.
+- **Init / render exceptions** — try/catch around `render()` and init, surfaced to
+  the overlay instead of a swallowed console error.
+- **First-frame watchdog** — if no successful frame renders within ~N s of init,
+  show the overlay. Catches a *silent* GPU-process crash where `device.lost` may not
+  fire.
+
+**Bisection plan once diagnostics exist** (localize which pass/feature kills it):
+
+1. Render a **clear-only / empty frame** — confirms the canvas/context configuration
+   itself is healthy on the device.
+2. Enable the **terrain pass alone** (atmosphere off) — is it the terrain shader?
+3. Enable the **atmosphere pass** — is it the atmosphere/blit/format path?
+4. Toggle the **compute cull path** and check **texture formats** (`depth24plus`,
+   preferred canvas format) for device support.
+
+This points the fix at a real cause (a feature/limit/format to guard or polyfill)
+rather than guessing at ever-lower tessellation numbers.
 
 ## Framing: device preference, not planet parameter
 
@@ -141,12 +207,15 @@ persistence requires the safety net from the earlier discussion, layered on top:
    bounded (`MAX_DEVICE_RECOVERY`) so a broken GPU can't init→lose→init forever; a
    later successful commit resets the counter. Closes the one gap the sentinel alone
    couldn't (a clean loss that doesn't kill the tab).
-4. ⏳ **Watchdog auto-tune.** Start at the floor, sample frame time, step quality up
-   only while frames stay under budget; back off + lock on a spike or loss. The real
-   answer to "render as best they can," converging empirically where capability
-   detection can't.
-5. ⏳ **Escape hatch.** `?tess=safe` query param / modifier-key on load that ignores
-   persistence.
+4. ⛔ **Watchdog auto-tune** — *blocked.* Start at the floor, sample frame time, step
+   quality up only while frames stay under budget; back off + lock on a spike or
+   loss. The real answer to "render as best they can." **Moot until the floor renders
+   on the test device** (see Field finding) — nothing to ramp up from.
+5. ⛔ **Escape hatch** — *deferred.* `?tess=safe` query param / modifier-key on load
+   that ignores persistence. Of limited use while even the floor crashes.
+
+**Next step on this lane is not Layer 4 — it is the on-screen diagnostic overlay**
+(see [Diagnostics needed before resuming](#diagnostics-needed-before-resuming)).
 
 ## Risks / open checks
 
