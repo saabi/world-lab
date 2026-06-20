@@ -32,6 +32,36 @@ export function rotateVec3(q: Quat, v: Vec3): Vec3 {
 	];
 }
 
+/** Euler angles (radians, ZYX / roll-pitch-yaw about x,y,z) → quaternion. */
+export function eulerToQuat(x: number, y: number, z: number): Quat {
+	const cr = Math.cos(x * 0.5);
+	const sr = Math.sin(x * 0.5);
+	const cp = Math.cos(y * 0.5);
+	const sp = Math.sin(y * 0.5);
+	const cy = Math.cos(z * 0.5);
+	const sy = Math.sin(z * 0.5);
+	return [
+		sr * cp * cy - cr * sp * sy,
+		cr * sp * cy + sr * cp * sy,
+		cr * cp * sy - sr * sp * cy,
+		cr * cp * cy + sr * sp * sy
+	];
+}
+
+/** Quaternion → Euler angles (radians, ZYX / roll-pitch-yaw about x,y,z). */
+export function quatToEuler(q: Quat): [number, number, number] {
+	const [x, y, z, w] = q;
+	const sinr = 2 * (w * x + y * z);
+	const cosr = 1 - 2 * (x * x + y * y);
+	const roll = Math.atan2(sinr, cosr);
+	const sinp = 2 * (w * y - z * x);
+	const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * (Math.PI / 2) : Math.asin(sinp);
+	const siny = 2 * (w * z + x * y);
+	const cosy = 1 - 2 * (y * y + z * z);
+	const yaw = Math.atan2(siny, cosy);
+	return [roll, pitch, yaw];
+}
+
 export interface WorldTransform {
 	position: Vec3;
 	rotation: Quat;

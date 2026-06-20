@@ -19,7 +19,8 @@
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
-	import type { PlanetScene } from '$lib/planet/scene/types.js';
+	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
+	import type { PlanetScene, Transform } from '$lib/planet/scene/types.js';
 
 	const SCENE_KEY = 'vp.systemScene';
 
@@ -111,6 +112,10 @@
 		if (selectedId) scene = updateNode(scene, selectedId, next);
 	}
 
+	function onTransformChange(t: Transform) {
+		if (selectedId) scene = updateNode(scene, selectedId, { transform: t });
+	}
+
 	function addUnder(kind: 'group' | 'body' | 'orbit') {
 		const parentId = selectedId ?? scene.rootId;
 		if (kind === 'orbit') {
@@ -157,6 +162,7 @@
 			</nav>
 			<div class="node-editor">
 				<span class="edit-name">{selectedNode.name}</span>
+				<TransformEditor transform={selectedNode.transform} onchange={onTransformChange} />
 				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
 				{/if}
