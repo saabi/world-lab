@@ -151,26 +151,29 @@
 			const [px, py] = projectToScreen(view, wp[0], wp[2]);
 			screenPoints.push({ id: b.id, x: px, y: py });
 			const st = BODY_STYLE[b.bodyType];
+			// Dot reflects the body's true radius, clamped so it's always visible at
+			// fit-all and scales up (showing radius edits) when zoomed in.
+			const r = Math.max(st.r, Math.min(b.radiusMeters * view.scale, 60));
 			if (b.bodyType === 'star') {
 				ctx.beginPath();
-				ctx.arc(px, py, st.r + 4, 0, Math.PI * 2);
+				ctx.arc(px, py, r + 4, 0, Math.PI * 2);
 				ctx.fillStyle = 'rgba(255,210,127,0.2)';
 				ctx.fill();
 			}
 			ctx.beginPath();
-			ctx.arc(px, py, st.r, 0, Math.PI * 2);
+			ctx.arc(px, py, r, 0, Math.PI * 2);
 			ctx.fillStyle = st.color;
 			ctx.fill();
 			if (b.id === selectedId) {
 				ctx.beginPath();
-				ctx.arc(px, py, st.r + 4, 0, Math.PI * 2);
+				ctx.arc(px, py, r + 4, 0, Math.PI * 2);
 				ctx.strokeStyle = '#ffffff';
 				ctx.lineWidth = 1.5;
 				ctx.stroke();
 			}
 			ctx.fillStyle = 'rgba(232,236,248,0.75)';
 			ctx.font = '10px system-ui, sans-serif';
-			ctx.fillText(b.name, px + st.r + 3, py + 3);
+			ctx.fillText(b.name, px + r + 3, py + 3);
 		}
 	}
 
