@@ -3,6 +3,7 @@ import type { DriverSpec, PlanetScene, SceneNode } from './types.js';
 import { advanceScene, orbitLocalPosition } from './orbit.js';
 import { eulerToQuat, quatToEuler } from './transform.js';
 import { resolvePath } from './scenePath.js';
+import { applyConstraints } from './constraints.js';
 
 // Driver/binding dataflow (Phase 1). A node may carry a *driver* that computes
 // named outputs from time, and *bindings* that wire those outputs (referenced by
@@ -77,13 +78,16 @@ export function evaluateScene(scene: PlanetScene, t: number): PlanetScene {
 	for (const node of s.nodes.values()) {
 		if (node.driver) outputs.set(node.id, evaluateDriver(node.driver, t));
 	}
-	if (outputs.size === 0) return s;
 
 	let changed = false;
 	const nodes = new Map(s.nodes);
 	for (const [id, node] of s.nodes) {
-		if (node.bindings && node.bindings.length > 0) {
-			nodes.set(id, applyBindings(s, node, outputs));
+		let next = node;
+		// Driven fields first, then constraints clamp/modify the result.
+		if (node.bindings && node.bindings.length > 0) next = applyBindings(s, next, outputs);
+		if (node.constraints && node.constraints.length > 0) next = applyConstraints(next);
+		if (next !== node) {
+			nodes.set(id, next);
 			changed = true;
 		}
 	}

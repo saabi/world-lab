@@ -96,6 +96,23 @@ export interface FieldBinding {
 	output: string;
 }
 
+/** Per-axis rotation limit (radians), with an enable toggle. */
+export interface AxisLimit {
+	enabled: boolean;
+	min: number;
+	max: number;
+}
+
+/** Clamp a node's local rotation per axis (Blender "Limit Rotation"). */
+export interface LimitRotationConstraint {
+	type: 'limit_rotation';
+	x?: AxisLimit;
+	y?: AxisLimit;
+	z?: AxisLimit;
+}
+
+export type Constraint = LimitRotationConstraint;
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
@@ -106,6 +123,8 @@ export interface SceneNodeBase {
 	driver?: DriverSpec;
 	/** Optional field bindings: drive this node's transform fields from driver outputs. */
 	bindings?: FieldBinding[];
+	/** Optional constraint stack: transform modifiers applied after the base transform. */
+	constraints?: Constraint[];
 	/** Optional kinematic position driver (position-model orbit). */
 	orbit?: OrbitElements;
 	/** Optional orbit-phase driver: rotates this node about +Y (a center of rotation). */
