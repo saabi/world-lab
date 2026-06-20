@@ -1,12 +1,16 @@
 import type { PlanetScene, SceneNode } from './types.js';
 
 // Scene (de)serialization for persistence. The scene is plain data — nodes with
-// transforms, drivers (orbit/orbitPhase/spin), inheritance paths, and kind-specific
-// fields — so it round-trips through JSON. A version field leaves room for migration
-// (detect → migrate → coerce), like the planet documents. Deep links / routing need
-// a loadable scene; see _docs/specs/scene-routing.md.
+// transforms, drivers (kepler / orbit / spin), bindings, constraints, inheritance
+// paths, and kind-specific fields — so it round-trips through JSON. The version field
+// guards structure changes: an older doc is rejected (returns null) so the caller
+// falls back to the current preset rather than loading a stale structure (e.g. a v1
+// save predates driver-based orbits — its bodies would render but draw no orbits).
+// Deep links / routing need a loadable scene; see _docs/specs/scene-routing.md.
+//
+// v2: driver/binding orbits (kepler driver replaces the phase→radius / orbitPhase nodes).
 
-const SCENE_DOC_VERSION = 1;
+const SCENE_DOC_VERSION = 2;
 
 export interface SceneDocument {
 	version: number;
@@ -49,6 +53,7 @@ export function deserializeScene(json: string): PlanetScene | null {
 	}
 	if (!doc || typeof doc !== 'object') return null;
 	const d = doc as Record<string, unknown>;
+	if (d.version !== SCENE_DOC_VERSION) return null; // stale/incompatible → caller reloads the preset
 	if (typeof d.rootId !== 'string' || !Array.isArray(d.nodes)) return null;
 
 	const nodes = new Map<string, SceneNode>();

@@ -28,6 +28,12 @@ describe('scene (de)serialization', () => {
 		expect((restored.nodes.get('ss-starlight') as { intensity: number }).intensity).toBe(9);
 	});
 
+	it('rejects a stale (older-version) document so the caller reloads the preset', () => {
+		const doc = JSON.parse(serializeScene(createToySolarSystemScene()));
+		doc.version = 1; // predates driver-based orbits
+		expect(deserializeScene(JSON.stringify(doc))).toBeNull();
+	});
+
 	it('returns null for malformed input', () => {
 		expect(deserializeScene('{not json')).toBeNull();
 		expect(deserializeScene('{}')).toBeNull(); // no rootId/nodes
