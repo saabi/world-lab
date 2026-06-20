@@ -18,12 +18,13 @@ describe('node schemas validate', () => {
 		expect(annotationsOf(orbitSchema.properties.periodSeconds).unit).toBe('s');
 	});
 
-	it('body: bodyType enum + non-negative radius', () => {
+	it('body: bodyType enum + radiusMeters (real node field, validated in metres)', () => {
 		const body = create(bodySchema);
 		expect(body.bodyType).toBe('planet'); // default
+		expect(body.radiusMeters).toBe(500_000); // 500 km, stored in metres
 		expect(check(bodySchema, { ...body, bodyType: 'moon' })).toBe(true);
 		expect(check(bodySchema, { ...body, bodyType: 'comet' })).toBe(false);
-		expect(check(bodySchema, { ...body, radius: -1 })).toBe(false);
+		expect(check(bodySchema, { ...body, radiusMeters: 0 })).toBe(false); // below min
 	});
 
 	it('inheritance: per-channel paths default to the parent (../)', () => {
@@ -35,9 +36,11 @@ describe('node schemas validate', () => {
 	});
 });
 
-describe('editorForKind (two-tier dispatch)', () => {
-	it('routes bodies to the bespoke editor and others to a generated form', () => {
-		expect(editorForKind('body')).toEqual({ mode: 'bespoke', component: 'BodyEditor' });
+describe('editorForKind (dispatch)', () => {
+	it('routes bodies + lights to generated forms (no bespoke editors yet)', () => {
+		const body = editorForKind('body');
+		expect(body.mode).toBe('schema');
+		if (body.mode === 'schema') expect(body.schema).toBe(bodySchema);
 
 		const light = editorForKind('directional_light');
 		expect(light.mode).toBe('schema');

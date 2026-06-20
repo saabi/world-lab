@@ -124,12 +124,13 @@
 			</nav>
 			<div class="node-editor">
 				<span class="edit-name">{selectedNode.name}</span>
-				{#if editor?.mode === 'bespoke'}
-					<!-- Bodies get the bespoke editor; stubbed to the legacy /planet editor
-					     until per-body params + the nested route exist. -->
-					<a class="edit-link" href="/planet">Edit in planet editor →</a>
-				{:else if editor?.mode === 'schema'}
+				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
+				{/if}
+				{#if selectedNode.kind === 'body'}
+					<!-- The full procedural editor still lives at /planet (per-body params +
+					     the nested route are future work). -->
+					<a class="edit-link" href="/planet">Open in planet editor →</a>
 				{/if}
 			</div>
 		{/if}

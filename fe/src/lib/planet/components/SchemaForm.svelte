@@ -42,14 +42,15 @@
 					{/each}
 				</select>
 			{:else if f.kind === 'number' || f.kind === 'integer'}
+				{@const scale = f.annotations.scale ?? 1}
 				<input
 					class="field-input"
 					type="number"
-					value={Number(value[f.key] ?? f.annotations.default ?? 0)}
-					min={f.annotations.extent?.[0] ?? undefined}
-					max={f.annotations.extent?.[1] ?? undefined}
+					value={Number(value[f.key] ?? f.annotations.default ?? 0) / scale}
+					min={f.annotations.extent?.[0] != null ? f.annotations.extent[0] / scale : undefined}
+					max={f.annotations.extent?.[1] != null ? f.annotations.extent[1] / scale : undefined}
 					step={f.kind === 'integer' ? 1 : 'any'}
-					onchange={(e) => set(f.key, Number(e.currentTarget.value))}
+					onchange={(e) => set(f.key, Number(e.currentTarget.value) * scale)}
 				/>
 			{:else}
 				<input

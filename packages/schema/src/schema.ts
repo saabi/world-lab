@@ -16,6 +16,8 @@ export const X_UNIT = 'x-unit';
 export const X_EXTENT = 'x-extent';
 export const X_REF = 'x-ref';
 export const X_WIDGET = 'x-widget';
+/** Stored units per display unit (e.g. metres-per-km = 1000): the form shows value/scale. */
+export const X_SCALE = 'x-scale';
 
 /** Physical unit for a quantity. `none` = dimensionless (e.g. eccentricity). */
 export type Unit = 'none' | 'm' | 'km' | 'kg' | 's' | 'rad' | 'deg';
@@ -32,6 +34,12 @@ export interface QuantityOptions {
 	description?: string;
 	/** Widget hint for the form generator. */
 	widget?: string;
+	/**
+	 * Stored units per display unit. The field stores SI; the form shows value/scale
+	 * in `unit` (e.g. unit 'km' + scale 1000 displays a metres field in km). min/max/
+	 * default stay in stored units (so validation is on the stored value).
+	 */
+	scale?: number;
 }
 
 /**
@@ -40,10 +48,11 @@ export interface QuantityOptions {
  * (`minimum`/`maximum`, enforced by validation) and a UI hint (`x-extent`).
  */
 export function quantity(unit: Unit, options: QuantityOptions = {}) {
-	const { min, max, default: def, integer, description, widget } = options;
+	const { min, max, default: def, integer, description, widget, scale } = options;
 	const opts: Record<string, unknown> = { [X_UNIT]: unit };
 	if (description !== undefined) opts.description = description;
 	if (widget !== undefined) opts[X_WIDGET] = widget;
+	if (scale !== undefined) opts[X_SCALE] = scale;
 	if (min !== undefined) opts.minimum = min;
 	if (max !== undefined) opts.maximum = max;
 	if (min !== undefined || max !== undefined) opts[X_EXTENT] = [min ?? null, max ?? null];
@@ -87,6 +96,7 @@ export interface SchemaAnnotations {
 	extent?: [number | null, number | null];
 	ref?: boolean;
 	widget?: string;
+	scale?: number;
 	default?: unknown;
 	description?: string;
 }
@@ -99,6 +109,7 @@ export function annotationsOf(schema: TSchema): SchemaAnnotations {
 	if (Array.isArray(s[X_EXTENT])) out.extent = s[X_EXTENT] as [number | null, number | null];
 	if (s[X_REF] === true) out.ref = true;
 	if (typeof s[X_WIDGET] === 'string') out.widget = s[X_WIDGET] as string;
+	if (typeof s[X_SCALE] === 'number') out.scale = s[X_SCALE] as number;
 	if ('default' in s) out.default = s.default;
 	if (typeof s.description === 'string') out.description = s.description;
 	return out;

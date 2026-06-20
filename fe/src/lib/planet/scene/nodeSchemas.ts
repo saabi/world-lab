@@ -33,7 +33,11 @@ export const inheritanceSchema = Type.Object({
 	scale: ref('../', { description: 'Reserved (no scale channel yet)' })
 });
 
-/** A celestial body (authoring units; runtime stores SI). bodyType mirrors BodyType. */
+/**
+ * A celestial body — describes the *actual* BodyNode fields so a generated form
+ * edits them in place. radiusMeters stores SI (metres) and is shown in km (scale).
+ * bodyType mirrors BodyType. (mass is a follow-up — needs a display unit.)
+ */
 export const bodySchema = Type.Object({
 	bodyType: Type.Union(
 		[
@@ -44,8 +48,8 @@ export const bodySchema = Type.Object({
 		],
 		{ default: 'planet' }
 	),
-	radius: quantity('km', { min: 0, default: 500 }),
-	mass: quantity('kg', { min: 0, default: 0, description: 'For gravity/tides' }),
+	// Stored in metres on the node; displayed in km.
+	radiusMeters: quantity('km', { min: 1_000, max: 1e12, default: 500_000, scale: 1000 }),
 	standIn: Type.Boolean({ default: false })
 });
 
@@ -76,10 +80,10 @@ export interface SchemaEditor {
 }
 export type NodeEditor = BespokeEditor | SchemaEditor;
 
-/** Node kinds that have a rich, hand-built editor (override the generated form). */
-const BESPOKE: Partial<Record<SceneNode['kind'], string>> = {
-	body: 'BodyEditor'
-};
+/** Node kinds that have a rich, hand-built editor (override the generated form).
+ *  Bodies now edit in place via the generated form (bodySchema); a bespoke per-body
+ *  editor returns here once per-body procedural params exist. */
+const BESPOKE: Partial<Record<SceneNode['kind'], string>> = {};
 
 /** Node kinds with a generated-form schema. */
 const SCHEMA_BY_KIND: Partial<Record<SceneNode['kind'], TSchema>> = {

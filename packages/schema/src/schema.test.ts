@@ -37,6 +37,15 @@ describe('quantity', () => {
 		expect(check(res, 16.5)).toBe(false);
 	});
 
+	it('annotates a display scale (store SI, show in unit)', () => {
+		const radius = quantity('km', { min: 1_000, default: 500_000, scale: 1000 });
+		expect(annotationsOf(radius).scale).toBe(1000);
+		expect(annotationsOf(radius).unit).toBe('km');
+		// min/max/default stay in stored units → validation is on the stored value.
+		expect(check(radius, 500_000)).toBe(true);
+		expect(check(radius, 500)).toBe(false); // 500 m < 1000 m min
+	});
+
 	it('infers a number static type', () => {
 		const q = quantity('kg', { default: 1 });
 		const v: Static<typeof q> = 5; // compile-time assertion
