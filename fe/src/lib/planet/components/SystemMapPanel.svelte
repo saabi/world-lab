@@ -48,18 +48,22 @@
 		pts: Array<[number, number]>;
 	}
 
-	/** Each kepler-driver orbit node as an ellipse path: the driver's local ellipse
-	 *  (focus at origin) offset to the orbit center = the node's parent world pos. The
-	 *  orbit plane is inertial, so no rotation is applied to the path. */
+	/** Each body's orbit as an ellipse path: walk up to the nearest kepler-driver
+	 *  container, draw its local ellipse (focus at origin) offset to the orbit center =
+	 *  the container's parent world pos. The orbit plane is inertial, so no rotation is
+	 *  applied to the path. */
 	function orbitPaths(animated: PlanetScene): OrbitPath[] {
 		const out: OrbitPath[] = [];
-		for (const node of animated.nodes.values()) {
-			if (node.driver?.type !== 'kepler' || node.parentId == null) continue;
-			const center = getWorldTransform(animated, node.parentId).position;
-			const body = getChildren(animated, node.id).find((c) => c.kind === 'body');
-			const local = orbitPathLocal(node.driver, 96);
+		for (const body of listBodies(animated)) {
+			let cur = body.parentId ? animated.nodes.get(body.parentId) : undefined;
+			while (cur && cur.driver?.type !== 'kepler' && cur.kind !== 'body') {
+				cur = cur.parentId ? animated.nodes.get(cur.parentId) : undefined;
+			}
+			if (!cur || cur.driver?.type !== 'kepler' || cur.parentId == null) continue;
+			const center = getWorldTransform(animated, cur.parentId).position;
+			const local = orbitPathLocal(cur.driver, 96);
 			out.push({
-				bodyId: body?.id ?? null,
+				bodyId: body.id,
 				pts: local.map((p) => [center[0] + p[0], center[2] + p[2]])
 			});
 		}

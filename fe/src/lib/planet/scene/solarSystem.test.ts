@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createToySolarSystemScene } from './solarSystem.js';
-import { findOwnerBody, listBodies, setNodeEnabled } from './sceneTree.js';
+import { findOwnerBody, getWorldTransform, listBodies, setNodeEnabled } from './sceneTree.js';
 import { collectLightsForBody, collectSceneLights } from './collectLights.js';
-import type { BodyNode } from './types.js';
+import { evaluateScene } from './driver.js';
+import { orbitLocalPosition } from './orbit.js';
+import type { BodyNode, OrbitElements } from './types.js';
 
 describe('toy solar system preset', () => {
 	const scene = createToySolarSystemScene();
@@ -32,6 +34,40 @@ describe('toy solar system preset', () => {
 		expect(findOwnerBody(scene, 'ss-ferro')?.id).toBe('ss-sol'); // planet → its star
 		expect(findOwnerBody(scene, 'ss-gale')?.id).toBe('ss-tempest');
 		expect(findOwnerBody(scene, 'ss-sol')).toBeNull(); // star has no ancestor body
+	});
+
+	it('drives composable orbits to the Kepler position (planet about star, moon inertial about planet)', () => {
+		const live = createToySolarSystemScene();
+		// Ferro's elements; Sol is at the origin, so the world position is the ellipse.
+		const ferro: OrbitElements = {
+			semiMajorAxis: 10_000_000,
+			eccentricity: 0,
+			periodSeconds: 60,
+			phaseAtEpoch: 0,
+			periapsisAngle: 0
+		};
+		// Luna-F's eccentric elements, relative to Ferro.
+		const luna: OrbitElements = {
+			semiMajorAxis: 600_000,
+			eccentricity: 0.25,
+			periodSeconds: 9,
+			phaseAtEpoch: 0.5,
+			periapsisAngle: 0
+		};
+		for (const t of [0, 7, 23]) {
+			const ev = evaluateScene(live, t);
+			const fw = getWorldTransform(ev, 'ss-ferro').position;
+			const fWant = orbitLocalPosition(ferro, t);
+			expect(fw[0]).toBeCloseTo(fWant[0], 2);
+			expect(fw[2]).toBeCloseTo(fWant[2], 2);
+
+			// The moon's offset from its planet matches its own ellipse — inertial nesting
+			// (the rotate/inheritance chain isn't dragged by the planet's orbital phase).
+			const lw = getWorldTransform(ev, 'ss-luna-f').position;
+			const lWant = orbitLocalPosition(luna, t);
+			expect(lw[0] - fw[0]).toBeCloseTo(lWant[0], 2);
+			expect(lw[2] - fw[2]).toBeCloseTo(lWant[2], 2);
+		}
 	});
 });
 

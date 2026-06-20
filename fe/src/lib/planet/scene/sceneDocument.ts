@@ -9,8 +9,9 @@ import type { PlanetScene, SceneNode } from './types.js';
 // Deep links / routing need a loadable scene; see _docs/specs/scene-routing.md.
 //
 // v2: driver/binding orbits (kepler driver replaces the phase→radius / orbitPhase nodes).
+// v3: composable orbit primitives (driver container → rotate(phase) → translate(radius)).
 
-const SCENE_DOC_VERSION = 2;
+const SCENE_DOC_VERSION = 3;
 
 export interface SceneDocument {
 	version: number;
