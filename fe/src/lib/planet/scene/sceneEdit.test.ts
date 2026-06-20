@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'vitest';
+import {
+	addChild,
+	descendantIds,
+	makeBody,
+	makeGroup,
+	removeSubtree,
+	reparent
+} from './sceneEdit.js';
+import { getChildren, listBodies } from './sceneTree.js';
+import { createToySolarSystemScene } from './solarSystem.js';
+import type { PlanetScene, SceneNode } from './types.js';
+
+function tiny(): PlanetScene {
+	const g = (id: string, parentId: string | null): SceneNode => ({
+		id,
+		name: id,
+		parentId,
+		kind: 'group',
+		enabled: true,
+		transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1] }
+	});
+	return {
+		rootId: 'root',
+		nodes: new Map([g('root', null), g('a', 'root'), g('b', 'a'), g('c', 'b')].map((n) => [n.id, n]))
+	};
+}
+
+describe('addChild', () => {
+	it('adds a node; no-op on id collision', () => {
+		const s = tiny();
+		const node = makeGroup('a', 'New');
+		const s2 = addChild(s, node);
+		expect(s2.nodes.has(node.id)).toBe(true);
+		expect(getChildren(s2, 'a').some((n) => n.id === node.id)).toBe(true);
+		expect(addChild(s2, node)).toBe(s2); // collision → same ref
+	});
+
+	it('makeBody spawns body defaults from the schema', () => {
+		const body = makeBody('a');
+		expect(body.kind).toBe('body');
+		expect(body.bodyType).toBe('planet');
+		expect(body.radiusMeters).toBe(500_000);
+	});
+});
+
+describe('removeSubtree', () => {
+	it('removes a node and its descendants; never the root', () => {
+		const s = removeSubtree(tiny(), 'b'); // removes b and c
+		expect(s.nodes.has('b')).toBe(false);
+		expect(s.nodes.has('c')).toBe(false);
+		expect(s.nodes.has('a')).toBe(true);
+		expect(removeSubtree(tiny(), 'root')).toEqual(tiny()); // root protected
+	});
+
+	it('prunes a planet system from the toy scene', () => {
+		const scene = createToySolarSystemScene();
+		const before = listBodies(scene).length;
+		// Remove Ferro's system (phase → radius → ferro + its moon).
+		const pruned = removeSubtree(scene, 'ss-ferro-phase');
+		expect(pruned.nodes.has('ss-ferro')).toBe(false);
+		expect(pruned.nodes.has('ss-luna-f')).toBe(false); // moon went with it
+		expect(listBodies(pruned).length).toBe(before - 2);
+	});
+});
+
+describe('reparent', () => {
+	it('moves a node under a new parent', () => {
+		const s = reparent(tiny(), 'c', 'root');
+		expect(s.nodes.get('c')!.parentId).toBe('root');
+	});
+
+	it('is cycle-safe and protects the root', () => {
+		const s = tiny();
+		expect(reparent(s, 'a', 'c')).toBe(s); // c is a's descendant → cycle, no-op
+		expect(reparent(s, 'a', 'a')).toBe(s); // self → no-op
+		expect(reparent(s, 'root', 'a')).toBe(s); // root → no-op
+		expect(descendantIds(s, 'a')).toEqual(new Set(['b', 'c']));
+	});
+});

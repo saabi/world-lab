@@ -7,6 +7,7 @@
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
 	import { pathNodeIds, pathOf, resolvePath } from '$lib/planet/scene/scenePath.js';
 	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
+	import { addChild, makeBody, makeGroup, removeSubtree } from '$lib/planet/scene/sceneEdit.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
@@ -103,6 +104,20 @@
 	function onFieldChange(next: Record<string, unknown>) {
 		if (selectedId) scene = updateNode(scene, selectedId, next);
 	}
+
+	function addUnder(kind: 'group' | 'body') {
+		const parentId = selectedId ?? scene.rootId;
+		const node = kind === 'group' ? makeGroup(parentId) : makeBody(parentId);
+		scene = addChild(scene, node);
+		selectedId = node.id; // select (and navigate to) the new node
+	}
+
+	function deleteSelected() {
+		if (!selectedId || selectedId === scene.rootId) return;
+		const parentId = getNode(scene, selectedId)?.parentId ?? null;
+		scene = removeSubtree(scene, selectedId);
+		selectedId = parentId && parentId !== scene.rootId ? parentId : null;
+	}
 </script>
 
 <div class="system-page">
@@ -112,6 +127,11 @@
 			<button type="button" onclick={resetScene}>Reset</button>
 		</div>
 		<SystemTreePanel bind:scene bind:selectedId />
+		<div class="edit-actions">
+			<button type="button" onclick={() => addUnder('group')}>+ Group</button>
+			<button type="button" onclick={() => addUnder('body')}>+ Body</button>
+			<button type="button" onclick={deleteSelected} disabled={!selectedId}>Delete</button>
+		</div>
 		{#if selectedNode}
 			<nav class="breadcrumb" aria-label="Scene path">
 				<button type="button" class="crumb" onclick={() => (selectedId = null)}>/</button>
@@ -197,6 +217,31 @@
 
 	.doc-controls button:hover {
 		background: #252d45;
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: 6px;
+	}
+
+	.edit-actions button {
+		flex: 1;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 4px 6px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.edit-actions button:hover:not(:disabled) {
+		background: #252d45;
+	}
+
+	.edit-actions button:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 
 	.breadcrumb {
