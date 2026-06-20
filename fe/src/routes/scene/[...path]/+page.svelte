@@ -24,7 +24,15 @@
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
 	import BindingsEditor from '$lib/planet/components/BindingsEditor.svelte';
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
-	import type { Constraint, FieldTerm, PlanetScene, Transform } from '$lib/planet/scene/types.js';
+	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
+	import type {
+		BodyAppearance,
+		BodyLod,
+		Constraint,
+		FieldTerm,
+		PlanetScene,
+		Transform
+	} from '$lib/planet/scene/types.js';
 
 	const SCENE_KEY = 'vp.systemScene';
 
@@ -87,6 +95,13 @@
 	}
 
 	const selectedNode = $derived(selectedId ? (getNode(scene, selectedId) ?? null) : null);
+	/** Narrowed to a body for the appearance editor (planet/moon only). */
+	const bodyNode = $derived(
+		selectedNode && selectedNode.kind === 'body' ? selectedNode : null
+	);
+	const hasAppearance = $derived(
+		bodyNode?.bodyType === 'planet' || bodyNode?.bodyType === 'moon'
+	);
 
 	// Shared animation clock (driven by the map's loop) so the editor's live values
 	// match the animation. The selected node, evaluated at the current time, gives the
@@ -146,6 +161,12 @@
 	}
 	function onConstraintsChange(next: Constraint[]) {
 		if (selectedId) scene = updateNode(scene, selectedId, { constraints: next });
+	}
+	function onAppearanceChange(a: BodyAppearance) {
+		if (selectedId) scene = updateNode(scene, selectedId, { appearance: a });
+	}
+	function onLodChange(l: BodyLod) {
+		if (selectedId) scene = updateNode(scene, selectedId, { lod: l });
 	}
 
 	function addUnder(kind: 'group' | 'body' | 'orbit') {
@@ -222,6 +243,16 @@
 				</div>
 				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
+				{/if}
+				{#if bodyNode && hasAppearance}
+					<div class="appearance-section">
+						<span class="section-label">Appearance</span>
+						<AppearanceEditor
+							body={bodyNode}
+							onappearance={onAppearanceChange}
+							onlod={onLodChange}
+						/>
+					</div>
 				{/if}
 				{#if selectedNode.kind === 'body'}
 					<!-- The full procedural editor still lives at /planet (per-body params +
@@ -399,6 +430,20 @@
 
 	.dataflow-section .section-label {
 		color: #aab2c8;
+	}
+
+	.appearance-section {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 6px 8px;
+		background: rgba(110, 160, 120, 0.08);
+		border: 1px solid rgba(110, 160, 120, 0.22);
+		border-radius: 6px;
+	}
+
+	.appearance-section .section-label {
+		color: #9fcfae;
 	}
 
 	.driver-outputs {

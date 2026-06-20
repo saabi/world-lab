@@ -104,8 +104,10 @@ toward multi-body — the main integration cost, taken incrementally.
 
 1. **Model + resolve** — `BodyAppearance` (+ `lod` policy) on `BodyNode`;
    `resolveBodyParams` (pure, tested); default preset; doc-version bump. No UI.
-2. **Appearance editor** — preset picker + override sliders (reuse `paramEditorSchema`)
-   + the `lod` thresholds, in the `/scene` editor for planet/moon.
+2. **✅ Appearance editor** — `AppearanceEditor`: preset picker + override sliders
+   (reused from `PARAM_EDITOR_SECTIONS` shape/materials) writing `appearance.overrides`
+   (overridden rows flagged; one-click reset) + the `lod` thresholds, in the `/scene`
+   editor for planet/moon.
 3. **Screen-size LOD selection** — scene-3d computes each body's projected px and picks
    dot/sphere from the `lod` policy (still cheap, no procedural yet). Proves the LOD.
 4. **First procedural body composited** — render the largest on-screen body via the
