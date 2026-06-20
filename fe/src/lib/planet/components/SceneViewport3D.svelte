@@ -12,9 +12,11 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
+	import { packSceneLighting } from '../scene/packLighting.js';
 	import { proceduralBlend, resolveBodyParams, selectLod, type LodLevel } from '../scene/bodyParams.js';
 	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
-	import type { Vec3 } from '../math/vec.js';
+	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
+	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
 
 	interface Props {
@@ -34,6 +36,8 @@
 	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
 	let procBody = $state<BodyNode | null>(null);
 	let procBlend = $state(0);
+	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
+	let procLighting = $state<LightingUniforms>(packSceneLighting({ ambient: [0, 0, 0], lights: [] }));
 
 	let device: GPUDevice | null = null;
 	let context: GPUCanvasContext | null = null;
@@ -177,11 +181,30 @@
 	function updateProcedural(animated: PlanetScene, vp: Float32Array) {
 		const node = selectedId ? scene.nodes.get(selectedId) : null;
 		if (node && node.kind === 'body' && (node.bodyType === 'planet' || node.bodyType === 'moon')) {
-			const sp = projectToScreen(vp, getWorldTransform(animated, node.id).position, w, h);
+			const bodyPos = getWorldTransform(animated, node.id).position;
+			const sp = projectToScreen(vp, bodyPos, w, h);
 			if (sp) {
 				const px = 2 * (node.radiusMeters / sp.depth) * ((1 / Math.tan(FOVY / 2)) * (h / 2));
 				procBlend = proceduralBlend(node, px);
 				procBody = procBlend > 0 ? node : null;
+				if (procBody) {
+					// Sun as a directional light toward Sol, in the body's (untilted) frame.
+					const col = collectSceneLights(animated);
+					const sun = col.lights.find((l) => l.kind === 'point') ?? col.lights[0];
+					const sunDir: Vec3 = sun ? normalize3(sub3(sun.directionOrPosition, bodyPos)) : [0, 1, 0];
+					procLighting = packSceneLighting({
+						ambient: col.ambient,
+						lights: [
+							{
+								kind: 'directional',
+								directionOrPosition: sunDir,
+								color: sun?.color ?? [1, 1, 1],
+								intensity: sun?.intensity ?? 3,
+								range: 0
+							}
+						]
+					});
+				}
 				return;
 			}
 		}
@@ -312,6 +335,7 @@
 				azimuth={camera.azimuth}
 				elevation={camera.elevation}
 				distance={procDistance}
+				lighting={procLighting}
 			/>
 		</div>
 	{/if}

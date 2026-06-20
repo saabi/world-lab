@@ -8,9 +8,6 @@
 	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
 	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
-	import { collectSceneLighting } from '../scene/collectLights.js';
-	import { packSceneLighting } from '../scene/packLighting.js';
-	import { createDefaultPlanetScene } from '../scene/defaults.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode } from '../scene/types.js';
 
@@ -27,8 +24,10 @@
 		elevation: number;
 		/** Camera distance in the body's render-space units (matched to the scene by the host). */
 		distance: number;
+		/** Packed scene lighting (sun toward Sol, in the body frame) from the host. */
+		lighting: LightingUniforms;
 	}
-	let { body, azimuth, elevation, distance }: Props = $props();
+	let { body, azimuth, elevation, distance, lighting }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = 1;
@@ -36,9 +35,6 @@
 	let renderer: PlanetRenderer | null = null;
 	let ready = false;
 	let raf = 0;
-	const lighting: LightingUniforms = packSceneLighting(
-		collectSceneLighting(createDefaultPlanetScene(), true)
-	);
 
 	function frame(ts: number) {
 		if (renderer && ready && w > 0 && h > 0) {
