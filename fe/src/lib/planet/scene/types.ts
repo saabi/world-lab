@@ -28,18 +28,20 @@ export interface OrbitElements {
 }
 
 /**
- * Per-channel transform inheritance as a *degree of separation* up the ancestor
- * chain: 1 = immediate parent (standard); a value ≥ the node's depth clamps to root
- * = the world/inertial frame. Relative (not an ancestor id), so it survives
- * re-parenting. Lets, e.g., a moon's orbit inherit its *position* from its planet
- * (carried along) but its *rotation* from world (so the orbit plane doesn't spin
- * with the planet's day). See _docs/specs/scene-routing.md.
+ * Per-channel transform inheritance, each a **scene path** (relative or absolute) to
+ * the node that channel inherits from — the same addressing language as references
+ * and routing. `'../'` (default) = immediate parent; `'/'` = root/world; `'../../'`,
+ * `'../sibling'`, `'/sol/ferro'`, etc. are all valid. Lets, e.g., a moon's orbit
+ * inherit its *position* from its planet (carried along) but its *rotation* from
+ * world (so the orbit plane doesn't spin with the planet's day). Paths are
+ * unrestricted in direction; cycles are broken at resolution time (a cyclic edge
+ * resolves to the world frame). See _docs/specs/scene-routing.md.
  */
 export interface TransformInheritance {
-	position: number;
-	rotation: number;
+	position: string;
+	rotation: string;
 	/** Reserved — the runtime Transform has no scale channel yet. */
-	scale: number;
+	scale: string;
 }
 
 export interface SceneNodeBase {

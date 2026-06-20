@@ -22,15 +22,15 @@ export const orbitSchema = Type.Object({
 });
 
 /**
- * Per-channel transform inheritance as a *degree of separation* up the ancestor
- * chain (1 = immediate parent = standard; a value ≥ tree depth clamps to root =
- * world/inertial frame). Relative, so it survives re-parenting. See the transform
- * model discussion in scene-routing.md.
+ * Per-channel transform inheritance: each channel is a scene path (relative or
+ * absolute) to the node it inherits from — `'../'` (parent, default), `'/'` (world),
+ * `'../sibling'`, `'/sol/ferro'`. Same addressing language as references/routing;
+ * cycles are broken at resolution time. See the transform model in scene-routing.md.
  */
 export const inheritanceSchema = Type.Object({
-	position: quantity('none', { integer: true, min: 1, default: 1 }),
-	rotation: quantity('none', { integer: true, min: 1, default: 1 }),
-	scale: quantity('none', { integer: true, min: 1, default: 1 })
+	position: ref('../', { description: 'Path to the position-inheritance frame' }),
+	rotation: ref('../', { description: 'Path to the rotation-inheritance frame' }),
+	scale: ref('../', { description: 'Reserved (no scale channel yet)' })
 });
 
 /** A celestial body (authoring units; runtime stores SI). bodyType mirrors BodyType. */

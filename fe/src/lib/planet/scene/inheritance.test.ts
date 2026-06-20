@@ -21,9 +21,9 @@ function scene(nodes: SceneNode[]): PlanetScene {
 	return { rootId: nodes[0].id, nodes: new Map(nodes.map((n) => [n.id, n])) };
 }
 
-const INHERIT_ROT_WORLD: TransformInheritance = { position: 1, rotation: 99, scale: 1 };
+const ROT_FROM_WORLD: TransformInheritance = { position: '../', rotation: '/', scale: '../' };
 
-describe('per-channel transform inheritance', () => {
+describe('per-channel path inheritance', () => {
 	it('default (no inheritance) composes through the parent, unchanged', () => {
 		// root → spinner(90° about Y) → child(offset +x)
 		const s = scene([
@@ -32,21 +32,18 @@ describe('per-channel transform inheritance', () => {
 			group('child', 'spinner', { transform: { position: [10, 0, 0], rotation: IDENTITY_QUAT } })
 		]);
 		const w = getWorldTransform(s, 'child');
-		// +x offset rotated 90° about Y → −z; rotation carries the parent's 90°.
 		expect(w.position[0]).toBeCloseTo(0, 6);
 		expect(w.position[2]).toBeCloseTo(-10, 6);
-		expect(w.rotation[1]).toBeCloseTo(Y90[1], 6); // non-identity (inherits the spin)
+		expect(w.rotation[1]).toBeCloseTo(Y90[1], 6); // inherits the spin
 	});
 
-	it('rotation from world decouples a node from a spinning ancestor', () => {
-		// Same tree, but child inherits rotation from world (degree clamps to root):
-		// its offset is no longer spun, and its world rotation is inertial.
+	it('rotation from world (/) decouples a node from a spinning ancestor', () => {
 		const s = scene([
 			group('root', null),
 			group('spinner', 'root', { transform: { position: [0, 0, 0], rotation: Y90 } }),
 			group('child', 'spinner', {
 				transform: { position: [10, 0, 0], rotation: IDENTITY_QUAT },
-				inheritance: INHERIT_ROT_WORLD
+				inheritance: ROT_FROM_WORLD
 			})
 		]);
 		const w = getWorldTransform(s, 'child');
@@ -55,17 +52,33 @@ describe('per-channel transform inheritance', () => {
 		expect(w.rotation).toEqual(IDENTITY_QUAT); // inertial
 	});
 
-	it('position from a higher degree skips intermediate ancestors', () => {
-		// root → a(+100x) → b(+1x). b takes its position from degree 2 (root), skipping a.
+	it('position from a relative multi-level path (../../) skips intermediate ancestors', () => {
 		const s = scene([
 			group('root', null),
 			group('a', 'root', { transform: { position: [100, 0, 0], rotation: IDENTITY_QUAT } }),
 			group('b', 'a', {
 				transform: { position: [1, 0, 0], rotation: IDENTITY_QUAT },
-				inheritance: { position: 2, rotation: 1, scale: 1 }
+				inheritance: { position: '../../', rotation: '../', scale: '../' }
 			})
 		]);
-		// Skips a's +100 translation: 0 (root) + 1 = 1, not 101.
+		// ../../ from b = root: skips a's +100 translation → 1, not 101.
 		expect(getWorldTransform(s, 'b').position[0]).toBeCloseTo(1, 6);
+	});
+
+	it('breaks a reference cycle instead of hanging', () => {
+		// a's position inherits from sibling b; b's from sibling a → a cycle.
+		const s = scene([
+			group('root', null),
+			group('a', 'root', {
+				transform: { position: [1, 0, 0], rotation: IDENTITY_QUAT },
+				inheritance: { position: '../b', rotation: '../', scale: '../' }
+			}),
+			group('b', 'root', {
+				transform: { position: [2, 0, 0], rotation: IDENTITY_QUAT },
+				inheritance: { position: '../a', rotation: '../', scale: '../' }
+			})
+		]);
+		const w = getWorldTransform(s, 'a'); // must terminate
+		expect(Number.isFinite(w.position[0])).toBe(true);
 	});
 });

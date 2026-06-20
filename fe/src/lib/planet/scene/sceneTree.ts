@@ -7,21 +7,10 @@ import {
 	rotateVec3,
 	type WorldTransform
 } from './transform.js';
+import { PARENT_PATH, resolvePath } from './scenePath.js';
 
 const ORIGIN: Vec3 = [0, 0, 0];
 const WORLD_IDENTITY: WorldTransform = { position: ORIGIN, rotation: IDENTITY_QUAT };
-
-/**
- * The node `degree` steps up the ancestor chain (1 = immediate parent). Returns
- * null when the walk clamps past the root — i.e. the world/inertial frame.
- */
-function ancestorAtDegree(scene: PlanetScene, nodeId: string, degree: number): string | null {
-	let id: string | null = nodeId;
-	for (let i = 0; i < degree && id != null; i++) {
-		id = scene.nodes.get(id)?.parentId ?? null;
-	}
-	return id;
-}
 
 export function getNode(scene: PlanetScene, id: string): SceneNode | undefined {
 	return scene.nodes.get(id);
@@ -36,34 +25,57 @@ export function getChildren(scene: PlanetScene, parentId: string): SceneNode[] {
 }
 
 export function getWorldTransform(scene: PlanetScene, nodeId: string): WorldTransform {
+	return resolveWorld(scene, nodeId, new Map(), new Set());
+}
+
+/**
+ * World transform with per-channel path inheritance. `memo` caches per call; `visiting`
+ * is the active recursion stack — re-entering a node on it is a cycle, broken by
+ * returning the world frame for that edge (so a bad path can't hang the renderer).
+ */
+function resolveWorld(
+	scene: PlanetScene,
+	nodeId: string,
+	memo: Map<string, WorldTransform>,
+	visiting: Set<string>
+): WorldTransform {
+	const cached = memo.get(nodeId);
+	if (cached) return cached;
+	if (visiting.has(nodeId)) return WORLD_IDENTITY; // cycle — break the edge at world
 	const node = scene.nodes.get(nodeId);
 	if (!node) return WORLD_IDENTITY;
+	visiting.add(nodeId);
 
-	const posDeg = node.inheritance?.position ?? 1;
-	const rotDeg = node.inheritance?.rotation ?? 1;
+	const posPath = node.inheritance?.position ?? PARENT_PATH;
+	const rotPath = node.inheritance?.rotation ?? PARENT_PATH;
 
-	// Fast path: standard single-parent composition (both channels from the parent).
-	if (posDeg === 1 && rotDeg === 1) {
+	let world: WorldTransform;
+	if (posPath === PARENT_PATH && rotPath === PARENT_PATH) {
+		// Fast path: standard single-parent composition (bit-identical to before).
 		const parentWorld =
-			node.parentId != null ? getWorldTransform(scene, node.parentId) : WORLD_IDENTITY;
-		return composeWorldTransform(parentWorld, node.transform);
+			node.parentId != null ? resolveWorld(scene, node.parentId, memo, visiting) : WORLD_IDENTITY;
+		world = composeWorldTransform(parentWorld, node.transform);
+	} else {
+		// Decoupled: translate by the position target, orient the local offset +
+		// rotation by the rotation target (each resolved from its own path).
+		const posId = resolvePath(scene, nodeId, posPath);
+		const rotId = resolvePath(scene, nodeId, rotPath);
+		const posWorld = posId != null ? resolveWorld(scene, posId, memo, visiting) : WORLD_IDENTITY;
+		const rotWorld = rotId != null ? resolveWorld(scene, rotId, memo, visiting) : WORLD_IDENTITY;
+		const offset = rotateVec3(rotWorld.rotation, node.transform.position);
+		world = {
+			position: [
+				posWorld.position[0] + offset[0],
+				posWorld.position[1] + offset[1],
+				posWorld.position[2] + offset[2]
+			],
+			rotation: quatMultiply(rotWorld.rotation, node.transform.rotation)
+		};
 	}
 
-	// Decoupled per-channel inheritance: translate by the position ancestor, orient
-	// the local offset + rotation by the rotation ancestor.
-	const posId = ancestorAtDegree(scene, nodeId, posDeg);
-	const rotId = ancestorAtDegree(scene, nodeId, rotDeg);
-	const posWorld = posId != null ? getWorldTransform(scene, posId) : WORLD_IDENTITY;
-	const rotWorld = rotId != null ? getWorldTransform(scene, rotId) : WORLD_IDENTITY;
-	const offset = rotateVec3(rotWorld.rotation, node.transform.position);
-	return {
-		position: [
-			posWorld.position[0] + offset[0],
-			posWorld.position[1] + offset[1],
-			posWorld.position[2] + offset[2]
-		],
-		rotation: quatMultiply(rotWorld.rotation, node.transform.rotation)
-	};
+	visiting.delete(nodeId);
+	memo.set(nodeId, world);
+	return world;
 }
 
 export function visitScene(scene: PlanetScene, visitor: (node: SceneNode, world: WorldTransform) => void): void {

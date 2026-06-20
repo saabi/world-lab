@@ -26,11 +26,12 @@ describe('node schemas validate', () => {
 		expect(check(bodySchema, { ...body, radius: -1 })).toBe(false);
 	});
 
-	it('inheritance: per-channel degrees of separation default to the parent (1)', () => {
-		expect(create(inheritanceSchema)).toEqual({ position: 1, rotation: 1, scale: 1 });
-		expect(check(inheritanceSchema, { position: 1, rotation: 5, scale: 1 })).toBe(true);
-		expect(check(inheritanceSchema, { position: 0, rotation: 1, scale: 1 })).toBe(false); // min 1
-		expect(check(inheritanceSchema, { position: 1.5, rotation: 1, scale: 1 })).toBe(false); // integer
+	it('inheritance: per-channel paths default to the parent (../)', () => {
+		expect(create(inheritanceSchema)).toEqual({ position: '../', rotation: '../', scale: '../' });
+		// Any path string is valid (../, /, ../sibling, /sol/ferro …).
+		expect(check(inheritanceSchema, { position: '../', rotation: '/', scale: '../' })).toBe(true);
+		// Non-string is not a path.
+		expect(check(inheritanceSchema, { position: 5, rotation: '../', scale: '../' })).toBe(false);
 	});
 });
 
