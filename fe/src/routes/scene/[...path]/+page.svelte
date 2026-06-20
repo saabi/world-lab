@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -30,20 +31,26 @@
 	let scene = $state(loadScene());
 	let selectedId = $state<string | null>(null);
 
-	// URL → selection: the catch-all path resolves to the selected node ('' = root → none).
+	// URL → selection: re-resolve when the URL path changes (untrack selectedId so a
+	// click that changes the selection here does not re-run + revert this effect).
 	$effect(() => {
 		const seg = page.params.path ?? '';
 		const id = seg ? resolvePath(scene, scene.rootId, '/' + seg) : null;
-		if (id !== selectedId) selectedId = id;
+		untrack(() => {
+			if (id !== selectedId) selectedId = id;
+		});
 	});
 
-	// Selection → URL: navigate when the path diverges (the guard breaks the loop).
+	// Selection → URL: navigate when the selection changes (untrack page so this fires
+	// on selectedId only, not when the URL it just set comes back around).
 	$effect(() => {
 		if (!browser) return;
 		const id = selectedId;
-		const segs = id ? (pathOf(scene, id) ?? []) : [];
-		const url = '/scene' + (segs.length ? '/' + segs.join('/') : '');
-		if (page.url.pathname !== url) goto(url, { keepFocus: true, noScroll: true });
+		untrack(() => {
+			const segs = id ? (pathOf(scene, id) ?? []) : [];
+			const url = '/scene' + (segs.length ? '/' + segs.join('/') : '');
+			if (page.url.pathname !== url) goto(url, { keepFocus: true, noScroll: true });
+		});
 	});
 
 	function saveScene() {
