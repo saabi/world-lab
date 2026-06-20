@@ -36,6 +36,9 @@
 	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
 	let procBody = $state<BodyNode | null>(null);
 	let procBlend = $state(0);
+	/** Feathered disc (screen px) to mask the procedural layer to its planet + atmosphere,
+	 *  so the rest of the layer is transparent and the scene shows through. */
+	let procMask = $state<{ x: number; y: number; r0: number; r1: number } | null>(null);
 	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
 	let procLighting = $state<LightingUniforms>(packSceneLighting({ ambient: [0, 0, 0], lights: [] }));
 
@@ -187,6 +190,9 @@
 				const px = 2 * (node.radiusMeters / sp.depth) * ((1 / Math.tan(FOVY / 2)) * (h / 2));
 				procBlend = proceduralBlend(node, px);
 				procBody = procBlend > 0 ? node : null;
+				// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
+				const r = px / 2;
+				procMask = procBody ? { x: sp.x, y: sp.y, r0: r, r1: r * 1.35 } : null;
 				if (procBody) {
 					// Sun as a directional light toward Sol, in the body's (untilted) frame.
 					const col = collectSceneLights(animated);
@@ -210,7 +216,14 @@
 		}
 		procBlend = 0;
 		procBody = null;
+		procMask = null;
 	}
+
+	const procStyle = $derived.by(() => {
+		if (!procMask) return `opacity:${procBlend}`;
+		const g = `radial-gradient(circle at ${procMask.x}px ${procMask.y}px, #000 ${procMask.r0}px, transparent ${procMask.r1}px)`;
+		return `opacity:${procBlend}; mask-image:${g}; -webkit-mask-image:${g};`;
+	});
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
 	function pick(clientX: number, clientY: number) {
@@ -329,7 +342,7 @@
 		onwheel={onWheel}
 	></canvas>
 	{#if procBody && procBlend > 0}
-		<div class="proc-wrap" style="opacity:{procBlend}">
+		<div class="proc-wrap" style={procStyle}>
 			<ProceduralBodyLayer
 				body={procBody}
 				azimuth={camera.azimuth}
