@@ -54,20 +54,37 @@ A **Appearance** section in the `/scene` node editor for planet/moon bodies: a
 This reuses the param-editor schema that already drives `/planet`'s panel — no new
 slider UI.
 
-## Rendering path
+## Rendering & LOD
 
-Two tiers, to bound cost (N full planet renderers is not viable):
+Rendering is **per-body screen-size LOD**, not one "focused" body. Each frame, every
+visible body's projected size (px) picks its representation, with hysteresis to avoid
+flicker at the boundary:
 
-1. **System 3D view stays spheres.** Cheap; many bodies. (Later LOD: the *focused*
-   body upgrades sphere → procedural — scene-3d Phase 4.)
-2. **Focused body rendered procedurally** by the **existing `/planet` pipeline**, fed
-   `resolveBodyParams(body)`. Two ways to surface it (a **decision**): embed the
-   `PlanetViewport` inline in `/scene` for the selected body, or navigate to `/planet`
-   with the body's params loaded (today's stub link, upgraded to carry params).
+- **dot** (sub-pixel / a few px) — a point/billboard;
+- **sphere** (small–medium) — the current scene-3d shaded sphere;
+- **procedural** (large — fills meaningful screen area) — the full `/planet` pipeline
+  (terrain patches + atmosphere), fed `resolveBodyParams(body)`.
 
-Reusing `/planet` means parameterizing `PlanetViewport`/`PlanetEditorPanel` to accept
-external params + emit changes, rather than owning their own preset state — the main
-integration cost.
+**Several bodies may be procedural at once** — the body you're on *plus* any others
+large enough — so from a moon's surface its gas-giant primary renders procedurally,
+through its atmosphere. The thresholds are an **`lod` policy on the body** (editable in
+the tree — the "LOD node" idea), e.g. `{ proceduralAbovePx, sphereAbovePx }`.
+
+This is the project's multi-scale promise, and a major rendering arc with real
+prerequisites (well beyond the model in this spec):
+
+- **Multi-body procedural rendering** — generalize the backend (today: one planet) to
+  draw N procedural bodies + atmospheres in one frame, depth-composited.
+- **Floating origin** — rebase the render origin to the camera each frame so Float32
+  spans cm-at-surface *and* ~1e8 m inter-body (the existing `localFrame` rebasing,
+  applied per camera). This is what makes "moon surface + distant gas giant" precise.
+- **Unified camera** — one camera in system space, orbit *or* near-surface; LOD +
+  floating origin do the rest. Reuses `/planet`'s surface camera modes.
+- **A procedural-body budget** — how many bodies may be procedural simultaneously.
+
+Reusing `/planet` means parameterizing `PlanetViewport` to accept external params +
+emit changes (rather than owning preset state), and lifting its single-planet pipeline
+toward multi-body — the main integration cost, taken incrementally.
 
 ## Decisions to confirm
 
@@ -80,13 +97,16 @@ integration cost.
 
 ## Phasing
 
-1. **Model + resolve** — `BodyAppearance` on `BodyNode`; `resolveBodyParams` (pure,
-   tested); default preset; doc-version bump. No UI. Self-contained `lib/`.
+1. **Model + resolve** — `BodyAppearance` (+ `lod` policy) on `BodyNode`;
+   `resolveBodyParams` (pure, tested); default preset; doc-version bump. No UI.
 2. **Appearance editor** — preset picker + override sliders (reuse `paramEditorSchema`)
-   in the `/scene` editor for planet/moon.
-3. **Focused-body procedural render** — parameterize `PlanetViewport`; embed (or link)
-   it for the selected body, fed `resolveBodyParams`.
-4. **(Later) procedural in the system view** — sphere→procedural LOD for the near body;
-   multi-body convergence (scene-3d Phase 4).
+   + the `lod` thresholds, in the `/scene` editor for planet/moon.
+3. **Screen-size LOD selection** — scene-3d computes each body's projected px and picks
+   dot/sphere from the `lod` policy (still cheap, no procedural yet). Proves the LOD.
+4. **First procedural body composited** — render the largest on-screen body via the
+   `/planet` pipeline + floating origin, depth-composited with the sphere scene.
+5. **Multi-procedural + atmosphere + near-surface camera** — N procedural bodies, their
+   atmospheres, the unified camera. The "gas giant from a moon's surface" milestone.
 
-Start with (1): pure model + resolver + tests, unblocks 2–4, touches no rendering.
+Start with (1): pure model + resolver + tests, unblocks everything, touches no
+rendering. The rendering arc (3–5) is large and lands incrementally.
