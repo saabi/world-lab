@@ -79,7 +79,7 @@ describe('selective illumination (collectLightsForBody)', () => {
 		for (const id of ['ss-ferro', 'ss-cerule', 'ss-ochre']) {
 			const lit = collectLightsForBody(scene, id);
 			expect(lit.lights.length).toBe(1); // global starlight only (reflections disabled)
-			expect(lit.lights[0].kind).toBe('directional');
+			expect(lit.lights[0].kind).toBe('point'); // sun point light
 			expect(lit.ambient[0]).toBeGreaterThan(0);
 		}
 	});

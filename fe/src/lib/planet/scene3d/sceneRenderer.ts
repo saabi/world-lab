@@ -13,7 +13,7 @@ export interface BodyInstance {
 }
 
 export interface SceneLighting {
-	lightDir: Vec3; // unit vector toward the light
+	lightPos: Vec3; // world position of the sun (point light)
 	lightColor: Vec3;
 	lightIntensity: number;
 	ambient: Vec3;
@@ -153,7 +153,7 @@ export class SceneRenderer {
 
 		const u = new Float32Array(28);
 		u.set(viewProj, 0);
-		u.set([light.lightDir[0], light.lightDir[1], light.lightDir[2], 0], 16);
+		u.set([light.lightPos[0], light.lightPos[1], light.lightPos[2], 0], 16);
 		u.set([light.lightColor[0], light.lightColor[1], light.lightColor[2], light.lightIntensity], 20);
 		u.set([light.ambient[0], light.ambient[1], light.ambient[2], 0], 24);
 		this.device.queue.writeBuffer(this.ubuf, 0, u);

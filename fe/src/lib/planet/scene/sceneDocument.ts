@@ -12,8 +12,9 @@ import type { PlanetScene, SceneNode } from './types.js';
 // v3: composable orbit primitives (driver container → rotate(phase) → translate(radius)).
 // v4: field terms — bindings are { field, op?, source: ref#output | const }, folded.
 // v5: sum drivers — Sol reflex-wobble demo (driver/binding shape unchanged, preset content).
+// v6: starlight is a point light at Sol (was directional) — proper radial sun illumination.
 
-const SCENE_DOC_VERSION = 5;
+const SCENE_DOC_VERSION = 6;
 
 export interface SceneDocument {
 	version: number;

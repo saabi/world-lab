@@ -138,15 +138,19 @@ export function createToySolarSystemScene(): PlanetScene {
 		color: [...DEFAULT_AMBIENT],
 		intensity: 1
 	});
+	// Starlight is a point light at the star (child of Sol → tracks its wobble), so
+	// every body is lit radially from the sun's position (correct terminator), not by
+	// one parallel direction. Global (affects: null).
 	add({
 		id: 'ss-starlight',
 		name: 'Starlight',
-		parentId: TOY_SOLAR_SYSTEM_ROOT_ID,
-		kind: 'directional_light',
+		parentId: 'ss-sol',
+		kind: 'point_light',
 		enabled: true,
 		transform: id(),
 		color: [1.0, 0.95, 0.85],
 		intensity: 3.5,
+		range: 1e9,
 		affects: null
 	});
 
@@ -164,7 +168,7 @@ export function createToySolarSystemScene(): PlanetScene {
 		enabled: true,
 		transform: id(),
 		bodyType: 'star',
-		radiusMeters: 50_000 * KM,
+		radiusMeters: 5_000 * KM,
 		standIn: true,
 		driver: {
 			type: 'sum',
@@ -194,7 +198,7 @@ export function createToySolarSystemScene(): PlanetScene {
 	reflection('ss-pebble-reflect', 'Pebble reflection', 'ss-pebble', 'ss-ochre');
 	orbiting('ss-cobble', 'Cobble', 'ss-ochre-radius', 'moon', 70, 1_100, 20, 3.1, 20);
 
-	orbiting('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 7_000, 60_000, 882, 1.0, 30, true, 0.12);
+	orbiting('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 700, 60_000, 882, 1.0, 30, true, 0.12);
 	orbiting('ss-gale', 'Gale', 'ss-tempest-radius', 'moon', 200, 9_000, 40, 0, 40);
 	reflection('ss-gale-reflect', 'Gale reflection', 'ss-gale', 'ss-tempest');
 

@@ -46,11 +46,12 @@
 
 	function lighting(animated: PlanetScene): SceneLighting {
 		const col = collectSceneLights(animated);
-		const dir = col.lights.find((l) => l.kind === 'directional');
+		// Sun = the (global) point light; its world position is the light position.
+		const sun = col.lights.find((l) => l.kind === 'point') ?? col.lights[0];
 		return {
-			lightDir: dir ? dir.directionOrPosition : [0.4, 0.7, 0.5],
-			lightColor: dir ? dir.color : [1, 1, 1],
-			lightIntensity: dir ? dir.intensity : 2,
+			lightPos: sun ? sun.directionOrPosition : [0, 0, 0],
+			lightColor: sun ? sun.color : [1, 1, 1],
+			lightIntensity: sun ? sun.intensity : 3,
 			ambient: col.ambient
 		};
 	}

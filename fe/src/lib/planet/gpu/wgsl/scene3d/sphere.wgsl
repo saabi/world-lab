@@ -1,11 +1,12 @@
 // Instanced body spheres for the scene-3d viewport. One unit sphere, drawn once per
-// body with a per-instance model matrix (translate · radius) + color. Lambert under a
-// single directional light + ambient; stars (emissive flag) render full-bright.
+// body with a per-instance model matrix (translate · radius) + color. Lambert lit by
+// the sun as a POINT light (per-fragment direction from the sun's world position, so
+// the terminator is radial/correct per body) + ambient; stars (emissive) full-bright.
 // See _docs/specs/scene-3d-viewport.md.
 
 struct Uniforms {
 	viewProj : mat4x4<f32>,
-	lightDir : vec4<f32>,   // xyz = unit direction toward the light
+	lightPos : vec4<f32>,   // xyz = world position of the sun (point light)
 	lightColor : vec4<f32>, // rgb = colour, w = intensity
 	ambient : vec4<f32>,    // rgb = ambient colour
 };
@@ -26,6 +27,7 @@ struct VSOut {
 	@builtin(position) clip : vec4<f32>,
 	@location(0) normal : vec3<f32>,
 	@location(1) color : vec4<f32>,
+	@location(2) worldPos : vec3<f32>,
 };
 
 @vertex
@@ -37,6 +39,7 @@ fn vs(in : VSIn) -> VSOut {
 	// Model is translate · uniform-scale, so the object-space normal survives as-is.
 	out.normal = in.normal;
 	out.color = in.color;
+	out.worldPos = world.xyz;
 	return out;
 }
 
@@ -47,7 +50,7 @@ fn fs(in : VSOut) -> @location(0) vec4<f32> {
 		return vec4<f32>(base, 1.0); // emissive (stars)
 	}
 	let n = normalize(in.normal);
-	let l = normalize(u.lightDir.xyz);
+	let l = normalize(u.lightPos.xyz - in.worldPos); // toward the sun's position
 	let ndl = max(dot(n, l), 0.0);
 	let lit = base * (u.ambient.rgb + u.lightColor.rgb * u.lightColor.w * ndl);
 	return vec4<f32>(lit, 1.0);
