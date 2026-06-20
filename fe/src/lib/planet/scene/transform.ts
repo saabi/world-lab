@@ -62,21 +62,31 @@ export function quatToEuler(q: Quat): [number, number, number] {
 	return [roll, pitch, yaw];
 }
 
+export const UNIT_SCALE: Vec3 = [1, 1, 1];
+
+export function mulVec3(a: Vec3, b: Vec3): Vec3 {
+	return [a[0] * b[0], a[1] * b[1], a[2] * b[2]];
+}
+
 export interface WorldTransform {
 	position: Vec3;
 	rotation: Quat;
+	scale: Vec3;
 }
 
 export function composeWorldTransform(parent: WorldTransform, local: Transform): WorldTransform {
-	const rotatedPos = rotateVec3(parent.rotation, local.position);
-	const position: Vec3 = [
-		parent.position[0] + rotatedPos[0],
-		parent.position[1] + rotatedPos[1],
-		parent.position[2] + rotatedPos[2]
-	];
+	// Standard TRS: the parent's scale scales the child's local offset before
+	// rotating + translating; world scale is the component-wise product.
+	const scaledPos = mulVec3(parent.scale, local.position);
+	const rotatedPos = rotateVec3(parent.rotation, scaledPos);
 	return {
-		position,
-		rotation: quatMultiply(parent.rotation, local.rotation)
+		position: [
+			parent.position[0] + rotatedPos[0],
+			parent.position[1] + rotatedPos[1],
+			parent.position[2] + rotatedPos[2]
+		],
+		rotation: quatMultiply(parent.rotation, local.rotation),
+		scale: mulVec3(parent.scale, local.scale ?? UNIT_SCALE)
 	};
 }
 

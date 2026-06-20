@@ -13,9 +13,10 @@
 	const DEG2RAD = Math.PI / 180;
 	const AXES = ['X', 'Y', 'Z'] as const;
 
-	// Position shown in km; rotation as Euler degrees.
+	// Position shown in km; rotation as Euler degrees; scale dimensionless.
 	const posKm = $derived(transform.position.map((v) => v / 1000));
 	const rotDeg = $derived(quatToEuler(transform.rotation).map((r) => r * RAD2DEG));
+	const scale = $derived(transform.scale ?? [1, 1, 1]);
 
 	function setPos(i: number, km: number) {
 		const p = [...transform.position] as [number, number, number];
@@ -27,6 +28,12 @@
 		const e = quatToEuler(transform.rotation);
 		e[i] = deg * DEG2RAD;
 		onchange?.({ ...transform, rotation: eulerToQuat(e[0], e[1], e[2]) });
+	}
+
+	function setScale(i: number, v: number) {
+		const s = [...(transform.scale ?? [1, 1, 1])] as [number, number, number];
+		s[i] = v;
+		onchange?.({ ...transform, scale: s });
 	}
 
 	const round = (n: number) => Math.round(n * 1000) / 1000;
@@ -57,6 +64,20 @@
 					step="any"
 					value={round(rotDeg[i])}
 					onchange={(e) => setRot(i, Number(e.currentTarget.value))}
+				/>
+			</label>
+		{/each}
+	</div>
+	<span class="te-label">Scale</span>
+	<div class="te-row">
+		{#each AXES as ax, i (ax)}
+			<label class="te-field">
+				<span class="te-ax">{ax}</span>
+				<input
+					type="number"
+					step="any"
+					value={round(scale[i])}
+					onchange={(e) => setScale(i, Number(e.currentTarget.value))}
 				/>
 			</label>
 		{/each}

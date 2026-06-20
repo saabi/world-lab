@@ -6,6 +6,8 @@ export type Quat = [number, number, number, number];
 export interface Transform {
 	position: Vec3;
 	rotation: Quat;
+	/** Per-axis scale; defaults to [1, 1, 1] when absent. */
+	scale?: Vec3;
 }
 
 /**

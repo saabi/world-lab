@@ -3,14 +3,20 @@ import type { BodyNode, PlanetScene, SceneNode } from './types.js';
 import {
 	composeWorldTransform,
 	IDENTITY_QUAT,
+	mulVec3,
 	quatMultiply,
 	rotateVec3,
+	UNIT_SCALE,
 	type WorldTransform
 } from './transform.js';
 import { PARENT_PATH, resolvePath } from './scenePath.js';
 
 const ORIGIN: Vec3 = [0, 0, 0];
-const WORLD_IDENTITY: WorldTransform = { position: ORIGIN, rotation: IDENTITY_QUAT };
+const WORLD_IDENTITY: WorldTransform = {
+	position: ORIGIN,
+	rotation: IDENTITY_QUAT,
+	scale: UNIT_SCALE
+};
 
 export function getNode(scene: PlanetScene, id: string): SceneNode | undefined {
 	return scene.nodes.get(id);
@@ -48,28 +54,32 @@ function resolveWorld(
 
 	const posPath = node.inheritance?.position ?? PARENT_PATH;
 	const rotPath = node.inheritance?.rotation ?? PARENT_PATH;
+	const scalePath = node.inheritance?.scale ?? PARENT_PATH;
 
 	let world: WorldTransform;
-	if (posPath === PARENT_PATH && rotPath === PARENT_PATH) {
+	if (posPath === PARENT_PATH && rotPath === PARENT_PATH && scalePath === PARENT_PATH) {
 		// Fast path: standard single-parent composition (bit-identical to before).
 		const parentWorld =
 			node.parentId != null ? resolveWorld(scene, node.parentId, memo, visiting) : WORLD_IDENTITY;
 		world = composeWorldTransform(parentWorld, node.transform);
 	} else {
-		// Decoupled: translate by the position target, orient the local offset +
-		// rotation by the rotation target (each resolved from its own path).
+		// Decoupled: translate by the position target (its scale scales the offset),
+		// orient by the rotation target, scale by the scale target — each from its path.
 		const posId = resolvePath(scene, nodeId, posPath);
 		const rotId = resolvePath(scene, nodeId, rotPath);
+		const scaleId = resolvePath(scene, nodeId, scalePath);
 		const posWorld = posId != null ? resolveWorld(scene, posId, memo, visiting) : WORLD_IDENTITY;
 		const rotWorld = rotId != null ? resolveWorld(scene, rotId, memo, visiting) : WORLD_IDENTITY;
-		const offset = rotateVec3(rotWorld.rotation, node.transform.position);
+		const scaleWorld = scaleId != null ? resolveWorld(scene, scaleId, memo, visiting) : WORLD_IDENTITY;
+		const offset = rotateVec3(rotWorld.rotation, mulVec3(posWorld.scale, node.transform.position));
 		world = {
 			position: [
 				posWorld.position[0] + offset[0],
 				posWorld.position[1] + offset[1],
 				posWorld.position[2] + offset[2]
 			],
-			rotation: quatMultiply(rotWorld.rotation, node.transform.rotation)
+			rotation: quatMultiply(rotWorld.rotation, node.transform.rotation),
+			scale: mulVec3(scaleWorld.scale, node.transform.scale ?? UNIT_SCALE)
 		};
 	}
 

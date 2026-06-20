@@ -65,6 +65,19 @@ describe('per-channel path inheritance', () => {
 		expect(getWorldTransform(s, 'b').position[0]).toBeCloseTo(1, 6);
 	});
 
+	it('parent scale scales child offsets and propagates to world scale', () => {
+		const s = scene([
+			group('root', null),
+			group('p', 'root', {
+				transform: { position: [0, 0, 0], rotation: IDENTITY_QUAT, scale: [2, 2, 2] }
+			}),
+			group('c', 'p', { transform: { position: [5, 0, 0], rotation: IDENTITY_QUAT } })
+		]);
+		const w = getWorldTransform(s, 'c');
+		expect(w.position[0]).toBeCloseTo(10, 6); // 5 scaled by the parent's ×2
+		expect(w.scale).toEqual([2, 2, 2]);
+	});
+
 	it('breaks a reference cycle instead of hanging', () => {
 		// a's position inherits from sibling b; b's from sibling a → a cycle.
 		const s = scene([
