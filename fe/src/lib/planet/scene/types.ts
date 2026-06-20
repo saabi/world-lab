@@ -61,12 +61,51 @@ export interface OrbitPhase {
 	phaseAtEpoch: number;
 }
 
+/**
+ * A driver computes named output values from time (and, later, referenced inputs).
+ * A node carrying one exposes its outputs to be wired into other nodes' fields via
+ * {@link FieldBinding}. The kepler driver outputs `phase` + `radius` for an orbit.
+ * See _docs/specs/scene-routing.md (driver/binding dataflow).
+ */
+export interface KeplerDriver {
+	type: 'kepler';
+	semiMajorAxis: number;
+	eccentricity: number;
+	periodSeconds: number;
+	phaseAtEpoch: number;
+	periapsisAngle: number;
+}
+export type DriverSpec = KeplerDriver;
+
+export type TransformField =
+	| 'positionX'
+	| 'positionY'
+	| 'positionZ'
+	| 'rotationX'
+	| 'rotationY'
+	| 'rotationZ'
+	| 'scaleX'
+	| 'scaleY'
+	| 'scaleZ';
+
+/** Wires a driver output (at `ref` path, named `output`) into a transform field. */
+export interface FieldBinding {
+	field: TransformField;
+	/** Scene path to the driver node. */
+	ref: string;
+	output: string;
+}
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
 	parentId: string | null;
 	transform: Transform;
 	enabled: boolean;
+	/** Optional driver: exposes named outputs (referenced by FieldBindings elsewhere). */
+	driver?: DriverSpec;
+	/** Optional field bindings: drive this node's transform fields from driver outputs. */
+	bindings?: FieldBinding[];
 	/** Optional kinematic position driver (position-model orbit). */
 	orbit?: OrbitElements;
 	/** Optional orbit-phase driver: rotates this node about +Y (a center of rotation). */

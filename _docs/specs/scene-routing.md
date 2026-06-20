@@ -114,6 +114,30 @@ body-editor *view* dispatched at `/scene/…/{body}` either reuses or forks the
 (`CelestialBody`), which don't exist yet — until then the dispatch can open the
 legacy editor as a stub (as the current `/system` "Edit" link does).
 
+## Driver / binding dataflow (Blender-style)
+
+Rather than baking primitives (orbit, spin) into nodes, computation lives in **driver
+nodes** with named outputs, **wired into fields by paths** — plus a **constraint
+stack** for limiters. Fundamental composable transform nodes stay dumb; the dataflow
+does the work. One mechanism subsumes orbits (kepler driver → `phase`/`radius` wired
+to a rotate + translate node), barycenters / reflex wobble (sum drivers over
+referenced positions), and inclined axes (a `limit rotation` constraint).
+
+- **Driven fields.** A field is a literal or a binding `{ field, ref: <path>, output }`.
+- **Driver nodes.** `node.driver` exposes `evaluate(t, inputs) → { named outputs }`.
+- **Evaluation.** `scene/driver.ts::evaluateScene(scene, t)`: existing transform
+  drivers (advanceScene) → evaluate every driver's outputs → resolve each node's
+  bindings into its transform. Phase-1 drivers depend only on `t` (no ordering);
+  driver→driver/node refs (sum/reflex) add topological eval later, reusing the path
+  cycle guard.
+- **Constraints** *(phase 2)*: a per-node modifier stack applied after the base
+  transform — `limit rotation` (X/Y/Z toggles + ranges), later copy/track/etc.
+
+Phasing: **(1) ✅** field bindings + kepler driver + `evaluateScene` (an eccentric
+orbit is now a *wiring* of composable nodes, proven in `driver.test.ts`).
+**(2)** constraint stack + `limit rotation`. **(3)** sum/reflex drivers (barycenter,
+star wobble, binaries) + the wiring UI; migrate the toy orbits + map onto drivers.
+
 ## Phasing
 
 1. **Orbit-as-node migration** — add the orbit node kind; move `OrbitElements` off
