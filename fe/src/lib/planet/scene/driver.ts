@@ -29,7 +29,14 @@ export function evaluateDriver(spec: DriverSpec, t: number): Record<string, numb
 			},
 			t
 		);
-		return { phase: Math.atan2(-p[2], p[0]), radius: Math.hypot(p[0], p[2]) };
+		// Both forms: x/z for a single position-bound orbit node, phase/radius for a
+		// rotate→translate decomposition.
+		return {
+			x: p[0],
+			z: p[2],
+			phase: Math.atan2(-p[2], p[0]),
+			radius: Math.hypot(p[0], p[2])
+		};
 	}
 	return {};
 }

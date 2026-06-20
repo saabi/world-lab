@@ -3,18 +3,23 @@ import { IDENTITY_QUAT } from './transform.js';
 import { DEFAULT_AMBIENT } from './defaults.js';
 
 // Toy solar system preset. Small bodies: rocky planets 400-600 km radius (~1/12
-// Earth). Each orbit is built from single-purpose nodes (no per-channel inheritance):
+// Earth). Each orbit is one node driven by the dataflow (no baked orbit primitive):
 //
-//   <body>-phase   group, orbitPhase driver → rotation about +Y (center of rotation)
-//     <body>-radius  group, transform.position = [R,0,0] (the orbital distance)
-//       <body>       the body — spins only, sits at the orbital position
+//   <body>-orbit  group, kepler driver → outputs {x, z}; bindings drive its
+//                 position; inheritance rotation:'/' keeps the orbit plane inertial
+//     <body>      the body — spins only, sits at the driven orbital position
 //
-// The phase rotation sweeps the radius offset around a circle = the orbit. A planet's
-// radius node is the "system center": the planet sits there and its moons' phase
-// nodes are children of it, so moon-orbit and planet-spin are independent (siblings).
-// Orbits are circular for now. See _docs/specs/solar-system-scene.md.
+// The kepler driver computes the (eccentric) ellipse position with the focus at the
+// orbit node's parent — so the central body at that origin sits at the focus. The
+// orbit node is the "system center": the body sits there and its moons' orbit nodes
+// are children of it, so moon-orbit and planet-spin are independent (siblings). See
+// _docs/specs/scene-routing.md (driver/binding dataflow).
 
 const KM = 1000; // meters per kilometer
+
+// Orbit plane is inertial: position carried from the parent (the center), but the
+// driven rotation/scale resolve in world so a spinning star doesn't drag the orbit.
+const ORBIT_INHERITANCE = { position: '../', rotation: '/', scale: '../' } as const;
 
 export const TOY_SOLAR_SYSTEM_ROOT_ID = 'solar-system';
 
@@ -24,9 +29,9 @@ export function createToySolarSystemScene(): PlanetScene {
 	const id = (rotation = IDENTITY_QUAT) => ({ position: [0, 0, 0] as [number, number, number], rotation });
 
 	/**
-	 * Build an orbiting body: phase (rotation) → radius (distance) → body (spin),
-	 * orbiting `centerId`. Returns the radius node id — the body's system center,
-	 * where its moons attach. The body node keeps `id` (so ids stay stable).
+	 * Build an orbiting body: a kepler-driver orbit node → body (spin), orbiting
+	 * `centerId`. Returns the orbit node id — the body's system center, where its
+	 * moons attach. The body node keeps `id` (so ids stay stable).
 	 */
 	const orbiting = (
 		bodyId: string,
@@ -38,29 +43,35 @@ export function createToySolarSystemScene(): PlanetScene {
 		periodSeconds: number,
 		phaseAtEpoch: number,
 		spinPeriodSeconds: number,
-		standIn = false
+		standIn = false,
+		eccentricity = 0,
+		periapsisAngle = 0
 	): string => {
 		add({
-			id: `${bodyId}-phase`,
+			id: `${bodyId}-orbit`,
 			name: `${name} orbit`,
 			parentId: centerId,
 			kind: 'group',
 			enabled: true,
 			transform: id(),
-			orbitPhase: { periodSeconds, phaseAtEpoch }
-		});
-		add({
-			id: `${bodyId}-radius`,
-			name: `${name} radius`,
-			parentId: `${bodyId}-phase`,
-			kind: 'group',
-			enabled: true,
-			transform: { position: [orbitRadiusKm * KM, 0, 0], rotation: IDENTITY_QUAT }
+			driver: {
+				type: 'kepler',
+				semiMajorAxis: orbitRadiusKm * KM,
+				eccentricity,
+				periodSeconds,
+				phaseAtEpoch,
+				periapsisAngle
+			},
+			bindings: [
+				{ field: 'positionX', ref: '.', output: 'x' },
+				{ field: 'positionZ', ref: '.', output: 'z' }
+			],
+			inheritance: { ...ORBIT_INHERITANCE }
 		});
 		add({
 			id: bodyId,
 			name,
-			parentId: `${bodyId}-radius`,
+			parentId: `${bodyId}-orbit`,
 			kind: 'body',
 			enabled: true,
 			transform: id(),
@@ -69,7 +80,7 @@ export function createToySolarSystemScene(): PlanetScene {
 			standIn,
 			spinPeriodSeconds
 		});
-		return `${bodyId}-radius`;
+		return `${bodyId}-orbit`;
 	};
 
 	/** Disabled placeholder for a moon's future reflected light, scoped to its planet. */
@@ -129,20 +140,21 @@ export function createToySolarSystemScene(): PlanetScene {
 		standIn: true
 	});
 
-	// Planets orbit Sol; moons orbit their planet's radius node (the system center).
+	// Planets orbit Sol; moons orbit their planet's orbit node (the system center).
+	// A few orbits are eccentric (e, periapsisAngle) to exercise the kepler driver.
 	orbiting('ss-ferro', 'Ferro', 'ss-sol', 'planet', 500, 10_000, 60, 0, 12);
-	orbiting('ss-luna-f', 'Luna-F', 'ss-ferro-radius', 'moon', 120, 600, 9, 0.5, 9);
+	orbiting('ss-luna-f', 'Luna-F', 'ss-ferro-orbit', 'moon', 120, 600, 9, 0.5, 9, false, 0.25);
 	reflection('ss-luna-f-reflect', 'Luna-F reflection', 'ss-luna-f', 'ss-ferro');
 
-	orbiting('ss-cerule', 'Cerule', 'ss-sol', 'planet', 450, 20_000, 170, 2.1, 18);
+	orbiting('ss-cerule', 'Cerule', 'ss-sol', 'planet', 450, 20_000, 170, 2.1, 18, false, 0.35, 0.5);
 
-	orbiting('ss-ochre', 'Ochre', 'ss-sol', 'planet', 600, 35_000, 393, 4.2, 24);
-	orbiting('ss-pebble', 'Pebble', 'ss-ochre-radius', 'moon', 90, 700, 11, 0, 11);
+	orbiting('ss-ochre', 'Ochre', 'ss-sol', 'planet', 600, 35_000, 393, 4.2, 24, false, 0.2, 2.0);
+	orbiting('ss-pebble', 'Pebble', 'ss-ochre-orbit', 'moon', 90, 700, 11, 0, 11);
 	reflection('ss-pebble-reflect', 'Pebble reflection', 'ss-pebble', 'ss-ochre');
-	orbiting('ss-cobble', 'Cobble', 'ss-ochre-radius', 'moon', 70, 1_100, 20, 3.1, 20);
+	orbiting('ss-cobble', 'Cobble', 'ss-ochre-orbit', 'moon', 70, 1_100, 20, 3.1, 20);
 
-	orbiting('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 7_000, 60_000, 882, 1.0, 30, true);
-	orbiting('ss-gale', 'Gale', 'ss-tempest-radius', 'moon', 200, 9_000, 40, 0, 40);
+	orbiting('ss-tempest', 'Tempest', 'ss-sol', 'gas_giant', 7_000, 60_000, 882, 1.0, 30, true, 0.12);
+	orbiting('ss-gale', 'Gale', 'ss-tempest-orbit', 'moon', 200, 9_000, 40, 0, 40);
 	reflection('ss-gale-reflect', 'Gale reflection', 'ss-gale', 'ss-tempest');
 
 	return { rootId: TOY_SOLAR_SYSTEM_ROOT_ID, nodes };

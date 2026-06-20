@@ -8,7 +8,7 @@ import {
 	removeSubtree,
 	reparent
 } from './sceneEdit.js';
-import { advanceScene } from './orbit.js';
+import { evaluateScene } from './driver.js';
 import { getChildren, getWorldTransform, listBodies } from './sceneTree.js';
 import { createToySolarSystemScene } from './solarSystem.js';
 import type { PlanetScene, SceneNode } from './types.js';
@@ -47,22 +47,23 @@ describe('addChild', () => {
 });
 
 describe('addOrbitingBody', () => {
-	it('builds phase→radius→body and actually orbits its center', () => {
+	it('builds an orbit node → body that actually orbits its center', () => {
 		const { scene, bodyId } = addOrbitingBody(tiny(), 'a', {
 			orbitRadiusMeters: 1000,
 			periodSeconds: 4
 		});
-		const phase = scene.nodes.get(`${bodyId}-phase`)!;
-		expect(phase.parentId).toBe('a'); // orbit centered on 'a'
-		expect(phase.orbitPhase?.periodSeconds).toBe(4);
+		const orbit = scene.nodes.get(`${bodyId}-orbit`)!;
+		expect(orbit.parentId).toBe('a'); // orbit centered on 'a'
+		expect(orbit.driver?.type).toBe('kepler');
+		expect(orbit.driver?.periodSeconds).toBe(4);
 		expect(scene.nodes.get(bodyId)!.kind).toBe('body');
 
 		// 'a' is at the origin → body orbits a circle of the orbit radius about it.
-		const p0 = getWorldTransform(advanceScene(scene, 0), bodyId).position;
+		const p0 = getWorldTransform(evaluateScene(scene, 0), bodyId).position;
 		expect(Math.hypot(p0[0], p0[2])).toBeCloseTo(1000, 6);
-		const p1 = getWorldTransform(advanceScene(scene, 1), bodyId).position; // quarter period
+		const p1 = getWorldTransform(evaluateScene(scene, 1), bodyId).position; // quarter period
 		expect(p1[0]).toBeCloseTo(0, 6);
-		expect(p1[2]).toBeCloseTo(-1000, 6);
+		expect(p1[2]).toBeCloseTo(1000, 6);
 	});
 });
 
@@ -78,8 +79,8 @@ describe('removeSubtree', () => {
 	it('prunes a planet system from the toy scene', () => {
 		const scene = createToySolarSystemScene();
 		const before = listBodies(scene).length;
-		// Remove Ferro's system (phase → radius → ferro + its moon).
-		const pruned = removeSubtree(scene, 'ss-ferro-phase');
+		// Remove Ferro's system (orbit node → ferro + its moon).
+		const pruned = removeSubtree(scene, 'ss-ferro-orbit');
 		expect(pruned.nodes.has('ss-ferro')).toBe(false);
 		expect(pruned.nodes.has('ss-luna-f')).toBe(false); // moon went with it
 		expect(listBodies(pruned).length).toBe(before - 2);

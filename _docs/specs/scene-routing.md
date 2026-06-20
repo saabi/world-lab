@@ -135,8 +135,11 @@ referenced positions), and inclined axes (a `limit rotation` constraint).
 
 Phasing: **(1) ✅** field bindings + kepler driver + `evaluateScene` (an eccentric
 orbit is now a *wiring* of composable nodes, proven in `driver.test.ts`).
-**(2)** constraint stack + `limit rotation`. **(3)** sum/reflex drivers (barycenter,
-star wobble, binaries) + the wiring UI; migrate the toy orbits + map onto drivers.
+**(2) ✅** constraint stack + `limit rotation`. **(3) in progress** — the toy orbits
++ system map are migrated onto kepler-driver orbit nodes (one node/orbit, eccentric,
+inertial plane via `rotation:'/'`); `advanceScene`'s `orbit`/`orbitPhase` stay only
+for back-compat/tests. Remaining: sum/reflex drivers (barycenter, star wobble,
+binaries) + the wiring UI (edit driver params / bindings / constraints in the editor).
 
 ## Phasing
 

@@ -44,12 +44,14 @@ export interface OrbitingBodyOptions {
 	periodSeconds?: number;
 	phaseAtEpoch?: number;
 	spinPeriodSeconds?: number;
+	eccentricity?: number;
+	periapsisAngle?: number;
 }
 
 /**
- * The three nodes of an orbiting body — phase (orbitPhase rotation) → radius
- * (distance offset) → body (spins) — orbiting `centerId`. Circular orbit; the body
- * keeps the same id as the returned `[2]`.
+ * The two nodes of an orbiting body — a kepler-driver orbit node (its position bound
+ * to the driver, orbit plane inertial) → body (spins) — orbiting `centerId`. The body
+ * keeps the same id as the returned `[1]`.
  */
 export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions = {}): SceneNode[] {
 	const {
@@ -58,30 +60,29 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		orbitRadiusMeters = 8_000_000,
 		periodSeconds = 80,
 		phaseAtEpoch = 0,
-		spinPeriodSeconds = 20
+		spinPeriodSeconds = 20,
+		eccentricity = 0,
+		periapsisAngle = 0
 	} = options;
 	const baseId = newId('body');
-	const phase: SceneNode = {
-		id: `${baseId}-phase`,
+	const orbit: SceneNode = {
+		id: `${baseId}-orbit`,
 		name: `${name} orbit`,
 		parentId: centerId,
 		kind: 'group',
 		enabled: true,
 		transform: identityTransform(),
-		orbitPhase: { periodSeconds, phaseAtEpoch }
-	};
-	const radius: SceneNode = {
-		id: `${baseId}-radius`,
-		name: `${name} radius`,
-		parentId: `${baseId}-phase`,
-		kind: 'group',
-		enabled: true,
-		transform: { position: [orbitRadiusMeters, 0, 0], rotation: IDENTITY_QUAT }
+		driver: { type: 'kepler', semiMajorAxis: orbitRadiusMeters, eccentricity, periodSeconds, phaseAtEpoch, periapsisAngle },
+		bindings: [
+			{ field: 'positionX', ref: '.', output: 'x' },
+			{ field: 'positionZ', ref: '.', output: 'z' }
+		],
+		inheritance: { position: '../', rotation: '/', scale: '../' }
 	};
 	const body = {
 		id: baseId,
 		name,
-		parentId: `${baseId}-radius`,
+		parentId: `${baseId}-orbit`,
 		kind: 'body',
 		enabled: true,
 		transform: identityTransform(),
@@ -89,18 +90,17 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		bodyType,
 		spinPeriodSeconds
 	} as BodyNode;
-	return [phase, radius, body];
+	return [orbit, body];
 }
 
-/** Add an orbiting body (phase→radius→body) under `centerId`. Returns the new body id. */
+/** Add an orbiting body (orbit-node→body) under `centerId`. Returns the new body id. */
 export function addOrbitingBody(
 	scene: PlanetScene,
 	centerId: string,
 	options: OrbitingBodyOptions = {}
 ): { scene: PlanetScene; bodyId: string } {
-	const [phase, radius, body] = makeOrbitingBody(centerId, options);
-	let s = addChild(scene, phase);
-	s = addChild(s, radius);
+	const [orbit, body] = makeOrbitingBody(centerId, options);
+	let s = addChild(scene, orbit);
 	s = addChild(s, body);
 	return { scene: s, bodyId: body.id };
 }

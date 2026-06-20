@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import type { Vec3 } from '../math/vec.js';
 	import { getChildren, getWorldTransform, listBodies } from '../scene/sceneTree.js';
-	import { advanceScene } from '../scene/orbit.js';
+	import { evaluateScene } from '../scene/driver.js';
+	import { orbitPathLocal } from '../scene/orbit.js';
 	import {
 		fitView,
 		pickNearest,
@@ -41,30 +42,25 @@
 		moon: { r: 2.5, color: '#9aa4b8' }
 	};
 
-	interface OrbitCircle {
+	interface OrbitPath {
 		bodyId: string | null;
-		cx: number;
-		cz: number;
-		radius: number;
+		/** World (x, z) points tracing the orbit ellipse. */
+		pts: Array<[number, number]>;
 	}
 
-	const radiusOf = (pos: Vec3) => Math.hypot(pos[0], pos[2]);
-
-	/** Each orbit (phase→radius→body) as a circle: center = phase node's world pos,
-	 *  radius = the radius node's offset. */
-	function orbitCircles(animated: PlanetScene): OrbitCircle[] {
-		const out: OrbitCircle[] = [];
+	/** Each kepler-driver orbit node as an ellipse path: the driver's local ellipse
+	 *  (focus at origin) offset to the orbit center = the node's parent world pos. The
+	 *  orbit plane is inertial, so no rotation is applied to the path. */
+	function orbitPaths(animated: PlanetScene): OrbitPath[] {
+		const out: OrbitPath[] = [];
 		for (const node of animated.nodes.values()) {
-			if (!node.orbitPhase) continue;
-			const radiusNode = getChildren(animated, node.id).find((c) => c.kind === 'group');
-			if (!radiusNode) continue;
-			const center = getWorldTransform(animated, node.id).position;
-			const body = getChildren(animated, radiusNode.id).find((c) => c.kind === 'body');
+			if (node.driver?.type !== 'kepler' || node.parentId == null) continue;
+			const center = getWorldTransform(animated, node.parentId).position;
+			const body = getChildren(animated, node.id).find((c) => c.kind === 'body');
+			const local = orbitPathLocal(node.driver, 96);
 			out.push({
 				bodyId: body?.id ?? null,
-				cx: center[0],
-				cz: center[2],
-				radius: radiusOf(radiusNode.transform.position)
+				pts: local.map((p) => [center[0] + p[0], center[2] + p[2]])
 			});
 		}
 		return out;
@@ -74,23 +70,20 @@
 	function followSpan(animated: PlanetScene, body: BodyNode): number {
 		let span = 0;
 		if (body.parentId != null) {
-			// Moons orbit the body's system center (the body's parent = its radius node).
+			// Moons orbit the body's system center (the body's parent = its orbit node).
 			for (const child of getChildren(animated, body.parentId)) {
-				if (!child.orbitPhase) continue;
-				const radiusNode = getChildren(animated, child.id).find((c) => c.kind === 'group');
-				if (radiusNode) span = Math.max(span, radiusOf(radiusNode.transform.position));
+				if (child.driver?.type === 'kepler') {
+					span = Math.max(span, child.driver.semiMajorAxis * (1 + child.driver.eccentricity));
+				}
 			}
 		}
 		return Math.max(span * 1.3, body.radiusMeters * 8, 1);
 	}
 
-	function fitAllView(animated: PlanetScene, bodies: BodyNode[], circles: OrbitCircle[]): MapView {
+	function fitAllView(animated: PlanetScene, bodies: BodyNode[], paths: OrbitPath[]): MapView {
 		const pts: Vec3[] = [];
 		for (const b of bodies) pts.push(getWorldTransform(animated, b.id).position);
-		for (const c of circles) {
-			pts.push([c.cx + c.radius, 0, c.cz], [c.cx - c.radius, 0, c.cz]);
-			pts.push([c.cx, 0, c.cz + c.radius], [c.cx, 0, c.cz - c.radius]);
-		}
+		for (const orbit of paths) for (const [x, z] of orbit.pts) pts.push([x, 0, z]);
 		return fitView(xzBounds(pts), canvasW, canvasH, 28);
 	}
 
@@ -101,7 +94,7 @@
 		if (!ctx) return;
 		ctx.clearRect(0, 0, canvasW, canvasH);
 
-		const animated = advanceScene(scene, time);
+		const animated = evaluateScene(scene, time);
 		const bodies = listBodies(animated);
 		if (bodies.length === 0) {
 			ctx.fillStyle = 'rgba(232,236,248,0.5)';
@@ -115,7 +108,7 @@
 
 		const worldPos = new Map<string, Vec3>();
 		for (const b of bodies) worldPos.set(b.id, getWorldTransform(animated, b.id).position);
-		const circles = orbitCircles(animated);
+		const paths = orbitPaths(animated);
 
 		let view: MapView;
 		const followBody = followId ? (animated.nodes.get(followId) as BodyNode | undefined) : undefined;
@@ -130,17 +123,23 @@
 				height: canvasH
 			};
 		} else {
-			view = fitAllView(animated, bodies, circles);
+			view = fitAllView(animated, bodies, paths);
 		}
 
-		// Orbit circles (center = phase node world pos, radius = the radius offset).
+		// Orbit ellipses (driver path offset to the orbit center, inertial).
 		ctx.lineWidth = 1;
-		for (const c of circles) {
-			const [px, py] = projectToScreen(view, c.cx, c.cz);
+		for (const orbit of paths) {
 			ctx.strokeStyle =
-				c.bodyId && c.bodyId === selectedId ? 'rgba(158,192,255,0.5)' : 'rgba(255,255,255,0.1)';
+				orbit.bodyId && orbit.bodyId === selectedId
+					? 'rgba(158,192,255,0.5)'
+					: 'rgba(255,255,255,0.1)';
 			ctx.beginPath();
-			ctx.arc(px, py, c.radius * view.scale, 0, Math.PI * 2);
+			for (let i = 0; i < orbit.pts.length; i++) {
+				const [px, py] = projectToScreen(view, orbit.pts[i][0], orbit.pts[i][1]);
+				if (i === 0) ctx.moveTo(px, py);
+				else ctx.lineTo(px, py);
+			}
+			ctx.closePath();
 			ctx.stroke();
 		}
 
