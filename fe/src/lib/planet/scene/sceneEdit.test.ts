@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addChild,
+	addOrbitingBody,
 	descendantIds,
 	makeBody,
 	makeGroup,
 	removeSubtree,
 	reparent
 } from './sceneEdit.js';
-import { getChildren, listBodies } from './sceneTree.js';
+import { advanceScene } from './orbit.js';
+import { getChildren, getWorldTransform, listBodies } from './sceneTree.js';
 import { createToySolarSystemScene } from './solarSystem.js';
 import type { PlanetScene, SceneNode } from './types.js';
 
@@ -41,6 +43,26 @@ describe('addChild', () => {
 		expect(body.kind).toBe('body');
 		expect(body.bodyType).toBe('planet');
 		expect(body.radiusMeters).toBe(500_000);
+	});
+});
+
+describe('addOrbitingBody', () => {
+	it('builds phase→radius→body and actually orbits its center', () => {
+		const { scene, bodyId } = addOrbitingBody(tiny(), 'a', {
+			orbitRadiusMeters: 1000,
+			periodSeconds: 4
+		});
+		const phase = scene.nodes.get(`${bodyId}-phase`)!;
+		expect(phase.parentId).toBe('a'); // orbit centered on 'a'
+		expect(phase.orbitPhase?.periodSeconds).toBe(4);
+		expect(scene.nodes.get(bodyId)!.kind).toBe('body');
+
+		// 'a' is at the origin → body orbits a circle of the orbit radius about it.
+		const p0 = getWorldTransform(advanceScene(scene, 0), bodyId).position;
+		expect(Math.hypot(p0[0], p0[2])).toBeCloseTo(1000, 6);
+		const p1 = getWorldTransform(advanceScene(scene, 1), bodyId).position; // quarter period
+		expect(p1[0]).toBeCloseTo(0, 6);
+		expect(p1[2]).toBeCloseTo(-1000, 6);
 	});
 });
 

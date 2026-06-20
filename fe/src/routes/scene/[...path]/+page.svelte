@@ -7,7 +7,13 @@
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
 	import { pathNodeIds, pathOf, resolvePath } from '$lib/planet/scene/scenePath.js';
 	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
-	import { addChild, makeBody, makeGroup, removeSubtree } from '$lib/planet/scene/sceneEdit.js';
+	import {
+		addChild,
+		addOrbitingBody,
+		makeBody,
+		makeGroup,
+		removeSubtree
+	} from '$lib/planet/scene/sceneEdit.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
@@ -105,8 +111,14 @@
 		if (selectedId) scene = updateNode(scene, selectedId, next);
 	}
 
-	function addUnder(kind: 'group' | 'body') {
+	function addUnder(kind: 'group' | 'body' | 'orbit') {
 		const parentId = selectedId ?? scene.rootId;
+		if (kind === 'orbit') {
+			const result = addOrbitingBody(scene, parentId);
+			scene = result.scene;
+			selectedId = result.bodyId;
+			return;
+		}
 		const node = kind === 'group' ? makeGroup(parentId) : makeBody(parentId);
 		scene = addChild(scene, node);
 		selectedId = node.id; // select (and navigate to) the new node
@@ -130,6 +142,7 @@
 		<div class="edit-actions">
 			<button type="button" onclick={() => addUnder('group')}>+ Group</button>
 			<button type="button" onclick={() => addUnder('body')}>+ Body</button>
+			<button type="button" onclick={() => addUnder('orbit')}>+ Orbit</button>
 			<button type="button" onclick={deleteSelected} disabled={!selectedId}>Delete</button>
 		</div>
 		{#if selectedNode}

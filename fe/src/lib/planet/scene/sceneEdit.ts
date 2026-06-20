@@ -1,5 +1,5 @@
 import { create } from '@virtual-planet/schema';
-import type { BodyNode, PlanetScene, SceneNode } from './types.js';
+import type { BodyNode, BodyType, PlanetScene, SceneNode } from './types.js';
 import { IDENTITY_QUAT } from './transform.js';
 import { bodySchema } from './nodeSchemas.js';
 
@@ -35,6 +35,74 @@ export function makeBody(parentId: string, name = 'Body'): BodyNode {
 		transform: identityTransform(),
 		...create(bodySchema)
 	} as BodyNode;
+}
+
+export interface OrbitingBodyOptions {
+	name?: string;
+	bodyType?: BodyType;
+	orbitRadiusMeters?: number;
+	periodSeconds?: number;
+	phaseAtEpoch?: number;
+	spinPeriodSeconds?: number;
+}
+
+/**
+ * The three nodes of an orbiting body — phase (orbitPhase rotation) → radius
+ * (distance offset) → body (spins) — orbiting `centerId`. Circular orbit; the body
+ * keeps the same id as the returned `[2]`.
+ */
+export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions = {}): SceneNode[] {
+	const {
+		name = 'Body',
+		bodyType = 'planet',
+		orbitRadiusMeters = 8_000_000,
+		periodSeconds = 80,
+		phaseAtEpoch = 0,
+		spinPeriodSeconds = 20
+	} = options;
+	const baseId = newId('body');
+	const phase: SceneNode = {
+		id: `${baseId}-phase`,
+		name: `${name} orbit`,
+		parentId: centerId,
+		kind: 'group',
+		enabled: true,
+		transform: identityTransform(),
+		orbitPhase: { periodSeconds, phaseAtEpoch }
+	};
+	const radius: SceneNode = {
+		id: `${baseId}-radius`,
+		name: `${name} radius`,
+		parentId: `${baseId}-phase`,
+		kind: 'group',
+		enabled: true,
+		transform: { position: [orbitRadiusMeters, 0, 0], rotation: IDENTITY_QUAT }
+	};
+	const body = {
+		id: baseId,
+		name,
+		parentId: `${baseId}-radius`,
+		kind: 'body',
+		enabled: true,
+		transform: identityTransform(),
+		...create(bodySchema),
+		bodyType,
+		spinPeriodSeconds
+	} as BodyNode;
+	return [phase, radius, body];
+}
+
+/** Add an orbiting body (phase→radius→body) under `centerId`. Returns the new body id. */
+export function addOrbitingBody(
+	scene: PlanetScene,
+	centerId: string,
+	options: OrbitingBodyOptions = {}
+): { scene: PlanetScene; bodyId: string } {
+	const [phase, radius, body] = makeOrbitingBody(centerId, options);
+	let s = addChild(scene, phase);
+	s = addChild(s, radius);
+	s = addChild(s, body);
+	return { scene: s, bodyId: body.id };
 }
 
 /** All descendant ids of `nodeId` (exclusive). */
