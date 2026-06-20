@@ -12,7 +12,8 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
-	import { selectLod, type LodLevel } from '../scene/bodyParams.js';
+	import { proceduralBlend, resolveBodyParams, selectLod, type LodLevel } from '../scene/bodyParams.js';
+	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
 	import type { Vec3 } from '../math/vec.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
 
@@ -30,6 +31,9 @@
 	let failed = $state<string | null>(null);
 	/** Selection ring overlay (screen px), null when nothing is selected/visible. */
 	let marker = $state<{ x: number; y: number; r: number } | null>(null);
+	/** Procedural cross-fade: the selected planet/moon (stable ref) + its blend 0..1. */
+	let procBody = $state<BodyNode | null>(null);
+	let procBlend = $state(0);
 
 	let device: GPUDevice | null = null;
 	let context: GPUCanvasContext | null = null;
@@ -51,6 +55,12 @@
 	function targetOf(animated: PlanetScene): Vec3 {
 		return selectedId ? getWorldTransform(animated, selectedId).position : [0, 0, 0];
 	}
+
+	// Procedural-layer camera distance: scale the scene distance into the body's
+	// render-space so the procedural planet matches its sphere's on-screen size.
+	const procDistance = $derived(
+		procBody ? (resolveBodyParams(procBody).radius * camera.distance) / procBody.radiusMeters : 1
+	);
 
 	// Screen-size LOD. A body's projected pixel diameter picks dot / sphere / procedural
 	// (selectLod); a sub-threshold body renders as a fixed-size point so it stays
@@ -142,6 +152,7 @@
 			lighting(animated)
 		);
 		updateMarker(animated, vp);
+		updateProcedural(animated, vp);
 	}
 
 	/** Project the selected node to a screen-space ring sized to its body. */
@@ -159,6 +170,23 @@
 		const radius = node.kind === 'body' ? node.radiusMeters : 0;
 		const screenR = radius > 0 ? (radius / sp.depth) * (1 / Math.tan(FOVY / 2)) * (h / 2) : 0;
 		marker = { x: sp.x, y: sp.y, r: Math.max(screenR, 8) + 5 };
+	}
+
+	/** Fade factor for the procedural layer of the selected planet/moon (uses the
+	 *  stable scene node so the layer's body prop doesn't churn each frame). */
+	function updateProcedural(animated: PlanetScene, vp: Float32Array) {
+		const node = selectedId ? scene.nodes.get(selectedId) : null;
+		if (node && node.kind === 'body' && (node.bodyType === 'planet' || node.bodyType === 'moon')) {
+			const sp = projectToScreen(vp, getWorldTransform(animated, node.id).position, w, h);
+			if (sp) {
+				const px = 2 * (node.radiusMeters / sp.depth) * ((1 / Math.tan(FOVY / 2)) * (h / 2));
+				procBlend = proceduralBlend(node, px);
+				procBody = procBlend > 0 ? node : null;
+				return;
+			}
+		}
+		procBlend = 0;
+		procBody = null;
 	}
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
@@ -277,6 +305,16 @@
 		onpointerup={onPointerUp}
 		onwheel={onWheel}
 	></canvas>
+	{#if procBody && procBlend > 0}
+		<div class="proc-wrap" style="opacity:{procBlend}">
+			<ProceduralBodyLayer
+				body={procBody}
+				azimuth={camera.azimuth}
+				elevation={camera.elevation}
+				distance={procDistance}
+			/>
+		</div>
+	{/if}
 	{#if marker}
 		<div
 			class="sel-ring"
@@ -309,6 +347,12 @@
 
 	.canvas3d:active {
 		cursor: grabbing;
+	}
+
+	.proc-wrap {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
 	}
 
 	.sel-ring {

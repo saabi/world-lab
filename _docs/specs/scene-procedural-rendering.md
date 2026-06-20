@@ -80,9 +80,13 @@ get cm-at-surface *and* ~1e8 m to the gas giant in Float32.
 `WebGPUBackend.renderInto(target)` shared by `render()` + a public `renderToTexture`;
 a `useOffscreen` flag routes `render()` through an offscreen color target then copies
 to the swapchain. `FocusedBodyView` has an "offscreen" toggle to check parity with 4a.
-→ ② composite one body over the spheres (coarse depth = body centre) → ③ true
-per-pixel depth + the scene camera/floating origin → ④ N bodies (a budget) + their
-atmospheres. "One body first, the largest on screen at procedural LOD."
+→ **② ✅ cross-fade layer** — `ProceduralBodyLayer` (the `FocusedBodyView` render path,
+camera-driven by props, `pointer-events:none`) stacked over the sphere view with
+`opacity = proceduralBlend`; its camera matches the scene's (fov + distance scaled by
+`radius/radiusMeters`) so the planet aligns with its sphere and dissolves in as you
+zoom the selected planet/moon. Two canvases, CSS opacity — no device sharing / GPU
+composite yet. → ③ replace the CSS layer with a true GPU composite into scene-3d's
+depth (per-pixel occlusion, floating origin) → ④ N bodies (a budget) + atmospheres.
 
 ## Camera unification
 
