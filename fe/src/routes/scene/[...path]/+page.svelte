@@ -15,6 +15,7 @@
 		removeSubtree
 	} from '$lib/planet/scene/sceneEdit.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
+	import { evaluateScene } from '$lib/planet/scene/driver.js';
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
@@ -83,6 +84,15 @@
 	}
 
 	const selectedNode = $derived(selectedId ? (getNode(scene, selectedId) ?? null) : null);
+
+	// Shared animation clock (driven by the map's loop) so the editor's live values
+	// match the animation. The selected node, evaluated at the current time, gives the
+	// driven-channel values the TransformEditor displays.
+	let clock = $state(0);
+	const evaluatedNode = $derived.by(() => {
+		if (!selectedNode) return null;
+		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
+	});
 	const breadcrumb = $derived(
 		selectedId
 			? (pathNodeIds(scene, selectedId) ?? []).map((nid) => ({
@@ -162,7 +172,11 @@
 			</nav>
 			<div class="node-editor">
 				<span class="edit-name">{selectedNode.name}</span>
-				<TransformEditor transform={selectedNode.transform} onchange={onTransformChange} />
+				<TransformEditor
+					node={selectedNode}
+					evaluated={evaluatedNode ?? selectedNode}
+					onchange={onTransformChange}
+				/>
 				{#if editor?.mode === 'schema'}
 					<SchemaForm schema={editor.schema} value={schemaValue} onchange={onFieldChange} />
 				{/if}
@@ -176,7 +190,7 @@
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SystemMapPanel {scene} bind:selectedId />
+		<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 	</main>
 </div>
 

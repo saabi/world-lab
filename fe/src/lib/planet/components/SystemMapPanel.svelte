@@ -18,12 +18,13 @@
 		scene: PlanetScene;
 		/** Shared with the scene tree: the selected node id. */
 		selectedId?: string | null;
+		/** Shared animation clock (seconds); the loop advances it. */
+		time?: number;
 	}
 
-	let { scene, selectedId = $bindable(null) }: Props = $props();
+	let { scene, selectedId = $bindable(null), time = $bindable(0) }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
-	let time = $state(0);
 	let playing = $state(true);
 	let speed = $state(1);
 	/** Body the map follows/zooms to; null = fit the whole system. */

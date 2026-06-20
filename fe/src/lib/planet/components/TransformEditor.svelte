@@ -1,22 +1,23 @@
 <script lang="ts">
 	import { eulerToQuat, quatToEuler } from '../scene/transform.js';
-	import type { Transform } from '../scene/types.js';
+	import { fieldViews, termsLabel } from '../scene/fieldViews.js';
+	import type { SceneNode, Transform, TransformField } from '../scene/types.js';
 
 	interface Props {
-		transform: Transform;
+		node: SceneNode;
+		/** The node after evaluateScene — supplies live values for driven channels. */
+		evaluated: SceneNode;
 		onchange?: (next: Transform) => void;
 	}
 
-	let { transform, onchange }: Props = $props();
+	let { node, evaluated, onchange }: Props = $props();
 
 	const RAD2DEG = 180 / Math.PI;
 	const DEG2RAD = Math.PI / 180;
 	const AXES = ['X', 'Y', 'Z'] as const;
 
-	// Position shown in km; rotation as Euler degrees; scale dimensionless.
-	const posKm = $derived(transform.position.map((v) => v / 1000));
-	const rotDeg = $derived(quatToEuler(transform.rotation).map((r) => r * RAD2DEG));
-	const scale = $derived(transform.scale ?? [1, 1, 1]);
+	const transform = $derived(node.transform);
+	const views = $derived(new Map(fieldViews(node, evaluated).map((v) => [v.channel, v])));
 
 	function setPos(i: number, km: number) {
 		const p = [...transform.position] as [number, number, number];
@@ -39,49 +40,44 @@
 	const round = (n: number) => Math.round(n * 1000) / 1000;
 </script>
 
+{#snippet axisRow(
+	prefix: 'position' | 'rotation' | 'scale',
+	toDisplay: (v: number) => number,
+	onSet: (i: number, display: number) => void
+)}
+	<div class="te-row">
+		{#each AXES as ax, i (ax)}
+			{@const view = views.get((prefix + ax) as TransformField)}
+			<div class="te-field">
+				<span class="te-ax">{ax}</span>
+				{#if view && view.terms.length > 0}
+					<!-- Driven: show the folded expression + live value (read-only). -->
+					<span
+						class="te-driven"
+						title={`${termsLabel(view.terms)} = ${round(toDisplay(view.value))}`}
+					>
+						ƒ {termsLabel(view.terms)} <span class="te-val">= {round(toDisplay(view.value))}</span>
+					</span>
+				{:else}
+					<input
+						type="number"
+						step="any"
+						value={round(toDisplay(view ? view.literal : 0))}
+						onchange={(e) => onSet(i, Number(e.currentTarget.value))}
+					/>
+				{/if}
+			</div>
+		{/each}
+	</div>
+{/snippet}
+
 <div class="transform-editor">
 	<span class="te-label">Position (km)</span>
-	<div class="te-row">
-		{#each AXES as ax, i (ax)}
-			<label class="te-field">
-				<span class="te-ax">{ax}</span>
-				<input
-					type="number"
-					step="any"
-					value={round(posKm[i])}
-					onchange={(e) => setPos(i, Number(e.currentTarget.value))}
-				/>
-			</label>
-		{/each}
-	</div>
+	{@render axisRow('position', (v) => v / 1000, (i, km) => setPos(i, km))}
 	<span class="te-label">Rotation (°)</span>
-	<div class="te-row">
-		{#each AXES as ax, i (ax)}
-			<label class="te-field">
-				<span class="te-ax">{ax}</span>
-				<input
-					type="number"
-					step="any"
-					value={round(rotDeg[i])}
-					onchange={(e) => setRot(i, Number(e.currentTarget.value))}
-				/>
-			</label>
-		{/each}
-	</div>
+	{@render axisRow('rotation', (v) => v * RAD2DEG, (i, deg) => setRot(i, deg))}
 	<span class="te-label">Scale</span>
-	<div class="te-row">
-		{#each AXES as ax, i (ax)}
-			<label class="te-field">
-				<span class="te-ax">{ax}</span>
-				<input
-					type="number"
-					step="any"
-					value={round(scale[i])}
-					onchange={(e) => setScale(i, Number(e.currentTarget.value))}
-				/>
-			</label>
-		{/each}
-	</div>
+	{@render axisRow('scale', (v) => v, (i, v) => setScale(i, v))}
 </div>
 
 <style>
@@ -123,5 +119,29 @@
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		border-radius: 4px;
 		padding: 2px 4px;
+	}
+
+	/* Driven channel: read-only expression + live value (Blender-ish accent). */
+	.te-driven {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		gap: 3px;
+		align-items: baseline;
+		font-family: ui-monospace, monospace;
+		font-size: 10px;
+		color: #c7a6ff;
+		background: rgba(124, 92, 255, 0.12);
+		border: 1px solid rgba(124, 92, 255, 0.3);
+		border-radius: 4px;
+		padding: 2px 4px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.te-driven .te-val {
+		opacity: 0.7;
+		color: #e8ecf8;
 	}
 </style>
