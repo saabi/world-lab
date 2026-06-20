@@ -1,4 +1,6 @@
 import type { Vec3 } from '../math/vec.js';
+import type { PlanetParameters } from '../params/planetParams.js';
+import type { PlanetPresetName } from '../params/presets.js';
 
 /** Unit quaternion [x, y, z, w]. */
 export type Quat = [number, number, number, number];
@@ -174,16 +176,37 @@ export type BodyType = 'star' | 'planet' | 'gas_giant' | 'moon';
  * A celestial body. Orbit ownership is the hierarchy: a moon is a child of its
  * planet, a planet a child of its star. "Owns its orbit" = nearest ancestor body.
  */
+/**
+ * Procedural appearance of a planet/moon: a built-in preset plus sparse per-body
+ * overrides. Resolved (preset ⊕ overrides) to PlanetParameters by resolveBodyParams.
+ * `radius` lives in PlanetParameters (appearance/render-space) and is distinct from
+ * the body's physical `radiusMeters`. See _docs/specs/celestial-body-params.md.
+ */
+export interface BodyAppearance {
+	preset: PlanetPresetName;
+	overrides?: Partial<PlanetParameters>;
+}
+
+/** Render-LOD thresholds (projected px): below sphere → dot, above procedural → terrain. */
+export interface BodyLod {
+	sphereAbovePx?: number;
+	proceduralAbovePx?: number;
+}
+
 export interface BodyNode extends SceneNodeBase {
 	kind: 'body';
 	bodyType: BodyType;
-	/** Body radius in meters. */
+	/** Physical body radius in meters (orbits, spheres, placement). */
 	radiusMeters: number;
 	/**
 	 * The planet designer has no real facilities for this body yet (stars, gas
 	 * giants) — a placeholder until it does. Real rocky planets are not stand-ins.
 	 */
 	standIn: boolean;
+	/** Procedural appearance (planet/moon). Absent → the default preset. */
+	appearance?: BodyAppearance;
+	/** Per-body render-LOD thresholds; absent → defaults. */
+	lod?: BodyLod;
 }
 
 export interface DirectionalLightNode extends SceneNodeBase {

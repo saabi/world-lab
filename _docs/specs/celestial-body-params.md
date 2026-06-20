@@ -34,14 +34,16 @@ interface BodyAppearance {
 
 ```ts
 resolveBodyParams(body: BodyNode): PlanetParameters
-//  = { ...PLANET_PRESETS[body.appearance.preset], ...overrides, radius: body.radiusMeters }
+//  = { ...PLANET_PRESETS[body.appearance.preset], ...overrides }
 ```
 
-- **Radius has one source of truth:** `body.radiusMeters` (orbits, spheres, the map
-  use it). It overwrites `PlanetParameters.radius` at resolve time — never stored
-  twice, never drifts.
-- **Default appearance:** absent → a sensible default preset (e.g. `DEFAULT_PRESET`),
-  so existing bodies render without migration.
+- **Two distinct radii (discovered during impl):** `PlanetParameters.radius` is
+  ~render-space (presets use `100`; it scales noise relations), **not** SI. The body's
+  physical size is `radiusMeters` (SI). They are *not* the same unit, so the resolver
+  does **not** fold one into the other — `radiusMeters` is the world scale applied at
+  render/composite time; `params.radius` stays the appearance's. Not redundant.
+- **Default appearance:** absent → `DEFAULT_PRESET` (and unknown name → default too),
+  so existing bodies resolve without migration.
 - **Scope by body type:** only `planet` / `moon` carry terrain appearance. `star` /
   `gas_giant` stay stand-ins (emissive / banded spheres — their own appearance models
   are later); the editor shows "no designer yet" for them, as today.
@@ -89,7 +91,10 @@ toward multi-body — the main integration cost, taken incrementally.
 ## Decisions to confirm
 
 1. **Storage:** preset + sparse overrides (recommended) vs full inline `PlanetParameters`.
-2. **Radius:** `radiusMeters` authoritative, `params.radius` derived (recommended).
+2. **Radius:** ~~radiusMeters authoritative, params.radius derived~~ → *revised*:
+   `radiusMeters` (SI, physical) and `params.radius` (render-space) are different
+   units, kept separate; the resolver doesn't merge them (physical size applied at
+   render).
 3. **Focused-body view:** embed `PlanetViewport` inline in `/scene` (recommended — stays
    in scene context) vs link out to `/planet` with params.
 4. **Body types:** only planet/moon get appearance now; star/gas_giant stay stand-ins
