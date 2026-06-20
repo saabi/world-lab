@@ -27,6 +27,21 @@ export interface OrbitElements {
 	periapsisAngle: number;
 }
 
+/**
+ * Per-channel transform inheritance as a *degree of separation* up the ancestor
+ * chain: 1 = immediate parent (standard); a value ≥ the node's depth clamps to root
+ * = the world/inertial frame. Relative (not an ancestor id), so it survives
+ * re-parenting. Lets, e.g., a moon's orbit inherit its *position* from its planet
+ * (carried along) but its *rotation* from world (so the orbit plane doesn't spin
+ * with the planet's day). See _docs/specs/scene-routing.md.
+ */
+export interface TransformInheritance {
+	position: number;
+	rotation: number;
+	/** Reserved — the runtime Transform has no scale channel yet. */
+	scale: number;
+}
+
 export interface SceneNodeBase {
 	id: string;
 	name: string;
@@ -37,6 +52,8 @@ export interface SceneNodeBase {
 	orbit?: OrbitElements;
 	/** Optional axial spin period (s) about +Y: drives `transform.rotation`. */
 	spinPeriodSeconds?: number;
+	/** Optional per-channel transform inheritance; absent = all channels inherit from the parent. */
+	inheritance?: TransformInheritance;
 }
 
 export interface GroupNode extends SceneNodeBase {

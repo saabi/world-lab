@@ -1,8 +1,27 @@
 import type { Vec3 } from '../math/vec.js';
 import type { BodyNode, PlanetScene, SceneNode } from './types.js';
-import { composeWorldTransform, IDENTITY_QUAT, type WorldTransform } from './transform.js';
+import {
+	composeWorldTransform,
+	IDENTITY_QUAT,
+	quatMultiply,
+	rotateVec3,
+	type WorldTransform
+} from './transform.js';
 
 const ORIGIN: Vec3 = [0, 0, 0];
+const WORLD_IDENTITY: WorldTransform = { position: ORIGIN, rotation: IDENTITY_QUAT };
+
+/**
+ * The node `degree` steps up the ancestor chain (1 = immediate parent). Returns
+ * null when the walk clamps past the root — i.e. the world/inertial frame.
+ */
+function ancestorAtDegree(scene: PlanetScene, nodeId: string, degree: number): string | null {
+	let id: string | null = nodeId;
+	for (let i = 0; i < degree && id != null; i++) {
+		id = scene.nodes.get(id)?.parentId ?? null;
+	}
+	return id;
+}
 
 export function getNode(scene: PlanetScene, id: string): SceneNode | undefined {
 	return scene.nodes.get(id);
@@ -18,12 +37,33 @@ export function getChildren(scene: PlanetScene, parentId: string): SceneNode[] {
 
 export function getWorldTransform(scene: PlanetScene, nodeId: string): WorldTransform {
 	const node = scene.nodes.get(nodeId);
-	if (!node) {
-		return { position: [0, 0, 0], rotation: IDENTITY_QUAT };
+	if (!node) return WORLD_IDENTITY;
+
+	const posDeg = node.inheritance?.position ?? 1;
+	const rotDeg = node.inheritance?.rotation ?? 1;
+
+	// Fast path: standard single-parent composition (both channels from the parent).
+	if (posDeg === 1 && rotDeg === 1) {
+		const parentWorld =
+			node.parentId != null ? getWorldTransform(scene, node.parentId) : WORLD_IDENTITY;
+		return composeWorldTransform(parentWorld, node.transform);
 	}
-	const parentWorld: WorldTransform =
-		node.parentId != null ? getWorldTransform(scene, node.parentId) : { position: ORIGIN, rotation: IDENTITY_QUAT };
-	return composeWorldTransform(parentWorld, node.transform);
+
+	// Decoupled per-channel inheritance: translate by the position ancestor, orient
+	// the local offset + rotation by the rotation ancestor.
+	const posId = ancestorAtDegree(scene, nodeId, posDeg);
+	const rotId = ancestorAtDegree(scene, nodeId, rotDeg);
+	const posWorld = posId != null ? getWorldTransform(scene, posId) : WORLD_IDENTITY;
+	const rotWorld = rotId != null ? getWorldTransform(scene, rotId) : WORLD_IDENTITY;
+	const offset = rotateVec3(rotWorld.rotation, node.transform.position);
+	return {
+		position: [
+			posWorld.position[0] + offset[0],
+			posWorld.position[1] + offset[1],
+			posWorld.position[2] + offset[2]
+		],
+		rotation: quatMultiply(rotWorld.rotation, node.transform.rotation)
+	};
 }
 
 export function visitScene(scene: PlanetScene, visitor: (node: SceneNode, world: WorldTransform) => void): void {
