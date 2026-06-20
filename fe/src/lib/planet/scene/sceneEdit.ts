@@ -83,7 +83,7 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		kind: 'group',
 		enabled: true,
 		transform: identityTransform(),
-		bindings: [{ field: 'rotationY', ref: '..', output: 'phase' }]
+		bindings: [{ field: 'rotationY', source: { ref: '..', output: 'phase' } }]
 	};
 	const radius: SceneNode = {
 		id: `${baseId}-radius`,
@@ -92,7 +92,7 @@ export function makeOrbitingBody(centerId: string, options: OrbitingBodyOptions 
 		kind: 'group',
 		enabled: true,
 		transform: identityTransform(),
-		bindings: [{ field: 'positionX', ref: '../..', output: 'radius' }]
+		bindings: [{ field: 'positionX', source: { ref: '../..', output: 'radius' } }]
 	};
 	const body = {
 		id: baseId,

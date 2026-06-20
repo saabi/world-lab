@@ -1,5 +1,5 @@
 import type { Vec3 } from '../math/vec.js';
-import type { DriverSpec, PlanetScene, SceneNode } from './types.js';
+import type { DriverSpec, PlanetScene, SceneNode, TermOp, TermSource } from './types.js';
 import { advanceScene, orbitLocalPosition } from './orbit.js';
 import { eulerToQuat, quatToEuler } from './transform.js';
 import { resolvePath } from './scenePath.js';
@@ -41,28 +41,49 @@ export function evaluateDriver(spec: DriverSpec, t: number): Record<string, numb
 	return {};
 }
 
+/** Resolve a term's source to a number (a driver output, or a constant). */
+function sourceValue(
+	scene: PlanetScene,
+	nodeId: string,
+	source: TermSource,
+	outputs: Map<string, Record<string, number>>
+): number | undefined {
+	if ('const' in source) return source.const;
+	const driverId = resolvePath(scene, nodeId, source.ref);
+	return driverId != null ? outputs.get(driverId)?.[source.output] : undefined;
+}
+
+function fold(acc: number, op: TermOp | undefined, val: number): number {
+	switch (op ?? 'set') {
+		case 'add': return acc + val;
+		case 'mul': return acc * val;
+		case 'set':
+		default: return val;
+	}
+}
+
 function applyBindings(
 	scene: PlanetScene,
 	node: SceneNode,
 	outputs: Map<string, Record<string, number>>
 ): SceneNode {
+	// Seed each channel with the stored literal; fold its terms left-to-right.
 	const pos = [...node.transform.position] as Vec3;
 	const euler = quatToEuler(node.transform.rotation);
 	const scl = [...(node.transform.scale ?? [1, 1, 1])] as Vec3;
-	for (const b of node.bindings ?? []) {
-		const driverId = resolvePath(scene, node.id, b.ref);
-		const val = driverId != null ? outputs.get(driverId)?.[b.output] : undefined;
+	for (const term of node.bindings ?? []) {
+		const val = sourceValue(scene, node.id, term.source, outputs);
 		if (val == null) continue;
-		switch (b.field) {
-			case 'positionX': pos[0] = val; break;
-			case 'positionY': pos[1] = val; break;
-			case 'positionZ': pos[2] = val; break;
-			case 'rotationX': euler[0] = val; break;
-			case 'rotationY': euler[1] = val; break;
-			case 'rotationZ': euler[2] = val; break;
-			case 'scaleX': scl[0] = val; break;
-			case 'scaleY': scl[1] = val; break;
-			case 'scaleZ': scl[2] = val; break;
+		switch (term.field) {
+			case 'positionX': pos[0] = fold(pos[0], term.op, val); break;
+			case 'positionY': pos[1] = fold(pos[1], term.op, val); break;
+			case 'positionZ': pos[2] = fold(pos[2], term.op, val); break;
+			case 'rotationX': euler[0] = fold(euler[0], term.op, val); break;
+			case 'rotationY': euler[1] = fold(euler[1], term.op, val); break;
+			case 'rotationZ': euler[2] = fold(euler[2], term.op, val); break;
+			case 'scaleX': scl[0] = fold(scl[0], term.op, val); break;
+			case 'scaleY': scl[1] = fold(scl[1], term.op, val); break;
+			case 'scaleZ': scl[2] = fold(scl[2], term.op, val); break;
 		}
 	}
 	return {

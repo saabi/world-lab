@@ -10,8 +10,9 @@ import type { PlanetScene, SceneNode } from './types.js';
 //
 // v2: driver/binding orbits (kepler driver replaces the phase→radius / orbitPhase nodes).
 // v3: composable orbit primitives (driver container → rotate(phase) → translate(radius)).
+// v4: field terms — bindings are { field, op?, source: ref#output | const }, folded.
 
-const SCENE_DOC_VERSION = 3;
+const SCENE_DOC_VERSION = 4;
 
 export interface SceneDocument {
 	version: number;

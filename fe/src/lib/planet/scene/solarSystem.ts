@@ -79,7 +79,7 @@ export function createToySolarSystemScene(): PlanetScene {
 			kind: 'group',
 			enabled: true,
 			transform: id(),
-			bindings: [{ field: 'rotationY', ref: '..', output: 'phase' }]
+			bindings: [{ field: 'rotationY', source: { ref: '..', output: 'phase' } }]
 		});
 		// Translate primitive: offset along +X = the orbital radius; the phase sweeps it.
 		add({
@@ -89,7 +89,7 @@ export function createToySolarSystemScene(): PlanetScene {
 			kind: 'group',
 			enabled: true,
 			transform: id(),
-			bindings: [{ field: 'positionX', ref: '../..', output: 'radius' }]
+			bindings: [{ field: 'positionX', source: { ref: '../..', output: 'radius' } }]
 		});
 		add({
 			id: bodyId,

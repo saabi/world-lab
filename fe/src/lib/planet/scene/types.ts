@@ -88,12 +88,22 @@ export type TransformField =
 	| 'scaleY'
 	| 'scaleZ';
 
-/** Wires a driver output (at `ref` path, named `output`) into a transform field. */
-export interface FieldBinding {
+/** A term's value source: a driver output elsewhere (at `ref` path), or a constant. */
+export type TermSource = { ref: string; output: string } | { const: number };
+
+export type TermOp = 'set' | 'add' | 'mul';
+
+/**
+ * One term of a field's value. A field is the stored literal plus its terms, folded
+ * left-to-right per channel: `set` replaces the accumulator, `add`/`mul` combine. So
+ * `[set ../#radius, mul 2, add /bary#x]` ⇒ `radius·2 + bary.x`. A lone `set` with a
+ * ref source is a plain binding. See _docs/specs/driven-fields-editor.md.
+ */
+export interface FieldTerm {
 	field: TransformField;
-	/** Scene path to the driver node. */
-	ref: string;
-	output: string;
+	/** Default 'set'. */
+	op?: TermOp;
+	source: TermSource;
 }
 
 /** Per-axis rotation limit (radians), with an enable toggle. */
@@ -121,8 +131,8 @@ export interface SceneNodeBase {
 	enabled: boolean;
 	/** Optional driver: exposes named outputs (referenced by FieldBindings elsewhere). */
 	driver?: DriverSpec;
-	/** Optional field bindings: drive this node's transform fields from driver outputs. */
-	bindings?: FieldBinding[];
+	/** Optional field terms: compose this node's transform channels from driver outputs / constants. */
+	bindings?: FieldTerm[];
 	/** Optional constraint stack: transform modifiers applied after the base transform. */
 	constraints?: Constraint[];
 	/** Optional kinematic position driver (position-model orbit). */
