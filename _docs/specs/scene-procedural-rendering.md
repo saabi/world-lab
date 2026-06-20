@@ -83,8 +83,10 @@ a moon looking up at the primary.
 
 ## Phasing
 
-1. **Headless `PlanetRenderer`** — params/camera/lighting in, `backend.render` out;
-   `/planet` refactored onto it (no behaviour change), proving external params.
+1. **✅ Headless frame assembly** — `render/buildRenderFrame.ts`: params/camera/
+   lighting/tessellation in → `RenderFrame` out (modeState/localFrame passed in and
+   returned). `PlanetViewport.buildFrame` delegates to it (logic unchanged); smoke
+   test guards it. The backend-driving host (a `PlanetRenderer` class) comes with 4a.
 2. **4a focused body** — render the selected body procedurally full-screen from
    `resolveBodyParams` + an orbit-about-body camera; back to the system view.
 3. **4b single composited body** — largest on-screen procedural body into scene-3d's

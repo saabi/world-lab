@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import OrbitPredictorWorker from '../workers/orbitPredictor.ts?worker';
 	import type { CameraState } from '../camera/cameraModes.js';
-	import { blendPatchModes, selectRenderMode } from '../camera/cameraModes.js';
+	import { selectRenderMode } from '../camera/cameraModes.js';
 	import { createOrbitCamera, quatFromAzimuthElevation, lookAt, perspective, multiply4 } from '../camera/orbitCamera.js';
 	import type { Quat } from '../scene/types.js';
 	import { quatFromAxisAngle, quatMultiply, rotateVec3, quatFromRotationMatrix } from '../scene/transform.js';
@@ -15,13 +15,9 @@
 		nudgeAltitudeASL,
 		seaLevelRadius
 	} from '../camera/seaLevel.js';
-	import {
-		buildLocalFrame,
-		maybeRebaseFrame
-	} from '../math/localFrame.js';
+	import { buildLocalFrame } from '../math/localFrame.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import { DEFAULT_PRESET, PLANET_PRESETS, type PlanetPresetName } from '../params/presets.js';
-	import { scheduleOrbitPatches } from '../patches/cubeSphere.js';
 	import {
 		DEFAULT_TESSELLATION,
 		MOBILE_TESSELLATION,
@@ -33,8 +29,8 @@
 		commitDeviceTessellation,
 		loadDeviceTessellation
 	} from '../patches/deviceTessellation.js';
-	import { buildSurfacePatchRings } from '../patches/surfaceScheduler.js';
-	import type { OrbitScheduleMeta, RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
+	import type { RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
+	import { buildRenderFrame } from '../render/buildRenderFrame.js';
 	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
@@ -583,66 +579,26 @@
 		height: number,
 		p: PlanetParameters
 	): RenderFrame {
-		modeState = selectRenderMode(camera.altitudeMeters, modeState, p.radius);
-		const modes = blendPatchModes(modeState);
-		const activeCamera = { ...camera, mode: modeState };
-
-		const prevOrigin = localFrame.originEcef;
-		localFrame = buildLocalFrame(camera.position, p.radius);
-		const originShift = Math.hypot(
-			localFrame.originEcef[0] - prevOrigin[0],
-			localFrame.originEcef[1] - prevOrigin[1],
-			localFrame.originEcef[2] - prevOrigin[2]
-		);
-		if (originShift > 10_000) {
-			localFrame.rebaseCount = maybeRebaseFrame(localFrame, camera.ecef).rebaseCount;
-		}
-
-		let orbitSchedule: OrbitScheduleMeta | undefined;
-
-		if (modes.cubeSphere) {
-			const scheduled = scheduleOrbitPatches(activeCamera.position, p.radius, activeCamera.viewProjectionMatrix, {
-				viewport: { width, height },
-				focalLengthPx: camera.focalLengthPx,
-				detail: tessellation.detail,
-				maxVertices: tessellation.vertexBudgetMillions * 1_000_000,
-				maxPatchResolution: tessellation.maxPatchResolution,
-				maxDepth: tessellation.maxDepth
-			});
-			orbitSchedule = {
-				packedBuckets: scheduled.packedBuckets,
-				patchCount: scheduled.patchCount,
-				candidatePatches: scheduled.candidatePatches,
-				budgetDropped: scheduled.budgetDropped,
-				vertexBudget: scheduled.vertexBudget
-			};
-		}
-
-		const surfacePatches = modes.surface
-			? buildSurfacePatchRings({
-					cameraFootLocal: [0, 0],
-					cameraAltitudeMeters: camera.altitudeMeters,
-					targetVertexSpacingMeters: 0,
-					focalLengthPx: camera.focalLengthPx,
-					viewportHeightPx: height
-				})
-			: [];
-
-		return {
+		// Delegates to the headless assembler; modeState/localFrame are advanced there
+		// and written back here (the original per-frame mutation).
+		const result = buildRenderFrame({
 			time,
-			viewportWidthPx: width,
-			viewportHeightPx: height,
-			camera: activeCamera,
+			camera,
+			width,
+			height,
 			params: p,
+			modeState,
 			localFrame,
-			surfacePatches,
-			orbitSchedule,
+			tessellation,
 			debug: { wireframe, faceColors, showPatchBorders, showRingColors },
 			lighting: sceneLighting,
 			materialOverrides,
 			atmosphere,
 			planetRotation
-		};
+		});
+		modeState = result.modeState;
+		localFrame = result.localFrame;
+		return result.frame;
 	}
 
 	function buildFreeFlyCamera(width: number, height: number, p: PlanetParameters): CameraState {
