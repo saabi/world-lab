@@ -12,6 +12,7 @@
 	import { evaluateScene } from '../scene/driver.js';
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
+	import { selectLod, type LodLevel } from '../scene/bodyParams.js';
 	import type { Vec3 } from '../math/vec.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
 
@@ -51,13 +52,44 @@
 		return selectedId ? getWorldTransform(animated, selectedId).position : [0, 0, 0];
 	}
 
-	function buildInstances(animated: PlanetScene): BodyInstance[] {
-		return listBodies(animated).map((b) => ({
-			position: getWorldTransform(animated, b.id).position,
-			radius: b.radiusMeters,
-			color: BODY_COLOR[b.bodyType],
-			emissive: b.bodyType === 'star'
-		}));
+	// Screen-size LOD. A body's projected pixel diameter picks dot / sphere / procedural
+	// (selectLod); a sub-threshold body renders as a fixed-size point so it stays
+	// visible, larger ones as their true-size sphere. (Procedural is drawn as a sphere
+	// until the procedural pipeline lands — Phase 4.) Per-body hysteresis (±15%) avoids
+	// flicker at the boundary; lodState persists across frames.
+	const DOT_RADIUS_PX = 2.5;
+	const RANK: Record<LodLevel, number> = { dot: 0, sphere: 1, procedural: 2 };
+	const lodState = new Map<string, LodLevel>();
+
+	function lodFor(b: BodyNode, px: number): LodLevel {
+		const prev = lodState.get(b.id);
+		let level = selectLod(b, px);
+		if (prev && level !== prev) {
+			if (RANK[level] > RANK[prev] && RANK[selectLod(b, px / 1.15)] <= RANK[prev]) level = prev;
+			else if (RANK[level] < RANK[prev] && RANK[selectLod(b, px * 1.15)] >= RANK[prev]) level = prev;
+		}
+		lodState.set(b.id, level);
+		return level;
+	}
+
+	function buildInstances(animated: PlanetScene, vp: Float32Array): BodyInstance[] {
+		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
+		const out: BodyInstance[] = [];
+		for (const b of listBodies(animated)) {
+			const position = getWorldTransform(animated, b.id).position;
+			const sp = projectToScreen(vp, position, w, h);
+			if (!sp) continue; // behind the camera → cull
+			const pxDiameter = 2 * (b.radiusMeters / sp.depth) * screenScale;
+			const level = lodFor(b, pxDiameter);
+			const radius = level === 'dot' ? (DOT_RADIUS_PX * sp.depth) / screenScale : b.radiusMeters;
+			out.push({
+				position,
+				radius,
+				color: BODY_COLOR[b.bodyType],
+				emissive: b.bodyType === 'star'
+			});
+		}
+		return out;
 	}
 
 	function lighting(animated: PlanetScene): SceneLighting {
@@ -105,7 +137,7 @@
 			context.getCurrentTexture().createView(),
 			w,
 			h,
-			buildInstances(animated),
+			buildInstances(animated, vp),
 			vp,
 			lighting(animated)
 		);

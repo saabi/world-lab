@@ -108,8 +108,10 @@ toward multi-body — the main integration cost, taken incrementally.
    (reused from `PARAM_EDITOR_SECTIONS` shape/materials) writing `appearance.overrides`
    (overridden rows flagged; one-click reset) + the `lod` thresholds, in the `/scene`
    editor for planet/moon.
-3. **Screen-size LOD selection** — scene-3d computes each body's projected px and picks
-   dot/sphere from the `lod` policy (still cheap, no procedural yet). Proves the LOD.
+3. **✅ Screen-size LOD selection** — `SceneViewport3D` computes each body's projected
+   px diameter and picks dot/sphere via `selectLod` (procedural drawn as a sphere for
+   now); sub-threshold bodies render as fixed-size points, with ±15% per-body
+   hysteresis. Off-screen bodies culled.
 4. **First procedural body composited** — render the largest on-screen body via the
    `/planet` pipeline + floating origin, depth-composited with the sphere scene.
 5. **Multi-procedural + atmosphere + near-surface camera** — N procedural bodies, their
