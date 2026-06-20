@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { createToySolarSystemScene } from '$lib/planet/scene/solarSystem.js';
 	import { getNode } from '$lib/planet/scene/sceneTree.js';
-	import { pathNodeIds } from '$lib/planet/scene/scenePath.js';
+	import { pathNodeIds, pathOf, resolvePath } from '$lib/planet/scene/scenePath.js';
 	import { deserializeScene, serializeScene } from '$lib/planet/scene/sceneDocument.js';
 	import { editorForKind } from '$lib/planet/scene/nodeSchemas.js';
 	import { fields } from '@virtual-planet/schema';
@@ -28,6 +30,22 @@
 	let scene = $state(loadScene());
 	let selectedId = $state<string | null>(null);
 
+	// URL → selection: the catch-all path resolves to the selected node ('' = root → none).
+	$effect(() => {
+		const seg = page.params.path ?? '';
+		const id = seg ? resolvePath(scene, scene.rootId, '/' + seg) : null;
+		if (id !== selectedId) selectedId = id;
+	});
+
+	// Selection → URL: navigate when the path diverges (the guard breaks the loop).
+	$effect(() => {
+		if (!browser) return;
+		const id = selectedId;
+		const segs = id ? (pathOf(scene, id) ?? []) : [];
+		const url = '/scene' + (segs.length ? '/' + segs.join('/') : '');
+		if (page.url.pathname !== url) goto(url, { keepFocus: true, noScroll: true });
+	});
+
 	function saveScene() {
 		if (!browser) return;
 		try {
@@ -50,7 +68,6 @@
 	}
 
 	const selectedNode = $derived(selectedId ? (getNode(scene, selectedId) ?? null) : null);
-	// Breadcrumb: the selected node's path from root (the future /scene/... URL).
 	const breadcrumb = $derived(
 		selectedId
 			? (pathNodeIds(scene, selectedId) ?? []).map((nid) => ({
@@ -59,7 +76,6 @@
 				}))
 			: []
 	);
-	// Generated editor for the selected node (bespoke for bodies; schema-driven else).
 	const editor = $derived(selectedNode ? editorForKind(selectedNode.kind) : null);
 	const schemaValue = $derived.by(() => {
 		if (!selectedNode || editor?.mode !== 'schema') return {};
@@ -110,7 +126,7 @@
 				{/if}
 			</div>
 		{/if}
-		<p class="hint">Click a body in the map or tree to select it.</p>
+		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
 		<SystemMapPanel {scene} bind:selectedId />

@@ -16,7 +16,7 @@ monorepo** (root `package.json`, single root `package-lock.json`):
 
 Within `fe/`, routes:
 - **`/planet`** — the active WebGPU renderer (now also the **legacy per-body editor**).
-- **`/system`** — the solar-system editor (top-down map + body tree); see `_docs/specs/`.
+- **`/scene/[...path]`** — the path-addressed scene/solar-system editor (URL = the scene-tree path); top-down map + body tree + schema-driven node editor. `/system` redirects here. See `_docs/specs/`.
 - **`/old`** — frozen legacy Three.js editor kept as a visual reference. Do not break it.
 
 ## Commands
