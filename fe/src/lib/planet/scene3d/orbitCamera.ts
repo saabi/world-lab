@@ -76,14 +76,39 @@ export function perspective(fovy: number, aspect: number, near: number, far: num
 	]);
 }
 
+/** The camera's near/far — shared by the scene view and per-body floating-origin views
+ *  so their depth is directly comparable. */
+function nearFar(distance: number): [number, number] {
+	return [Math.max(1, distance * 0.002), distance * 20];
+}
+
 /** View·projection for the camera at the given aspect ratio. */
 export function viewProjection(cam: OrbitCamera, aspect: number): Float32Array {
-	const eye = cameraEye(cam);
-	const view = lookAt(eye, cam.target);
-	const near = Math.max(1, cam.distance * 0.002);
-	const far = cam.distance * 20;
-	const proj = perspective(FOVY, aspect, near, far);
-	return multiply4(proj, view);
+	const view = lookAt(cameraEye(cam), cam.target);
+	const [near, far] = nearFar(cam.distance);
+	return multiply4(perspective(FOVY, aspect, near, far), view);
+}
+
+/**
+ * Floating-origin view for rendering a body at the LOCAL origin while keeping it
+ * pixel- and depth-identical to where it sits under the scene camera. The body-relative
+ * camera is the scene camera translated by −bodyWorldPos (same rotation + projection),
+ * so a body-local point Q lands at the same clip position as the world point Q +
+ * bodyWorldPos under {@link viewProjection}. Returns the view·projection and the
+ * body-relative eye (for the terrain scheduler). Lets a procedural body render into the
+ * shared depth, occluding/occluded by the spheres correctly. See
+ * _docs/specs/unified-scene-renderer.md.
+ */
+export function bodyRelativeView(
+	cam: OrbitCamera,
+	bodyWorldPos: Vec3,
+	aspect: number
+): { viewProjection: Float32Array; eye: Vec3 } {
+	const eye = sub3(cameraEye(cam), bodyWorldPos);
+	const target = sub3(cam.target, bodyWorldPos);
+	const view = lookAt(eye, target);
+	const [near, far] = nearFar(cam.distance);
+	return { viewProjection: multiply4(perspective(FOVY, aspect, near, far), view), eye };
 }
 
 /**

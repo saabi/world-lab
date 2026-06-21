@@ -32,20 +32,20 @@ the camera each frame):
 1. **Draw list.** Per visible body: `selectLod(px)` → `dot | sphere | procedural`, with
    `proceduralBlend`; cull off-screen. Cap procedural bodies at a **budget**.
 2. **Spheres → shared color + depth.** Instanced dot/sphere bodies.
-3. **Procedural bodies — two modes by `proceduralBlend`:**
-   - **Fading (0 < blend < 1): render-to-texture + composite.** Render the body to an
-     offscreen color(+depth) texture (matched camera) and composite over the shared
-     scene with `alpha = blend`; coverage comes from the texture (its depth, later its
-     atmosphere) → **real alpha, no CSS mask**. Keeps `renderToTexture` first-class.
-   - **Close (blend = 1): single-pass.** Render the terrain directly into the shared
-     pass + **shared depth**, in the scene view-projection at the body's
-     camera-relative offset (`bodyEcef − cameraEcef`) — per-pixel occlusion. The
-     GPU-deep mode, only for the dominant body (and, later, co-dominant ones).
-4. **Atmospheres + tone-map / present.** For single-pass bodies, scattering reads the
-   shared depth; for fading bodies it's baked in the offscreen texture.
+3. **Procedural bodies — rendered directly into the shared pass + depth:**
+   - **Close (blend = 1): single-pass.** Terrain into the shared color+depth in the
+     body-relative scene view (`bodyRelativeView` — provably screen- and **depth**-equal
+     to the spheres, via floating origin: the scene camera translated by −bodyWorldPos,
+     same projection). Per-pixel occlusion for free.
+   - **Fading (0 < blend < 1): opacity cross-fade, in-pass.** Render *both* the sphere
+     (`objectOpacity = 1 − blend`) and the planet (`objectOpacity = blend`) directly,
+     alpha-blended. They occupy the same place, so **only one writes depth** (the
+     planet, for occlusion against other bodies); the other just blends. No offscreen,
+     no composite, no mask. (`renderToTexture` stays available as a fallback.)
+4. **Atmospheres + tone-map / present.** Scattering reads the shared depth.
 
-The common case (a fade) uses the **tractable, alpha-correct offscreen path**; the hard
-shared-depth single-pass work is deferred to the close/dominant body.
+The fade is just an `objectOpacity` uniform on the sphere + terrain passes once the
+single-pass body exists — so single-pass is the keystone; the fade falls out of it.
 
 Key unifications:
 - **One** device + canvas + **depth** buffer (today: two devices, two depths).
@@ -69,13 +69,14 @@ it needs on-device verification at each step (see "Working method").
    device + shared depth + the render pass; `scene3d/spherePass.ts` (`SpherePass`)
    records the sphere draw into it. `SceneViewport3D` uses engine + sphere pass. No
    behaviour change — the seam where the fade composite + single-pass terrain plug in.
-2. **Offscreen-composite fade (alpha-correct)** — render the body to a texture and
-   composite into the shared scene with `alpha = blend` + texture coverage. Replaces
-   the CSS layer + radial mask with real alpha. Tractable, verify-loop friendly.
-3. **Single-pass for the close body** — terrain into the shared pass + shared depth at
-   the scene camera/offset, when `blend = 1`. **The keystone — GPU-deep.**
-4. **Atmospheres in-pass; multi-body + budget; floating origin; surface camera** —
-   the "gas giant from a moon's surface" payoff.
+2. **Single-pass for the close body** — `bodyRelativeView` (✅ floating-origin camera
+   math, tested: screen + depth match the spheres) → terrain into the shared pass +
+   shared depth when `blend = 1`. **The keystone — GPU-deep** (terrain/atmosphere passes
+   recording into the engine's pass with the body-relative view).
+3. **Opacity cross-fade** — an `objectOpacity` uniform on the sphere + terrain passes;
+   render both during the fade, one writes depth. Retires the CSS layer + mask.
+4. **Atmospheres in-pass; multi-body + budget; surface camera** — the "gas giant from a
+   moon's surface" payoff.
 
 ## Decisions
 
