@@ -21,13 +21,21 @@
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
 
+	interface AtmoDebug {
+		enabled: boolean;
+		rayleigh: number;
+		mie: number;
+		fog: number;
+	}
 	interface Props {
 		scene: PlanetScene;
 		selectedId?: string | null;
 		/** Shared animation clock; re-renders as it advances (driven by the 2D map loop). */
 		time?: number;
+		/** Live atmosphere debug knobs (passed to the procedural layer). */
+		atmo: AtmoDebug;
 	}
-	let { scene, selectedId = $bindable(null), time = 0 }: Props = $props();
+	let { scene, selectedId = $bindable(null), time = 0, atmo }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = $state(1);
@@ -330,6 +338,7 @@
 				{camera}
 				bodyWorldPos={procWorldPos}
 				lighting={procLighting}
+				{atmo}
 			/>
 		</div>
 	{/if}

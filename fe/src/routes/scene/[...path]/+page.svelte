@@ -116,6 +116,8 @@
 	// match the animation. The selected node, evaluated at the current time, gives the
 	// driven-channel values the TransformEditor displays.
 	let clock = $state(0);
+	// Live atmosphere debug knobs for the procedural render (world-scale strengths).
+	let atmo = $state({ enabled: true, rayleigh: 0.05, mie: 0.05, fog: 0.05 });
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
@@ -273,10 +275,27 @@
 				{/if}
 			</div>
 		{/if}
+		<div class="atmo-debug">
+			<label class="atmo-head">
+				<input type="checkbox" bind:checked={atmo.enabled} /> Atmosphere (debug)
+			</label>
+			<label class="atmo-row">
+				<span>rayleigh {atmo.rayleigh.toFixed(3)}</span>
+				<input type="range" min="0" max="0.5" step="0.002" bind:value={atmo.rayleigh} />
+			</label>
+			<label class="atmo-row">
+				<span>mie {atmo.mie.toFixed(3)}</span>
+				<input type="range" min="0" max="0.5" step="0.002" bind:value={atmo.mie} />
+			</label>
+			<label class="atmo-row">
+				<span>fog {atmo.fog.toFixed(3)}</span>
+				<input type="range" min="0" max="1" step="0.01" bind:value={atmo.fog} />
+			</label>
+		</div>
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SceneViewport3D {scene} bind:selectedId time={clock} />
+		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} />
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>
@@ -487,6 +506,42 @@
 
 	.edit-link:hover {
 		text-decoration: underline;
+	}
+
+	.atmo-debug {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 6px 8px;
+		background: rgba(124, 92, 255, 0.06);
+		border: 1px solid rgba(124, 92, 255, 0.2);
+		border-radius: 6px;
+		font-size: 11px;
+	}
+
+	.atmo-head {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		font-weight: 600;
+		color: #c7a6ff;
+	}
+
+	.atmo-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.atmo-row span {
+		flex: 0 0 38%;
+		font-variant-numeric: tabular-nums;
+		opacity: 0.8;
+	}
+
+	.atmo-row input[type='range'] {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.hint {

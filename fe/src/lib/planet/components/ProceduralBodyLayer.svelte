@@ -18,6 +18,12 @@
 	// (per-pixel occlusion) is the later GPU step; this is the cross-fade. See
 	// _docs/specs/scene-procedural-rendering.md.
 
+	interface AtmoDebug {
+		enabled: boolean;
+		rayleigh: number;
+		mie: number;
+		fog: number;
+	}
 	interface Props {
 		body: BodyNode;
 		/** The scene orbit camera (azimuth/elevation/distance); the body is the target. */
@@ -26,8 +32,10 @@
 		bodyWorldPos: Vec3;
 		/** Packed scene lighting (sun toward Sol, in the body frame) from the host. */
 		lighting: LightingUniforms;
+		/** Live atmosphere debug knobs from the editor (strengths are world-scale). */
+		atmo: AtmoDebug;
 	}
-	let { body, camera, bodyWorldPos, lighting }: Props = $props();
+	let { body, camera, bodyWorldPos, lighting, atmo }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = 1;
@@ -48,14 +56,14 @@
 				body.radiusMeters,
 				w / Math.max(h, 1)
 			);
-			// Atmosphere optical depth ∝ strength × radius; the strengths are tuned at the
-			// preset radius (~100), so scale them inversely with the world radius to keep
-			// the look — else the world-scale shell is thousands× thicker → blown-out white.
-			const atmoScale = preset.radius / body.radiusMeters;
+			// Atmosphere geometry (shell/scale heights) scales with radius; the strengths
+			// are world-scale and tuned live via the editor (the optical depth's radius
+			// coupling is non-linear, so expose the knobs rather than guess a factor).
 			const atmosphere = {
-				...defaultAtmosphereParams(body.radiusMeters, 0.8 * atmoScale),
-				rayleighStrength: atmoScale,
-				mieStrength: atmoScale
+				...defaultAtmosphereParams(body.radiusMeters, atmo.fog),
+				enabled: atmo.enabled,
+				rayleighStrength: atmo.rayleigh,
+				mieStrength: atmo.mie
 			};
 			renderer.render({
 				time: ts * 0.001,
