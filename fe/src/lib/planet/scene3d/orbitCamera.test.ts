@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { bodyRelativeView, projectToScreen, viewProjection, type OrbitCamera } from './orbitCamera.js';
+import {
+	bodyRelativeView,
+	projectToScreen,
+	sceneBodyCamera,
+	viewProjection,
+	type OrbitCamera
+} from './orbitCamera.js';
 import { add3, type Vec3 } from '../math/vec.js';
 
 const cam: OrbitCamera = { azimuth: 0.6, elevation: 0.35, distance: 1e7, target: [0, 0, 0] };
@@ -21,6 +27,16 @@ describe('bodyRelativeView (floating origin)', () => {
 		expect(local!.x).toBeCloseTo(world!.x, 2);
 		expect(local!.y).toBeCloseTo(world!.y, 2);
 		expect(local!.depth / world!.depth).toBeCloseTo(1, 4); // relative (depths are ~1e7)
+	});
+
+	it('sceneBodyCamera carries bodyRelativeView into a CameraState', () => {
+		const body: Vec3 = [1e6, 2e5, -5e5];
+		const { viewProjection: vp, eye } = bodyRelativeView(cam, body, 1.5);
+		const cs = sceneBodyCamera(cam, body, 5e5, 1.5);
+		expect(Array.from(cs.viewProjectionMatrix)).toEqual(Array.from(vp));
+		expect(cs.position).toEqual(eye);
+		expect(cs.mode).toBe('orbit');
+		expect(cs.altitudeMeters).toBeGreaterThan(0);
 	});
 
 	it('centres the body on screen when the camera targets it (the close-body case)', () => {
