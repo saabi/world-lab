@@ -77,7 +77,10 @@ fn surface_material(sample: PlanetSample, params: PlanetParams, scale: ScaleCont
 
   var tn = 0.0;
   if (should_eval_layer(0.05, scale, params.radius) && params.texture_noise_scale > 0.0) {
-    tn = (fbm_4(sample.world_pos * sqrt(params.texture_noise_scale)) - 0.5) * tex_amp;
+    // Sample the unit direction at a reference radius (the presets' 100 m) instead of
+    // world_pos (= unit_dir·radius), so the fine texture is scale-invariant like the
+    // macro relief — else at world scale it's radius/100 ≈ thousands× too fine.
+    tn = (fbm_4(sample.unit_dir * 100.0 * sqrt(params.texture_noise_scale)) - 0.5) * tex_amp;
   }
   var polar = 0.0;
   if (should_eval_layer(2.0, scale, params.radius)) {

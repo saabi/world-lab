@@ -117,7 +117,7 @@
 	// driven-channel values the TransformEditor displays.
 	let clock = $state(0);
 	// Live atmosphere debug knobs for the procedural render (world-scale strengths).
-	let atmo = $state({ enabled: true, rayleigh: 0.05, mie: 0.05, fog: 0.05 });
+	let atmo = $state({ enabled: true, rayleigh: 0.004, mie: 0.004, fog: 0.02 });
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
@@ -280,16 +280,16 @@
 				<input type="checkbox" bind:checked={atmo.enabled} /> Atmosphere (debug)
 			</label>
 			<label class="atmo-row">
-				<span>rayleigh {atmo.rayleigh.toFixed(3)}</span>
-				<input type="range" min="0" max="0.5" step="0.002" bind:value={atmo.rayleigh} />
+				<span>rayleigh {atmo.rayleigh.toFixed(4)}</span>
+				<input type="range" min="0" max="0.05" step="0.0005" bind:value={atmo.rayleigh} />
 			</label>
 			<label class="atmo-row">
-				<span>mie {atmo.mie.toFixed(3)}</span>
-				<input type="range" min="0" max="0.5" step="0.002" bind:value={atmo.mie} />
+				<span>mie {atmo.mie.toFixed(4)}</span>
+				<input type="range" min="0" max="0.05" step="0.0005" bind:value={atmo.mie} />
 			</label>
 			<label class="atmo-row">
 				<span>fog {atmo.fog.toFixed(3)}</span>
-				<input type="range" min="0" max="1" step="0.01" bind:value={atmo.fog} />
+				<input type="range" min="0" max="0.5" step="0.005" bind:value={atmo.fog} />
 			</label>
 		</div>
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
