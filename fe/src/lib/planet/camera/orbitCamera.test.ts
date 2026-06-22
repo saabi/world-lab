@@ -3,6 +3,7 @@ import {
 	createOrbitCamera,
 	horizonLookTarget,
 	orbitTravelDirection,
+	perspective,
 	quatFromAzimuthElevation
 } from './orbitCamera.js';
 import { rotateVec3 } from '../scene/transform.js';
@@ -86,5 +87,18 @@ describe('orbitCamera horizon look', () => {
 		expect(cam.position[0]).toBeCloseTo(expectedPos[0], 5);
 		expect(cam.position[1]).toBeCloseTo(expectedPos[1], 5);
 		expect(cam.position[2]).toBeCloseTo(expectedPos[2], 5);
+	});
+
+	it('uses WebGPU depth range for perspective projection', () => {
+		const near = 0.5;
+		const far = 100;
+		const p = perspective(60, 1, near, far);
+		const projectZ = (z: number) => {
+			const cz = p[10] * z + p[14];
+			const cw = p[11] * z + p[15];
+			return cz / cw;
+		};
+		expect(projectZ(-near)).toBeCloseTo(0, 5);
+		expect(projectZ(-far)).toBeCloseTo(1, 5);
 	});
 });

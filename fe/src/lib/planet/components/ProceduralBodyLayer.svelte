@@ -6,10 +6,10 @@
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
-	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
+	import { DEFAULT_MATERIAL_OVERRIDES, type MaterialDebugMode } from '../material/biomes.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { Vec3 } from '../math/vec.js';
-	import type { BodyNode } from '../scene/types.js';
+	import type { BodyNode, Quat } from '../scene/types.js';
 
 	// A procedural render of one body on its own canvas, camera-driven by the host scene
 	// (no own controls; pointer-events: none) and stacked over the sphere view with the
@@ -30,12 +30,24 @@
 		camera: OrbitCamera;
 		/** The body's world position, so it renders in world coords / floating origin. */
 		bodyWorldPos: Vec3;
+		/** Evaluated body-space rotation: spin/tilt for procedural terrain sampling. */
+		planetRotation: Quat;
 		/** Packed scene lighting (sun toward Sol, in the body frame) from the host. */
 		lighting: LightingUniforms;
 		/** Live atmosphere debug knobs from the editor (strengths are world-scale). */
 		atmo: AtmoDebug;
+		/** Material debug view (parity diagnostic), mirrors /planet's dropdown. */
+		materialDebug?: MaterialDebugMode;
 	}
-	let { body, camera, bodyWorldPos, lighting, atmo }: Props = $props();
+	let {
+		body,
+		camera,
+		bodyWorldPos,
+		planetRotation,
+		lighting,
+		atmo,
+		materialDebug = 'off'
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = 1;
@@ -74,9 +86,9 @@
 				tessellation: DEFAULT_TESSELLATION,
 				debug: { wireframe: false, faceColors: false, showPatchBorders: false, showRingColors: false },
 				lighting,
-				materialOverrides: DEFAULT_MATERIAL_OVERRIDES,
+				materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES, materialDebug },
 				atmosphere,
-				planetRotation: [0, 0, 0, 1]
+				planetRotation
 			});
 		}
 		raf = requestAnimationFrame(frame);

@@ -170,14 +170,15 @@ export function lookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
 	]);
 }
 
+/** Perspective projection for WebGPU clip space (z in [0, 1]). */
 export function perspective(fovDeg: number, aspect: number, near: number, far: number): Float32Array {
 	const f = 1 / Math.tan((fovDeg * Math.PI) / 360);
 	const nf = 1 / (near - far);
 	return new Float32Array([
 		f / aspect, 0, 0, 0,
 		0, f, 0, 0,
-		0, 0, (far + near) * nf, -1,
-		0, 0, 2 * far * near * nf, 0
+		0, 0, far * nf, -1,
+		0, 0, near * far * nf, 0
 	]);
 }
 

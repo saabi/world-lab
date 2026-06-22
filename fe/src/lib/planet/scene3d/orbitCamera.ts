@@ -18,7 +18,7 @@ export interface OrbitCamera {
 	target: Vec3;
 }
 
-export const FOVY = Math.PI / 4;
+export const FOVY = Math.PI / 3;
 const EL_LIMIT = Math.PI / 2 - 0.05;
 
 export function clampElevation(e: number): number {
@@ -28,7 +28,7 @@ export function clampElevation(e: number): number {
 /** Camera eye position from the orbit parameters. */
 export function cameraEye(cam: OrbitCamera): Vec3 {
 	const ce = Math.cos(cam.elevation);
-	const dir: Vec3 = [ce * Math.sin(cam.azimuth), Math.sin(cam.elevation), ce * Math.cos(cam.azimuth)];
+	const dir: Vec3 = [ce * Math.cos(cam.azimuth), Math.sin(cam.elevation), ce * Math.sin(cam.azimuth)];
 	return [
 		cam.target[0] + cam.distance * dir[0],
 		cam.target[1] + cam.distance * dir[1],

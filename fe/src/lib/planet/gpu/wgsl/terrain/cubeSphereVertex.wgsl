@@ -114,7 +114,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
 
   let debug_mode = u32(mat_overrides.material_debug + 0.5);
   if (debug_mode > 0u) {
-    col = apply_material_debug(debug_mode, n, material, lit);
+    col = apply_material_debug(debug_mode, n, in.body_dir, material, lit);
   }
 
   // Wireframe overlay: bright lines along triangle edges (barycentric distance).

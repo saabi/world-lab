@@ -10,6 +10,7 @@ struct ViewUniforms {
   view: mat4x4f,
   camera_pos: vec4f,
   debug: vec4f,
+  planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
 }
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
@@ -44,11 +45,12 @@ fn vs_main(
   let uv_cell = quad_verts[tri * 3u + corner];
   let local_xy = vec2f(patch_desc.origin_x, patch_desc.origin_y) + (uv_cell - 0.5) * patch_desc.size_meters;
   let unit_dir = tangent_offset_to_unit_dir(local_xy, local_frame);
-  let sample = sample_planet(unit_dir, planet, scale_ctx);
-  let local_pos = sample.world_pos;
+  let body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir);
+  let sample = sample_planet(body_dir, planet, scale_ctx);
+  let local_pos = unit_dir * sample.world_radius_meters;
   var out: VSOut;
   out.world_pos = local_pos;
-  out.unit_dir = unit_dir;
+  out.unit_dir = body_dir;
   out.ring = patch_desc.ring;
   out.patch_uv = uv_cell;
   out.position = view_u.view_projection * vec4f(local_pos, 1.0);
@@ -71,15 +73,16 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   }
 
   var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
-  var n = normalize(sample.world_pos);
+  var n = normalize(in.world_pos);
   if (planet.illumination > 0.5) {
-    n = planet_surface_normal(in.unit_dir, planet, scale_ctx);
-    let v = view_u.camera_pos.xyz - sample.world_pos;
+    let n_body = planet_surface_normal(in.unit_dir, planet, scale_ctx);
+    n = rotate_vector_by_quat(view_u.planet_rot, n_body);
+    let v = view_u.camera_pos.xyz - in.world_pos;
     lit = evaluate_pbr(
       material,
       n,
       v,
-      sample.world_pos,
+      in.world_pos,
       lighting,
       mat_overrides,
       atmo,
@@ -91,7 +94,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
 
   let debug_mode = u32(mat_overrides.material_debug + 0.5);
   if (debug_mode > 0u) {
-    col = apply_material_debug(debug_mode, n, material, lit);
+    col = apply_material_debug(debug_mode, n, in.unit_dir, material, lit);
   }
 
   return vec4f(col, 1.0);

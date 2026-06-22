@@ -31,7 +31,6 @@
 	} from '../patches/deviceTessellation.js';
 	import type { RenderBackend, RenderFrame, RenderStats } from '../render/RenderBackend.js';
 	import { buildRenderFrame } from '../render/buildRenderFrame.js';
-	import { WebGLBackend } from '../render/WebGLBackend.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import PlanetEditorPanel from './PlanetEditorPanel.svelte';
 	import SceneTreePanel from './SceneTreePanel.svelte';
@@ -492,29 +491,19 @@
 		}, TESSELLATION_COMMIT_GRACE_MS);
 	}
 
-	/** Create the render backend (WebGPU, else WebGL fallback). Reused for recovery. */
+	/** Create the WebGPU render backend. Reused for recovery. */
 	async function initBackend() {
 		if (!canvas) return;
 		try {
-			if (navigator.gpu) {
-				const webgpu = new WebGPUBackend();
-				webgpu.onDeviceLost = handleDeviceLost;
-				await webgpu.init(canvas);
-				backend = webgpu;
-				backendLabel = 'WebGPU';
-			} else {
-				throw new Error('WebGPU unavailable');
-			}
-		} catch {
-			try {
-				const webgl = new WebGLBackend();
-				await webgl.init(canvas);
-				backend = webgl;
-				backendLabel = 'WebGL fallback';
-			} catch (e) {
-				initError = e instanceof Error ? e.message : 'No GPU backend';
-				backendLabel = 'unavailable';
-			}
+			const webgpu = new WebGPUBackend();
+			webgpu.onDeviceLost = handleDeviceLost;
+			await webgpu.init(canvas);
+			backend = webgpu;
+			backendLabel = 'WebGPU';
+			initError = null;
+		} catch (e) {
+			initError = e instanceof Error ? e.message : 'WebGPU unavailable';
+			backendLabel = 'unavailable';
 		}
 		if (backend) requestRender();
 	}

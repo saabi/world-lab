@@ -23,7 +23,15 @@ export const BIOME_PROPS: Record<BiomeId, BiomeProps> = {
 	[BIOME.ice]: { roughness: 0.3, metallic: 0, ior: 1.31 }
 };
 
-export type MaterialDebugMode = 'off' | 'normals' | 'roughness' | 'metallic' | 'specular' | 'ibl';
+export type MaterialDebugMode =
+	| 'off'
+	| 'normals'
+	| 'roughness'
+	| 'metallic'
+	| 'specular'
+	| 'ibl'
+	| 'bodyDir'
+	| 'latLong';
 
 export const MATERIAL_DEBUG_MODE: Record<MaterialDebugMode, number> = {
 	off: 0,
@@ -31,7 +39,12 @@ export const MATERIAL_DEBUG_MODE: Record<MaterialDebugMode, number> = {
 	roughness: 2,
 	metallic: 3,
 	specular: 4,
-	ibl: 5
+	ibl: 5,
+	// Parity diagnostics (see _docs/ideal-sphere-fragment-sampling.md): visualize the
+	// body-frame fragment coordinate. Stable across tessellation only once fragment
+	// sampling uses the ideal-sphere coordinate; today the interpolated value warps.
+	bodyDir: 6,
+	latLong: 7
 };
 
 export const MATERIAL_DEBUG_LABELS: { value: MaterialDebugMode; label: string }[] = [
@@ -40,7 +53,9 @@ export const MATERIAL_DEBUG_LABELS: { value: MaterialDebugMode; label: string }[
 	{ value: 'roughness', label: 'Roughness' },
 	{ value: 'metallic', label: 'Metallic' },
 	{ value: 'specular', label: 'Specular' },
-	{ value: 'ibl', label: 'IBL' }
+	{ value: 'ibl', label: 'IBL' },
+	{ value: 'bodyDir', label: 'Body dir (RGB)' },
+	{ value: 'latLong', label: 'Lat/long grid' }
 ];
 
 export interface MaterialOverrides {

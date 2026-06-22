@@ -19,7 +19,8 @@
 	import ProceduralBodyLayer from './ProceduralBodyLayer.svelte';
 	import { normalize3, sub3, type Vec3 } from '../math/vec.js';
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
-	import type { BodyNode, PlanetScene } from '../scene/types.js';
+	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
+	import type { MaterialDebugMode } from '../material/biomes.js';
 
 	interface AtmoDebug {
 		enabled: boolean;
@@ -34,8 +35,16 @@
 		time?: number;
 		/** Live atmosphere debug knobs (passed to the procedural layer). */
 		atmo: AtmoDebug;
+		/** Material debug view for the procedural layer (parity diagnostic). */
+		materialDebug?: MaterialDebugMode;
 	}
-	let { scene, selectedId = $bindable(null), time = 0, atmo }: Props = $props();
+	let {
+		scene,
+		selectedId = $bindable(null),
+		time = 0,
+		atmo,
+		materialDebug = 'off'
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let w = $state(1);
@@ -48,6 +57,8 @@
 	let procBlend = $state(0);
 	/** The selected body's live world position, for the layer's world-coord render. */
 	let procWorldPos = $state<Vec3>([0, 0, 0]);
+	/** The selected body's evaluated body-space rotation (spin/tilt), for terrain sampling. */
+	let procRotation = $state<Quat>([0, 0, 0, 1]);
 	/** Feathered disc (screen px) to mask the procedural layer to its planet + atmosphere,
 	 *  so the rest of the layer is transparent and the scene shows through. */
 	let procMask = $state<{ x: number; y: number; r0: number; r1: number } | null>(null);
@@ -180,6 +191,7 @@
 			procBlend = item.blend;
 			procBody = item.blend > 0 ? node : null;
 			procWorldPos = item.worldPos;
+			procRotation = getWorldTransform(animated, node.id).rotation;
 			// Mask the layer to the planet disc + an atmosphere feather; rest transparent.
 			const r = item.screenPx / 2;
 			procMask = procBody ? { x: item.screen.x, y: item.screen.y, r0: r, r1: r * 1.35 } : null;
@@ -337,8 +349,10 @@
 				body={procBody}
 				{camera}
 				bodyWorldPos={procWorldPos}
+				planetRotation={procRotation}
 				lighting={procLighting}
 				{atmo}
+				{materialDebug}
 			/>
 		</div>
 	{/if}

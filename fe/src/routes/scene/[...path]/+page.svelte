@@ -19,6 +19,10 @@
 	import { fields } from '@virtual-planet/schema';
 	import SystemMapPanel from '$lib/planet/components/SystemMapPanel.svelte';
 	import SceneViewport3D from '$lib/planet/components/SceneViewport3D.svelte';
+	import {
+		MATERIAL_DEBUG_LABELS,
+		type MaterialDebugMode
+	} from '$lib/planet/material/biomes.js';
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
@@ -117,7 +121,10 @@
 	// driven-channel values the TransformEditor displays.
 	let clock = $state(0);
 	// Live atmosphere debug knobs for the procedural render (world-scale strengths).
-	let atmo = $state({ enabled: true, rayleigh: 0.004, mie: 0.004, fog: 0.02 });
+	let atmo = $state({ enabled: true, rayleigh: 1.0, mie: 1.0, fog: 0.8 });
+	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
+	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
+	let materialDebug = $state<MaterialDebugMode>('off');
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
@@ -291,11 +298,19 @@
 				<span>fog {atmo.fog.toFixed(3)}</span>
 				<input type="range" min="0" max="0.5" step="0.005" bind:value={atmo.fog} />
 			</label>
+			<label class="atmo-row">
+				<span>debug view</span>
+				<select bind:value={materialDebug}>
+					{#each MATERIAL_DEBUG_LABELS as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
+			</label>
 		</div>
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} />
+		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} {materialDebug} />
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>
