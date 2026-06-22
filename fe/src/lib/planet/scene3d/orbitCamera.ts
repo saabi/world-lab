@@ -1,8 +1,5 @@
 import type { Vec3 } from '../math/vec.js';
-import { cross3, len3, normalize3, sub3 } from '../math/vec.js';
-import type { CameraState } from '../camera/cameraModes.js';
-import { quatFromRotationMatrix } from '../scene/transform.js';
-import { geodeticToEcef } from '../math/geodetic.js';
+import { cross3, normalize3, sub3 } from '../math/vec.js';
 
 // Orbit camera + the column-major 4x4 math the scene-3d pass needs (mat4.ts only has
 // invert4). WebGPU clip space: z ∈ [0, 1]. See scene-3d-viewport.md.
@@ -114,52 +111,12 @@ export function bodyRelativeView(
 	return { viewProjection: multiply4(perspective(FOVY, aspect, near, far), view), eye };
 }
 
-/**
- * A full `CameraState` (what the terrain/atmosphere passes consume) for a scene body,
- * built from the floating-origin {@link bodyRelativeView}: the body at the local
- * origin, rendered at world scale (set `params.radius = body.radiusMeters` — the
- * terrain is scale-invariant), screen- and depth-matched to the spheres. `planetRadius`
- * is the body's physical radius (metres).
- */
-export function sceneBodyCamera(
-	cam: OrbitCamera,
-	bodyWorldPos: Vec3,
-	planetRadius: number,
-	aspect: number
-): CameraState {
-	const eye = sub3(cameraEye(cam), bodyWorldPos);
-	const target = sub3(cam.target, bodyWorldPos);
-	const view = lookAt(eye, target);
-	const [near, far] = nearFar(cam.distance);
-	const projection = perspective(FOVY, aspect, near, far);
-	const viewProjection = multiply4(projection, view);
-
-	const dist = len3(eye) || 1;
-	const altitudeMeters = Math.max(dist - planetRadius, 0);
-	const geodetic = {
-		latRad: Math.asin(Math.max(-1, Math.min(1, eye[1] / dist))),
-		lonRad: Math.atan2(eye[2], eye[0]),
-		altitudeMeters
-	};
-	// View basis rows → camera rotation (as buildFreeFlyCamera does).
-	const s: Vec3 = [view[0], view[4], view[8]];
-	const u: Vec3 = [view[1], view[5], view[9]];
-	const b: Vec3 = [view[2], view[6], view[10]];
-
-	return {
-		mode: 'orbit',
-		geodetic,
-		ecef: geodeticToEcef(geodetic),
-		altitudeMeters,
-		viewMatrix: view,
-		projectionMatrix: projection,
-		viewProjectionMatrix: viewProjection,
-		focalLengthPx: (0.5 * 1080) / Math.tan(FOVY / 2),
-		position: eye,
-		target,
-		cameraRotation: quatFromRotationMatrix(s, u, b)
-	};
-}
+// NOTE: building a full `CameraState` for a scene body is now `focusedBodyCamera()` in
+// `../camera/orbitCamera.ts` — the shared focused-body builder (plan Phase 1). For the
+// isolated procedural canvas the camera targets the body, so it sits at the local origin
+// and `focusedBodyCamera` == the old floating-origin `sceneBodyCamera` (the orbit test
+// locks the equivalence). `bodyRelativeView` above stays for the Phase-5 shared-depth
+// composite, where the body renders at its world offset among the spheres.
 
 /**
  * Project a world point to canvas pixels through a (column-major) view·projection.

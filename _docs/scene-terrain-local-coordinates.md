@@ -71,7 +71,9 @@ For procedural bodies rendered from `/scene`:
 1. `SceneViewport3D` evaluates the scene at the shared clock.
 2. `getWorldTransform(animated, bodyId).position` gives the body origin.
 3. `getWorldTransform(animated, bodyId).rotation` gives the body frame orientation.
-4. `sceneBodyCamera()` translates the scene camera into body-relative coordinates.
+4. `focusedBodyCamera()` builds the body-at-origin camera from the scene orbit (the
+   shared `createOrbitCamera` builder; floating-origin compositing is Phase 5's
+   `bodyRelativeView()`).
 5. Terrain shaders use world/body-relative directions for geometry placement.
 6. Terrain analytics use `inverse(planetRotation) * direction`.
 7. Normals return to world/body-relative space with `planetRotation * normal`.

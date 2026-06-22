@@ -21,6 +21,7 @@
 	import type { LightingUniforms } from '../render/uniformLayouts.js';
 	import type { BodyNode, PlanetScene, Quat } from '../scene/types.js';
 	import type { MaterialDebugMode } from '../material/biomes.js';
+	import type { OrbitLookMode } from '../camera/orbitCamera.js';
 
 	interface AtmoDebug {
 		enabled: boolean;
@@ -37,13 +38,16 @@
 		atmo: AtmoDebug;
 		/** Material debug view for the procedural layer (parity diagnostic). */
 		materialDebug?: MaterialDebugMode;
+		/** Focused-body look mode (viewport state). */
+		lookMode?: OrbitLookMode;
 	}
 	let {
 		scene,
 		selectedId = $bindable(null),
 		time = 0,
 		atmo,
-		materialDebug = 'off'
+		materialDebug = 'off',
+		lookMode = 'planet-center'
 	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -353,6 +357,7 @@
 				lighting={procLighting}
 				{atmo}
 				{materialDebug}
+				{lookMode}
 			/>
 		</div>
 	{/if}

@@ -23,6 +23,7 @@
 		MATERIAL_DEBUG_LABELS,
 		type MaterialDebugMode
 	} from '$lib/planet/material/biomes.js';
+	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import SystemTreePanel from '$lib/planet/components/SystemTreePanel.svelte';
 	import SchemaForm from '$lib/planet/components/SchemaForm.svelte';
 	import TransformEditor from '$lib/planet/components/TransformEditor.svelte';
@@ -125,6 +126,9 @@
 	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
 	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
 	let materialDebug = $state<MaterialDebugMode>('off');
+	// Focused-body look mode — viewport state (not body data). planet-center targets the
+	// body; horizon aims along travel for low-orbit views, matching /planet's toggle.
+	let lookMode = $state<OrbitLookMode>('planet-center');
 	const evaluatedNode = $derived.by(() => {
 		if (!selectedNode) return null;
 		return evaluateScene(scene, clock).nodes.get(selectedNode.id) ?? selectedNode;
@@ -306,11 +310,18 @@
 					{/each}
 				</select>
 			</label>
+			<label class="atmo-head">
+				<input
+					type="checkbox"
+					checked={lookMode === 'horizon'}
+					onchange={(e) => (lookMode = e.currentTarget.checked ? 'horizon' : 'planet-center')}
+				/> Horizon look
+			</label>
 		</div>
 		<p class="hint">Click a body in the map or tree — the URL follows the scene path.</p>
 	</aside>
 	<main class="system-main">
-		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} {materialDebug} />
+		<SceneViewport3D {scene} bind:selectedId time={clock} {atmo} {materialDebug} {lookMode} />
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId bind:time={clock} />
 		</div>

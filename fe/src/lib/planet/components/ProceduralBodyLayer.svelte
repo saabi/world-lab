@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
-	import { sceneBodyCamera, type OrbitCamera } from '../scene3d/orbitCamera.js';
+	import { focusedBodyCamera, type OrbitLookMode } from '../camera/orbitCamera.js';
+	import type { OrbitCamera } from '../scene3d/orbitCamera.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
@@ -38,6 +39,8 @@
 		atmo: AtmoDebug;
 		/** Material debug view (parity diagnostic), mirrors /planet's dropdown. */
 		materialDebug?: MaterialDebugMode;
+		/** Look mode (viewport state, not body data); default targets the body. */
+		lookMode?: OrbitLookMode;
 	}
 	let {
 		body,
@@ -46,7 +49,8 @@
 		planetRotation,
 		lighting,
 		atmo,
-		materialDebug = 'off'
+		materialDebug = 'off',
+		lookMode = 'planet-center'
 	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -58,16 +62,22 @@
 
 	function frame(ts: number) {
 		if (renderer && ready && w > 0 && h > 0) {
-			// Render at world scale (radius = radiusMeters; terrain is scale-invariant)
-			// in the scene camera via floating origin → screen + depth match the spheres.
+			// Render at world scale (radius = radiusMeters; terrain is scale-invariant).
 			const preset = resolveBodyParams(body);
 			const params = { ...preset, radius: body.radiusMeters };
-			const cam = sceneBodyCamera(
-				{ ...camera, target: bodyWorldPos },
-				bodyWorldPos,
-				body.radiusMeters,
-				w / Math.max(h, 1)
-			);
+			// Shared focused-body camera (plan Phase 1): the body sits at the local origin,
+			// orbited by the scene camera's azimuth/elevation/distance — the same builder
+			// /planet uses, so the two render this body with identical camera math.
+			// bodyWorldPos drives the Phase-5 shared-depth composite, not this isolated
+			// canvas (where targeting the body makes the world offset an identity).
+			const cam = focusedBodyCamera({
+				azimuth: camera.azimuth,
+				elevation: camera.elevation,
+				distance: camera.distance,
+				planetRadius: body.radiusMeters,
+				aspect: w / Math.max(h, 1),
+				lookMode
+			});
 			// Atmosphere geometry (shell/scale heights) scales with radius; the strengths
 			// are world-scale and tuned live via the editor (the optical depth's radius
 			// coupling is non-linear, so expose the knobs rather than guess a factor).

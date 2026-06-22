@@ -135,6 +135,49 @@ export function createOrbitCamera(input: OrbitCameraInput): CameraState {
 	};
 }
 
+/**
+ * Depth range for a focused-body orbit view. Distance-relative so it stays sane at any
+ * radius — a fixed near plane z-fights at world scale. Shared by every focused-body
+ * render so their depth is directly comparable (and composites cleanly later).
+ */
+export function focusedBodyNearFar(distance: number): [number, number] {
+	return [Math.max(1, distance * 0.002), distance * 20];
+}
+
+export interface FocusedBodyCameraInput {
+	azimuth: number;
+	elevation: number;
+	distance: number;
+	/** Body physical radius (metres); the body is rendered at the local origin. */
+	planetRadius: number;
+	aspect: number;
+	/** Viewport state, NOT body data. Default 'planet-center' (target the body). */
+	lookMode?: OrbitLookMode;
+	fovDeg?: number;
+}
+
+/**
+ * THE focused-body camera: orbit a single body sitting at the local origin. FocusedBodyView
+ * and `/scene`'s ProceduralBodyLayer build their CameraState here; `/planet`'s buildCamera
+ * uses the same {@link createOrbitCamera} builder directly (with its own altitude-driven
+ * distance + near/far). So all three render the same body through one camera-math path
+ * (plan Phase 1). `lookMode` is viewport state, never body data.
+ */
+export function focusedBodyCamera(input: FocusedBodyCameraInput): CameraState {
+	const [near, far] = focusedBodyNearFar(input.distance);
+	return createOrbitCamera({
+		distance: input.distance,
+		azimuth: input.azimuth,
+		elevation: input.elevation,
+		fovDeg: input.fovDeg ?? 60,
+		aspect: input.aspect,
+		near,
+		far,
+		planetRadius: input.planetRadius,
+		lookMode: input.lookMode ?? 'planet-center'
+	});
+}
+
 export function updateOrbitCamera(
 	cam: CameraState,
 	input: Partial<OrbitCameraInput>

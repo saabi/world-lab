@@ -5,11 +5,10 @@ import {
 	FOVY,
 	perspective,
 	projectToScreen,
-	sceneBodyCamera,
 	viewProjection,
 	type OrbitCamera
 } from './orbitCamera.js';
-import { createOrbitCamera } from '../camera/orbitCamera.js';
+import { createOrbitCamera, focusedBodyCamera, focusedBodyNearFar } from '../camera/orbitCamera.js';
 import { add3, type Vec3 } from '../math/vec.js';
 
 const cam: OrbitCamera = { azimuth: 0.6, elevation: 0.35, distance: 1e7, target: [0, 0, 0] };
@@ -53,33 +52,42 @@ describe('bodyRelativeView (floating origin)', () => {
 		expect(local!.depth / world!.depth).toBeCloseTo(1, 4); // relative (depths are ~1e7)
 	});
 
-	it('sceneBodyCamera carries bodyRelativeView into a CameraState', () => {
+	it('focusedBodyCamera reproduces the floating-origin view when the camera targets the body', () => {
+		// The isolated procedural canvas targets the body, so it sits at the local origin
+		// and the shared focused-body camera reproduces bodyRelativeView's clip transform.
+		// Compared by screen projection (robust to float32 scale, unlike raw 1e7 entries).
 		const body: Vec3 = [1e6, 2e5, -5e5];
-		const { viewProjection: vp, eye } = bodyRelativeView(cam, body, 1.5);
-		const cs = sceneBodyCamera(cam, body, 5e5, 1.5);
-		expect(Array.from(cs.viewProjectionMatrix)).toEqual(Array.from(vp));
-		expect(cs.position).toEqual(eye);
+		const aspect = 1.5;
+		const { viewProjection: vp } = bodyRelativeView({ ...cam, target: body }, body, aspect);
+		const cs = focusedBodyCamera({
+			azimuth: cam.azimuth,
+			elevation: cam.elevation,
+			distance: cam.distance,
+			planetRadius: 5e5,
+			aspect
+		});
+		for (const Q of [[0, 0, 0], [1e4, -5e3, 2e4], [-3e4, 1e4, 8e3]] as Vec3[]) {
+			const a = projectToScreen(vp, Q, 1200, 800);
+			const b = projectToScreen(cs.viewProjectionMatrix as Float32Array, Q, 1200, 800);
+			expect(a).not.toBeNull();
+			expect(b).not.toBeNull();
+			expect(b!.x).toBeCloseTo(a!.x, 0);
+			expect(b!.y).toBeCloseTo(a!.y, 0);
+		}
 		expect(cs.mode).toBe('orbit');
 		expect(cs.altitudeMeters).toBeGreaterThan(0);
 	});
 
-	it('matches the planet-center orbit camera for a body at the origin', () => {
+	it('focusedBodyCamera matches createOrbitCamera (one shared builder)', () => {
 		const distance = 1_000_000;
 		const radius = 500_000;
 		const aspect = 1.5;
-		const near = Math.max(1, distance * 0.002);
-		const far = distance * 20;
-		const sceneCam: OrbitCamera = {
-			azimuth: 0.6,
-			elevation: 0.35,
-			distance,
-			target: [0, 0, 0]
-		};
-		const bodyCam = sceneBodyCamera(sceneCam, [0, 0, 0], radius, aspect);
+		const [near, far] = focusedBodyNearFar(distance);
+		const bodyCam = focusedBodyCamera({ azimuth: 0.6, elevation: 0.35, distance, planetRadius: radius, aspect });
 		const planetCam = createOrbitCamera({
 			distance,
-			azimuth: sceneCam.azimuth,
-			elevation: sceneCam.elevation,
+			azimuth: 0.6,
+			elevation: 0.35,
 			fovDeg: 60,
 			aspect,
 			near,

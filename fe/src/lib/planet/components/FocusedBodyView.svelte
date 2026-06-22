@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
-	import { createOrbitCamera } from '../camera/orbitCamera.js';
+	import { focusedBodyCamera } from '../camera/orbitCamera.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 	import { DEFAULT_TESSELLATION } from '../patches/tessellationSettings.js';
@@ -44,15 +44,14 @@
 	function frame(ts: number) {
 		if (renderer && ready && w > 0 && h > 0) {
 			const params = resolveBodyParams(body);
-			const camera = createOrbitCamera({
-				distance,
+			// Shared focused-body camera (plan Phase 1): orbit and look at the body.
+			const camera = focusedBodyCamera({
 				azimuth,
 				elevation,
-				fovDeg: 60,
+				distance,
+				planetRadius: params.radius,
 				aspect: w / Math.max(h, 1),
-				near: Math.max(0.01, params.radius * 0.001),
-				far: params.radius * 40,
-				planetRadius: params.radius
+				lookMode: 'planet-center'
 			});
 			renderer.render({
 				time: ts * 0.001,

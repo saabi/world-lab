@@ -26,7 +26,7 @@ rotation.
 
 | Area | `/planet` | `/scene` procedural overlay | Risk |
 | --- | --- | --- | --- |
-| Camera module | `camera/orbitCamera.ts` | `scene3d/orbitCamera.ts` -> `sceneBodyCamera()` | High |
+| Camera module | `camera/orbitCamera.ts` (`createOrbitCamera`) | shared `focusedBodyCamera()` → same `createOrbitCamera` | Unified (Phase 1) |
 | FOV | 60 degrees | 60 degrees (`FOVY = PI / 3`) | Fixed |
 | Default gaze | Horizon look by default when `lookAtHorizon = true` | Body-centered target for selected body | High |
 | Projection matrix | `camera/orbitCamera.perspective()` | `scene3d/orbitCamera.perspective()` | High |
@@ -83,7 +83,7 @@ The overlay then renders with:
 
 - Body appearance from `resolveBodyParams(body)`.
 - `params.radius` overwritten to `body.radiusMeters`.
-- Camera from `sceneBodyCamera()`.
+- Camera from the shared `focusedBodyCamera()` (same `createOrbitCamera` builder as `/planet`).
 - Atmosphere from `defaultAtmosphereParams(body.radiusMeters, atmo.fog)` with live debug
   strengths.
 - Lighting packed as one directional light toward the solar-system point light.
@@ -133,11 +133,13 @@ the visible surface, apparent lighting angle, and depth distribution.
 `/scene` procedural overlay calls:
 
 ```ts
-sceneBodyCamera({ ...camera, target: bodyWorldPos }, bodyWorldPos, body.radiusMeters, aspect)
+focusedBodyCamera({ azimuth, elevation, distance, planetRadius: body.radiusMeters, aspect, lookMode })
 ```
 
-That means the selected body is centered: the local target becomes `[0, 0, 0]`. Even if
-azimuth/elevation matched, the view direction would differ from `/planet` whenever
+The body is centered at the local origin (target `[0, 0, 0]`), orbited by the scene
+camera through the **same `createOrbitCamera` builder `/planet` uses** — so `lookMode`
+(`planet-center` vs `horizon`) is now the only gaze difference, and it is explicit
+viewport state. Earlier the view direction would differ from `/planet` whenever
 `/planet` is in horizon mode.
 
 ### Projection matrix
@@ -194,9 +196,12 @@ from `camera.position` and `params.radius`.
 
 In `/planet`, `camera.position` is planet-local ECEF-like world space.
 
-In `/scene`, `sceneBodyCamera()` translates the scene camera by `-bodyWorldPos`, so
-`camera.position` is body-relative. This is the right shape for reusing the planet
-pipeline, but it depends on the scene camera view/projection being exactly compatible
+In `/scene`, `focusedBodyCamera()` renders the body at the local origin (orbit position
+`distance·dir`), so `camera.position` is body-relative — identical to `/planet` for the
+same orbit. (The general floating-origin translation by `-bodyWorldPos`, for compositing
+the body among other scene objects, is `bodyRelativeView()`, deferred to Phase 5.) This
+is the right shape for reusing the planet pipeline, but it depends on the scene camera
+view/projection being exactly compatible
 with the backend shaders. Any mismatch in projection, target, FOV, or near/far becomes
 visible inside the same terrain passes.
 
@@ -301,11 +306,11 @@ the LOD cross-fade from sphere to procedural.
 
 ## Recommended parity checks
 
-1. Make `/scene` use the same FOV as `/planet` for `sceneBodyCamera()` tests and overlay
-   render, or make FOV explicitly configurable in both.
-2. Decide whether `/scene` selected-body procedural view should match `/planet`
-   `planet-center` mode or `/planet` horizon mode. Currently it matches neither when
-   `/planet` horizon mode is enabled.
+1. ✅ Done (Phase 1): `/scene` and `/planet` share `createOrbitCamera` via
+   `focusedBodyCamera()`, so FOV/projection/azimuth basis are identical by construction.
+2. ✅ Addressed (Phase 1): `lookMode` is explicit viewport state on both routes
+   (`/scene` exposes a horizon-look toggle), so the gaze can be matched to either
+   `/planet` mode rather than diverging silently.
 3. Keep both projection helpers covered by explicit WebGPU depth convention tests.
 4. Move atmosphere from route debug state onto body design data before judging saved
    planet parity.

@@ -133,8 +133,10 @@ Each frame it:
 
 1. Resolves body appearance with `resolveBodyParams(body)`.
 2. Sets `params.radius` to the body's physical `radiusMeters`.
-3. Builds a scene-matched `CameraState` with `sceneBodyCamera()`, using floating-origin
-   coordinates relative to the body.
+3. Builds the focused-body `CameraState` with the shared `focusedBodyCamera()`
+   (`createOrbitCamera` under the hood) — the body at the local origin, orbited by the
+   scene camera. (Floating-origin compositing into the shared depth is Phase 5, via
+   `bodyRelativeView()`.)
 4. Packs scene lighting as a directional light toward the sun in body-local space.
 5. Builds atmosphere parameters from the body's radius plus the route's debug controls.
 6. Calls `PlanetRenderer.render(...)`.

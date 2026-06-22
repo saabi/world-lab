@@ -95,14 +95,18 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
 ## 4. Current state (honest)
 
 - **Committed / done:** scale-invariant terrain (radius-relative LOD gates, `unit_dir·100`
-  texture), draw list, `SceneEngine` + `SpherePass`, `bodyRelativeView` / `sceneBodyCamera`,
-  the `/scene` CSS-overlay procedural cross-fade.
-- **Uncommitted & unverified ("first slice"):** FOV → 60° + azimuth → +X (scene camera
-  matches `/planet`), `planetRotation` = body world-frame rotation, surface-patch
-  `body_dir`. **These are in progress, not done** — commit behind Phase 1's shared
-  camera and verify.
-- **Not started:** ideal-sphere fragment sampling, atmosphere scale-invariance,
-  `BodyAtmosphere` data, single-engine composite, eclipse shadows, the graph compiler.
+  texture), draw list, `SceneEngine` + `SpherePass`, `bodyRelativeView`, the `/scene`
+  CSS-overlay procedural cross-fade; the parameter contract (Phase 0.1) and the
+  `body_dir`/lat-long debug views (Phase 0.2); the camera-parity slice (FOV → 60°,
+  azimuth → +X, `planetRotation` = body world-frame rotation, surface-patch `body_dir`);
+  and **Phase 1** — one shared `focusedBodyCamera` builder over `createOrbitCamera`, used
+  by `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer`, with `lookMode` as viewport
+  state (the duplicate `sceneBodyCamera` retired).
+- **Done but not yet visually verified on GPU:** the camera-parity slice and the debug
+  views — confirm with the Phase-0 `body_dir`/lat-long views (the author has no GPU).
+- **Not started:** ideal-sphere fragment sampling (Phase 2), atmosphere scale-invariance
+  (Phase 3), `BodyAtmosphere` data (Phase 4), single-engine composite (Phase 5), eclipse
+  shadows (Phase 6), the graph compiler.
 
 ## 5. Contradictions resolved
 
@@ -124,9 +128,11 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
    `/scene` — the parity *diagnostic* (proves space + tessellation issues visually).
 3. **Parity test**: same body + camera + style ⇒ identical `RenderFrame` before submit.
 
-**Phase 1 — Camera unification.** One shared focused-body camera builder for `/planet`,
-`FocusedBodyView`, `ProceduralBodyLayer`; `lookMode` as viewport state. Commit + verify
-the §4 interim slice behind it.
+**Phase 1 — Camera unification. ✅ done.** One shared focused-body camera builder
+(`focusedBodyCamera` over `createOrbitCamera`) for `/planet`, `FocusedBodyView`,
+`ProceduralBodyLayer`; `lookMode` is viewport state; the duplicate `sceneBodyCamera` is
+retired and `bodyRelativeView` kept for the Phase-5 composite. Camera-parity slice
+committed behind it.
 
 **Phase 2 — Fragment correctness.** Ideal-sphere fragment coordinate (§3.3), shared by
 cube-sphere and surface-patch paths. Verify with the Phase-0 debug view under a
