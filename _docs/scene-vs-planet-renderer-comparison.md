@@ -36,7 +36,7 @@ rotation.
 | Lighting source | default scene has directional sun on +X | toy solar-system point light converted to body-local directional sun | High |
 | Lighting scope | respects `params.illumination > 0.5` | procedural overlay currently always packs selected-body lighting when visible | Medium |
 | Atmosphere | saved/editor atmosphere, defaults strength 1.0, fog 0.8 | debug knobs default rayleigh/mie 1.0, fog 0.8 | Fixed default only |
-| Planet rotation | `planetRotation = axialTilt * spinAngle` | fixed identity rotation | Medium |
+| Planet rotation | `planetRotation = axialTilt * spinAngle` | evaluated world rotation of the body frame | Partially fixed |
 | Physical radius | preset/editor `params.radius` | `params.radius = body.radiusMeters` after resolving appearance | High |
 | Backend canvas | one WebGPU backend/canvas | separate WebGPU backend/canvas stacked over scene canvas | Medium |
 
@@ -87,7 +87,7 @@ The overlay then renders with:
 - Atmosphere from `defaultAtmosphereParams(body.radiusMeters, atmo.fog)` with live debug
   strengths.
 - Lighting packed as one directional light toward the solar-system point light.
-- `planetRotation: [0, 0, 0, 1]`.
+- `planetRotation` from the selected body's evaluated world transform rotation.
 
 ## Coordinate-system comparison
 
@@ -272,14 +272,17 @@ radius, not the same radius as whatever preset is currently active in `/planet`.
 planetRotation = axialTiltAroundZ * spinAroundY
 ```
 
-`/scene` procedural overlay always passes identity rotation:
+`/scene` procedural overlay now passes the selected body's evaluated world transform
+rotation:
 
 ```ts
-planetRotation: [0, 0, 0, 1]
+planetRotation: getWorldTransform(animated, bodyId).rotation
 ```
 
-If `/planet` has non-zero spin or axial tilt, terrain samples are rotated relative to
-camera and sun. `/scene` will not match that orientation.
+This fixes the old coordinate bug where animated scene spin never reached the terrain
+shader, and it also accounts for inherited parent rotations in the scene graph. Full
+parity still needs the body model to store axial tilt/spin consistently across
+`/planet` and `/scene`.
 
 ## Backend and compositing differences
 
@@ -306,7 +309,7 @@ the LOD cross-fade from sphere to procedural.
 3. Keep both projection helpers covered by explicit WebGPU depth convention tests.
 4. Move atmosphere from route debug state onto body design data before judging saved
    planet parity.
-5. Compare with identity `planetRotation`, zero spin, zero axial tilt, and equal radius.
+5. Compare with the same evaluated `planetRotation`, zero extra viewport spin, and equal radius.
 6. Use the same light type/direction: either force `/planet` to a directional light that
    matches `normalize(sun - body)`, or force `/scene` overlay to the `/planet` default +X
    directional light.
@@ -324,5 +327,5 @@ points to these first:
    direction toward a point-light star.
 3. Scale mismatch: `/scene` replaces preset radius with the body radius, so terrain and
    atmosphere scale are not guaranteed to match the `/planet` active preset.
-4. Body-state mismatch: `/scene` atmosphere and rotation are still route/session
-   driven rather than saved as intrinsic body design.
+4. Body-state mismatch: `/scene` atmosphere is still route/debug driven, and full
+   rotation parity still needs a shared body spin/tilt model.

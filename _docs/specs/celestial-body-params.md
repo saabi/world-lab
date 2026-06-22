@@ -38,11 +38,15 @@ resolveBodyParams(body: BodyNode): PlanetParameters
 //  = { ...PLANET_PRESETS[body.appearance.preset], ...overrides }
 ```
 
-- **Two distinct radii (discovered during impl):** `PlanetParameters.radius` is
-  ~render-space (presets use `100`; it scales noise relations), **not** SI. The body's
-  physical size is `radiusMeters` (SI). They are *not* the same unit, so the resolver
-  does **not** fold one into the other — `radiusMeters` is the world scale applied at
-  render/composite time; `params.radius` stays the appearance's. Not redundant.
+- **Radius (resolved — see [renderer-unification-plan.md](../renderer-unification-plan.md)
+  §3.1/§5):** the terrain is **scale-invariant** (noise on `unit_dir`, amplitudes as
+  ratios of radius), so a body renders at world scale by setting `params.radius =
+  radiusMeters` at render time. There is **no separate render-space radius**; the
+  preset's `radius` (~100) is only an **authoring reference** `R_ref` used to normalize
+  layers not yet expressed as unit-direction frequencies (fine texture noise) and to
+  normalize atmosphere strength. `resolveBodyParams` returns the preset's radius (the
+  reference); the renderer overrides it with `radiusMeters`. *(An earlier draft called
+  these "two distinct radii kept separate" — superseded: there is one render radius.)*
 - **Default appearance:** absent → `DEFAULT_PRESET` (and unknown name → default too),
   so existing bodies resolve without migration.
 - **Scope by body type:** only `planet` / `moon` carry terrain appearance. `star` /

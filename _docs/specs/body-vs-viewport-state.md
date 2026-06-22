@@ -223,6 +223,10 @@ The solar-system path ([`SceneViewport3D`](../../fe/src/lib/planet/components/Sc
   procedural layer hardcodes `lookMode: 'planet-center'`.
 - Lighting from **`collectSceneLights`** — correct direction; focused body should use
   **`collectLightsForBody(scene, bodyId)`** when scoping matters.
+- Passes the selected body's evaluated world transform rotation into
+  **`planetRotation`** — scene spin and inherited frame rotation now reach terrain
+  sampling. Full parity still needs a shared spin/tilt body model across `/planet`
+  and `/scene`.
 
 Legacy `/planet` path still owns a monolithic snapshot and a local `createDefaultPlanetScene()` for lights instead of the system graph.
 
@@ -274,8 +278,9 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
    `toGpuAtmosphereParams`.
 8. Atmosphere editor on `/scene` for planet/moon bodies (design fields only); move
    **Quality** slider to View / Renderer section.
-9. Wire `ProceduralBodyLayer`, `FocusedBodyView` to body atmosphere + render quality +
-   evaluated spin from scene (not identity quaternion).
+9. Wire `ProceduralBodyLayer`, `FocusedBodyView` to body atmosphere + render quality;
+   `ProceduralBodyLayer` already receives evaluated body-frame world rotation instead
+   of identity.
 
 ### Phase C — Document → scene migration
 

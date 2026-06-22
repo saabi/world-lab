@@ -6,6 +6,7 @@ Status: design plus first bug-fix slice. This integrates:
 - `_docs/specs/eclipse-shadows.md`
 - `_docs/scene-route-rendering-pipeline.md`
 - `_docs/scene-vs-planet-renderer-comparison.md`
+- `_docs/planet-shaping-pipeline-graph.md`
 
 ## Goal
 
@@ -29,9 +30,17 @@ These are narrow fixes that reduce current mismatch without changing persistence
    rayleigh `1.0`, mie `1.0`, fog `0.8`.
 5. `/planet` no longer falls back to WebGL at runtime; the active renderer path is
    WebGPU-only.
+6. `/scene` procedural bodies now pass evaluated world rotation of the body frame into
+   `planetRotation`, so scene spin/inherited frame rotation reaches terrain sampling.
 
 These changes do not solve body persistence, scene-depth compositing, or eclipse
 shadows. They remove obvious environmental drift before the larger work begins.
+
+The remaining terrain mismatch should be treated as a pipeline-contract problem as
+well as a route integration problem. `_docs/planet-shaping-pipeline-graph.md` documents
+the current procedural shaping graph, confirms that terrain is not baked into textures,
+and proposes a typed graph/compiler layer so cube-sphere, surface-patch, `/planet`, and
+`/scene` variants share one shaping contract.
 
 ## Remaining current bugs / mismatches
 
@@ -99,13 +108,12 @@ Fix design:
 ### 5. Planet rotation is not unified
 
 `/planet` can render axial tilt and spin through `planetRotation`; `/scene` procedural
-overlay always passes identity.
+overlay now passes evaluated world rotation of the body frame.
 
 Fix design:
 
 - Store spin/tilt as intrinsic body design, not camera state.
-- Evaluate body rotation from scene graph plus spin at time `t`.
-- Pass the evaluated body rotation into `planetRotation`.
+- Keep passing evaluated body-frame world rotation into `planetRotation`.
 - Remove the `/planet`-only spin controls from the camera section; move them to body
   design or scene body editing.
 
