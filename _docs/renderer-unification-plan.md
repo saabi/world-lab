@@ -102,11 +102,15 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   and **Phase 1** — one shared `focusedBodyCamera` builder over `createOrbitCamera`, used
   by `/planet`, `FocusedBodyView`, and `ProceduralBodyLayer`, with `lookMode` as viewport
   state (the duplicate `sceneBodyCamera` retired).
-- **Done but not yet visually verified on GPU:** the camera-parity slice and the debug
-  views — confirm with the Phase-0 `body_dir`/lat-long views (the author has no GPU).
-- **Not started:** ideal-sphere fragment sampling (Phase 2), atmosphere scale-invariance
-  (Phase 3), `BodyAtmosphere` data (Phase 4), single-engine composite (Phase 5), eclipse
-  shadows (Phase 6), the graph compiler.
+- **Phase 2 — ideal-sphere fragment sampling (code done):** fragment terrain recomputes
+  `body_dir` from the ray∩base-sphere coordinate (`inv_view_projection` + `viewport` added
+  to `ViewUniforms`; shared `common/idealSphere.wgsl`), falling back to the interpolated
+  dir on a miss (grazing case deferred). Both cube-sphere and surface-patch paths use it.
+- **Done but not yet visually verified on GPU:** the camera-parity slice, the debug views,
+  and Phase 2 — confirm with the Phase-0 lat/long grid under a tessellation sweep (it
+  should now stay put). The author has no GPU.
+- **Not started:** atmosphere scale-invariance (Phase 3), `BodyAtmosphere` data (Phase 4),
+  single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph compiler.
 
 ## 5. Contradictions resolved
 
@@ -134,9 +138,11 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
 retired and `bodyRelativeView` kept for the Phase-5 composite. Camera-parity slice
 committed behind it.
 
-**Phase 2 — Fragment correctness.** Ideal-sphere fragment coordinate (§3.3), shared by
-cube-sphere and surface-patch paths. Verify with the Phase-0 debug view under a
-tessellation sweep.
+**Phase 2 — Fragment correctness. ✅ code done.** Ideal-sphere fragment coordinate (§3.3),
+shared by cube-sphere and surface-patch paths via `common/idealSphere.wgsl`
+(`inv_view_projection` + `viewport` in `ViewUniforms`; grazing-miss falls back to the
+interpolated dir). CPU mirror test locks the ray/inverse/intersection math; **verify on
+GPU** with the Phase-0 lat/long grid under a tessellation sweep.
 
 **Phase 3 — Scale model.** Make the atmosphere scale-invariant (§3.1); confirm
 `params.radius = radiusMeters` + `R_ref` for texture; retire the route-debug atmosphere

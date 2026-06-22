@@ -1,6 +1,13 @@
 # Ideal-sphere fragment sampling
 
-Status: design note for stabilizing procedural terrain against tessellation changes.
+Status: **implemented** (plan Phase 2). The first open-implementation option below was
+chosen — `inv_view_projection` + `viewport` were added to `ViewUniforms`, and both terrain
+fragment shaders derive `body_dir` through the shared `gpu/wgsl/common/idealSphere.wgsl`
+node before `sample_planet`/`surface_material`/`planet_surface_normal`. On a base-sphere
+miss (grazing / above the silhouette) the shader falls back to the interpolated vertex
+direction; the proper grazing-angle handling remains deferred. A CPU mirror test
+(`render/idealSphereFragment.test.ts`) locks the ray-reconstruction + intersection math;
+the on-GPU stability check is the lat/long debug grid under a tessellation sweep.
 
 ## Problem
 

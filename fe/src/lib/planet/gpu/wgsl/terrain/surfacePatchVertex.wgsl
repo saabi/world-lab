@@ -3,6 +3,7 @@
 #include "../planet/lighting.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
+#include "../common/idealSphere.wgsl"
 #include "../atmosphere/atmosphereParams.wgsl"
 
 struct ViewUniforms {
@@ -11,6 +12,8 @@ struct ViewUniforms {
   camera_pos: vec4f,
   debug: vec4f,
   planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
+  inv_view_projection: mat4x4f,
+  viewport: vec4f, // [widthPx, heightPx, _, _]
 }
 
 @group(0) @binding(0) var<uniform> view_u: ViewUniforms;
@@ -59,7 +62,14 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
-  let sample = sample_planet(in.unit_dir, planet, scale_ctx);
+  // Ideal-sphere fragment coordinate (tessellation-independent); fall back to the
+  // interpolated body dir on a miss. See common/idealSphere.wgsl.
+  let ideal = ideal_sphere_body_dir(
+    in.position.xy, view_u.viewport.xy, view_u.inv_view_projection,
+    view_u.camera_pos.xyz, view_u.planet_rot, planet.radius
+  );
+  let body_dir = select(in.unit_dir, ideal.body_dir, ideal.hit);
+  let sample = sample_planet(body_dir, planet, scale_ctx);
   var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.w > 0.5) {
@@ -75,7 +85,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
   var lit = LightingResult(col, vec3f(0.0), vec3f(0.0));
   var n = normalize(in.world_pos);
   if (planet.illumination > 0.5) {
-    let n_body = planet_surface_normal(in.unit_dir, planet, scale_ctx);
+    let n_body = planet_surface_normal(body_dir, planet, scale_ctx);
     n = rotate_vector_by_quat(view_u.planet_rot, n_body);
     let v = view_u.camera_pos.xyz - in.world_pos;
     lit = evaluate_pbr(
@@ -94,7 +104,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
 
   let debug_mode = u32(mat_overrides.material_debug + 0.5);
   if (debug_mode > 0u) {
-    col = apply_material_debug(debug_mode, n, in.unit_dir, material, lit);
+    col = apply_material_debug(debug_mode, n, body_dir, material, lit);
   }
 
   return vec4f(col, 1.0);

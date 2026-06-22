@@ -35,6 +35,7 @@ import {
 	toGpuAtmosphereParams,
 	writeAtmosphereParamsToBuffer
 } from '../../params/atmosphereParams.js';
+import { invert4 } from '../../math/mat4.js';
 import { cubePatchVertexCount } from '../../patches/cubeSphere.js';
 import { RESOLUTION_LEVELS } from '../../patches/cubeSphereScheduler.js';
 import { uploadPackedBucket } from '../../params/gpuBuffers.js';
@@ -343,7 +344,9 @@ export class TerrainPass {
 				frame.debug.showPatchBorders ? 1 : 0,
 				frame.debug.showRingColors ? 1 : 0
 			],
-			rotation: frame.planetRotation
+			rotation: frame.planetRotation,
+			inverseViewProjection: invert4(frame.camera.viewProjectionMatrix),
+			viewport: [frame.viewportWidthPx, frame.viewportHeightPx, 0, 0]
 		};
 		writeViewUniforms(viewStaging, viewUniforms);
 		this.device.queue.writeBuffer(this.viewBuffer, 0, viewStaging);

@@ -8,7 +8,8 @@ export const BIND_GROUP = {
 
 export const UNIFORM_ALIGN = 256;
 
-export const VIEW_UNIFORM_SIZE = 64 * 4; // viewProj + view + cameraPos + debug
+// viewProj + view + cameraPos + debug + rotation + invViewProj + viewport = 256 B.
+export const VIEW_UNIFORM_SIZE = 64 * 4;
 
 export const MAX_GPU_LIGHTS = 4;
 
@@ -37,6 +38,11 @@ export interface ViewUniforms {
 	debug: [number, number, number, number]; // wireframe, faceColors, showPatches, time
 	/** Planet rotation quaternion: [qx, qy, qz, qw]. */
 	rotation: [number, number, number, number];
+	/** inverse(viewProjection) — unprojects fragment NDC to a world ray (ideal-sphere
+	 *  fragment sampling). */
+	inverseViewProjection: Float32Array;
+	/** Framebuffer size [widthPx, heightPx, _, _] for pixel → NDC in the fragment. */
+	viewport: [number, number, number, number];
 }
 
 export function writeViewUniforms(buffer: ArrayBuffer, u: ViewUniforms): void {
@@ -55,6 +61,11 @@ export function writeViewUniforms(buffer: ArrayBuffer, u: ViewUniforms): void {
 	view.setFloat32(164, u.rotation[1], true);
 	view.setFloat32(168, u.rotation[2], true);
 	view.setFloat32(172, u.rotation[3], true);
+	for (let i = 0; i < 16; i++) view.setFloat32(176 + i * 4, u.inverseViewProjection[i], true);
+	view.setFloat32(240, u.viewport[0], true);
+	view.setFloat32(244, u.viewport[1], true);
+	view.setFloat32(248, u.viewport[2], true);
+	view.setFloat32(252, u.viewport[3], true);
 }
 
 export function writeLightingUniforms(buffer: ArrayBuffer, u: LightingUniforms): void {
