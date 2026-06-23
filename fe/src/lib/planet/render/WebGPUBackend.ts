@@ -20,9 +20,12 @@ export class WebGPUBackend implements RenderBackend {
 	private offscreenW = 0;
 	private offscreenH = 0;
 	private destroyed = false;
+	/** False when init adopted a shared device — destroy() must not destroy it. */
+	private ownsDevice = true;
 
-	async init(canvas: HTMLCanvasElement): Promise<void> {
-		const { device } = await requestWebGPUDevice();
+	async init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void> {
+		const device = sharedDevice ?? (await requestWebGPUDevice()).device;
+		this.ownsDevice = !sharedDevice;
 		this.device = device;
 		// device.lost resolves with reason 'destroyed' on our own destroy() (ignore),
 		// or 'unknown' on a driver crash / TDR / OOM (report so the host can recover).
@@ -112,7 +115,7 @@ export class WebGPUBackend implements RenderBackend {
 		this.offscreen = null;
 		this.atmosphere?.destroy();
 		this.terrain?.destroy();
-		this.device?.destroy();
+		if (this.ownsDevice) this.device?.destroy(); // a shared device is the host's to destroy
 		this.device = null;
 		this.context = null;
 		this.terrain = null;

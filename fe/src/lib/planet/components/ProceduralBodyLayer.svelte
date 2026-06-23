@@ -33,6 +33,8 @@
 		materialDebug?: MaterialDebugMode;
 		/** Look mode (viewport state, not body data); default targets the body. */
 		lookMode?: OrbitLookMode;
+		/** Host scene's GPU device — adopt it so this shares the scene's device (Phase 5). */
+		sharedDevice?: GPUDevice | null;
 	}
 	let {
 		body,
@@ -41,7 +43,8 @@
 		planetRotation,
 		lighting,
 		materialDebug = 'off',
-		lookMode = 'planet-center'
+		lookMode = 'planet-center',
+		sharedDevice = null
 	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
@@ -102,7 +105,7 @@
 				h = el.clientHeight || 1;
 				el.width = w;
 				el.height = h;
-				await renderer.init(el);
+				await renderer.init(el, sharedDevice ?? undefined);
 				if (disposed) return;
 				renderer.resize(w, h);
 				ready = true;

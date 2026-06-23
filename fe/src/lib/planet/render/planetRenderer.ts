@@ -17,8 +17,8 @@ export class PlanetRenderer {
 
 	constructor(private readonly backend: RenderBackend) {}
 
-	async init(canvas: HTMLCanvasElement): Promise<void> {
-		await this.backend.init(canvas);
+	async init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void> {
+		await this.backend.init(canvas, sharedDevice);
 	}
 
 	resize(width: number, height: number): void {

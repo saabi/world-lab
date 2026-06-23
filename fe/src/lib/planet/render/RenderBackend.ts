@@ -70,7 +70,10 @@ export interface RenderBackend {
 	 * backend fires it.
 	 */
 	onDeviceLost?: (reason: string) => void;
-	init(canvas: HTMLCanvasElement): Promise<void>;
+	/** `sharedDevice` adopts an existing GPUDevice (the host owns its lifetime) instead of
+	 *  creating one — lets `/scene` render spheres and the procedural body on one device so
+	 *  they can share depth. Ignored by backends that don't use WebGPU. */
+	init(canvas: HTMLCanvasElement, sharedDevice?: GPUDevice): Promise<void>;
 	resize(width: number, height: number): void;
 	render(frame: RenderFrame): RenderStats;
 	destroy(): void;

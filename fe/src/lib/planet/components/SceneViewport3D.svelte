@@ -60,7 +60,7 @@
 	/** Packed lighting for the procedural layer: the sun as a directional light toward Sol. */
 	let procLighting = $state<LightingUniforms>(packSceneLighting({ ambient: [0, 0, 0], lights: [] }));
 
-	let device: GPUDevice | null = null;
+	let device = $state<GPUDevice | null>(null);
 	let context: GPUCanvasContext | null = null;
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
@@ -348,6 +348,7 @@
 				lighting={procLighting}
 				{materialDebug}
 				{lookMode}
+				sharedDevice={device}
 			/>
 		</div>
 	{/if}
