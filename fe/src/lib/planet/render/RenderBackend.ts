@@ -80,6 +80,9 @@ export interface RenderBackend {
 	/** Render into an external color target (e.g. the scene's offscreen layer). Optional —
 	 *  only the WebGPU backend implements it. */
 	renderToTexture?(target: GPUTexture, frame: RenderFrame): RenderStats;
+	/** Record terrain directly into an external render pass (single-pass scene engine,
+	 *  shared depth). Optional — only the WebGPU backend implements it. */
+	recordTerrainInto?(pass: GPURenderPassEncoder, frame: RenderFrame): RenderStats;
 	destroy(): void;
 	/** Deferred — stub only */
 	renderPickingPass?(_frame: RenderFrame, _screenX: number, _screenY: number): PickingResult;

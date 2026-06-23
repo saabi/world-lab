@@ -43,6 +43,16 @@ export class PlanetRenderer {
 		return this.backend.renderToTexture(target, r.frame);
 	}
 
+	/** Record terrain directly into an external render pass (single-pass scene engine,
+	 *  shared depth). Pass a focused-body / floating-origin camera in `input`. */
+	recordInto(pass: GPURenderPassEncoder, input: PlanetRenderInputs): RenderStats {
+		if (!this.backend.recordTerrainInto) throw new Error('backend has no recordTerrainInto');
+		const r = buildRenderFrame({ ...input, modeState: this.modeState, localFrame: this.localFrame });
+		this.modeState = r.modeState;
+		this.localFrame = r.localFrame;
+		return this.backend.recordTerrainInto(pass, r.frame);
+	}
+
 	destroy(): void {
 		this.backend.destroy();
 	}

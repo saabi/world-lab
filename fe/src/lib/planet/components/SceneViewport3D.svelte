@@ -16,7 +16,6 @@
 	import { packSceneLighting } from '../scene/packLighting.js';
 	import type { LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
-	import { CompositePass } from '../scene3d/compositePass.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
 	import { PlanetRenderer } from '../render/planetRenderer.js';
 	import { WebGPUBackend } from '../render/WebGPUBackend.js';
@@ -68,24 +67,9 @@
 	let format: GPUTextureFormat = 'bgra8unorm';
 	let engine: SceneEngine | null = null;
 	let spheres: SpherePass | null = null;
-	// Procedural body rendered into its own offscreen layer on the shared device, then
-	// composited into the engine pass (Phase 5) — replaces the old CSS overlay canvas.
+	// The focused body's terrain is recorded directly into the engine's shared pass on the
+	// shared device (Phase 5 single-pass) — no offscreen texture, no CSS overlay.
 	let proceduralRenderer: PlanetRenderer | null = null;
-	let composite: CompositePass | null = null;
-	let procColorTex: GPUTexture | null = null;
-
-	function ensureProcTex(width: number, height: number): GPUTexture {
-		if (procColorTex && procColorTex.width === width && procColorTex.height === height) {
-			return procColorTex;
-		}
-		procColorTex?.destroy();
-		procColorTex = device!.createTexture({
-			size: { width, height },
-			format,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-		});
-		return procColorTex;
-	}
 
 	const BODY_COLOR: Record<BodyNode['bodyType'], [number, number, number]> = {
 		star: [1.0, 0.82, 0.5],
@@ -111,11 +95,12 @@
 	const DOT_RADIUS_PX = 2.5;
 	const lodState = new Map<string, LodLevel>();
 
-	function instancesFromDrawList(drawList: DrawItem[]): BodyInstance[] {
+	function instancesFromDrawList(drawList: DrawItem[], excludeId?: string | null): BodyInstance[] {
 		const screenScale = (1 / Math.tan(FOVY / 2)) * (h / 2);
 		const out: BodyInstance[] = [];
 		for (const it of drawList) {
 			if (!it.screen) continue; // off-screen → cull
+			if (it.id === excludeId) continue; // rendered procedurally instead of as a sphere
 			const radius = it.lod === 'dot' ? (DOT_RADIUS_PX * it.screen.depth) / screenScale : it.radiusMeters;
 			out.push({
 				position: it.worldPos,
@@ -169,38 +154,33 @@
 		const cam = { ...camera, target: targetOf(animated) };
 		const vp = viewProjection(cam, w / h);
 		const drawList = buildDrawList(animated, vp, w, h, lodState);
-		const instances = instancesFromDrawList(drawList);
 		const light = lighting(animated);
 		updateMarker(animated, vp);
 		updateProcedural(animated, drawList);
 
-		// Render the procedural body to its offscreen layer first (separate submit), so the
-		// composite can sample it inside the engine pass.
-		let procView: GPUTextureView | null = null;
-		if (procBody && procBlend > 0 && procMask && proceduralRenderer) {
-			const tex = ensureProcTex(w, h);
-			proceduralRenderer.resize(w, h);
-			proceduralRenderer.renderToTexture(
-				tex,
-				buildProceduralRenderInput({
-					body: procBody,
-					camera: cam,
-					width: w,
-					height: h,
-					time,
-					lighting: procLighting,
-					planetRotation: procRotation,
-					materialDebug,
-					lookMode
-				})
-			);
-			procView = tex.createView();
-		}
-
+		// Single pass: spheres + the focused body's terrain into one shared color+depth, so
+		// the terrain depth-tests against the moons. When a body renders procedurally we skip
+		// its sphere (the terrain replaces it). The atmosphere is not drawn yet — it returns
+		// as a depth-aware pass.
+		const procActive = !!(procBody && procBlend > 0 && proceduralRenderer);
+		const instances = instancesFromDrawList(drawList, procActive ? procBody!.id : null);
 		engine.render(context.getCurrentTexture().createView(), w, h, (pass) => {
 			spheres!.record(pass, instances, vp, light);
-			if (procView && procMask && composite) {
-				composite.record(pass, procView, procMask, procBlend, w, h);
+			if (procActive) {
+				proceduralRenderer!.recordInto(
+					pass,
+					buildProceduralRenderInput({
+						body: procBody!,
+						camera: cam,
+						width: w,
+						height: h,
+						time,
+						lighting: procLighting,
+						planetRotation: procRotation,
+						materialDebug,
+						lookMode
+					})
+				);
 			}
 		});
 	}
@@ -344,8 +324,8 @@
 				context = configureWebGPUCanvas(device, el, format);
 				engine = new SceneEngine(device, format);
 				spheres = new SpherePass(device, format);
-				composite = new CompositePass(device, format);
-				// Offscreen procedural renderer adopting the shared device (no swapchain).
+				// Offscreen procedural renderer adopting the shared device (no swapchain); its
+				// terrain is recorded straight into the engine pass via recordInto.
 				proceduralRenderer = new PlanetRenderer(new WebGPUBackend());
 				await proceduralRenderer.init(null, device);
 				if (disposed) return;
@@ -370,9 +350,7 @@
 			disposed = true;
 			cancelAnimationFrame(raf);
 			ro.disconnect();
-			composite?.destroy();
 			proceduralRenderer?.destroy();
-			procColorTex?.destroy();
 			spheres?.destroy();
 			engine?.destroy();
 		};

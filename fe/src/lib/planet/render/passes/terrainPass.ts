@@ -432,7 +432,24 @@ export class TerrainPass {
 				depthStoreOp: 'store'
 			}
 		});
+		const { patchCount, vertexCount } = this.recordDraws(passEncoder);
+		passEncoder.end();
+		return this.buildStats(frame, t0, patchCount, vertexCount);
+	}
 
+	/** Record the terrain draws directly into an external render pass (the scene engine's
+	 *  shared color+depth) — the single-pass path. Uniforms use frame.camera, so pass a
+	 *  floating-origin / focused-body camera so the body lands at its world depth. No own
+	 *  targets; the atmosphere is not drawn here (it returns as a depth-aware pass). */
+	renderInto(passEncoder: GPURenderPassEncoder, frame: RenderFrame): RenderStats {
+		const t0 = performance.now();
+		this.uploadUniforms(frame);
+		this.cubeBucketDraws = this.prepareCubeBuckets(frame);
+		const { patchCount, vertexCount } = this.recordDraws(passEncoder);
+		return this.buildStats(frame, t0, patchCount, vertexCount);
+	}
+
+	private recordDraws(passEncoder: GPURenderPassEncoder): { patchCount: number; vertexCount: number } {
 		const viewBg = this.cubeViewBg;
 		const planetBg = this.cubePlanetBg;
 		const scaleBg = this.cubeScaleBg;
@@ -465,12 +482,13 @@ export class TerrainPass {
 			patchCount += this.surfacePatchCount;
 			vertexCount += this.surfacePatchCount * VERTS_PER_PATCH;
 		}
+		return { patchCount, vertexCount };
+	}
 
-		passEncoder.end();
-		const frameMs = performance.now() - t0;
+	private buildStats(frame: RenderFrame, t0: number, patchCount: number, vertexCount: number): RenderStats {
 		const schedule = frame.orbitSchedule;
 		return {
-			frameMs,
+			frameMs: performance.now() - t0,
 			patchCount,
 			vertexCount,
 			mode: frame.camera.mode,
