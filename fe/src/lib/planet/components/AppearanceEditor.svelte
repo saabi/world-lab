@@ -3,7 +3,7 @@
 	import { PLANET_PRESETS, DEFAULT_PRESET, type PlanetPresetName } from '../params/presets.js';
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
-	import type { BodyAppearance, BodyLod, BodyNode } from '../scene/types.js';
+	import type { BodyAppearance, BodyNode } from '../scene/types.js';
 	import ParamSliderRow from './controls/ParamSliderRow.svelte';
 	import EditorSubsection from './scene-editor/EditorSubsection.svelte';
 	import './controls/sliderList.css';
@@ -11,9 +11,8 @@
 	interface Props {
 		body: BodyNode;
 		onappearance?: (a: BodyAppearance) => void;
-		onlod?: (l: BodyLod) => void;
 	}
-	let { body, onappearance, onlod }: Props = $props();
+	let { body, onappearance }: Props = $props();
 
 	const PRESETS = Object.keys(PLANET_PRESETS) as PlanetPresetName[];
 	const shapeSections = PARAM_EDITOR_SECTIONS.filter((s) => s.group === 'shape');
@@ -21,7 +20,6 @@
 
 	const appearance = $derived<BodyAppearance>(body.appearance ?? { preset: DEFAULT_PRESET });
 	const resolved = $derived(resolveBodyParams(body));
-	const lod = $derived<BodyLod>(body.lod ?? {});
 
 	function setPreset(preset: PlanetPresetName) {
 		onappearance?.({ preset, overrides: appearance.overrides });
@@ -31,10 +29,6 @@
 	}
 	function resetOverrides() {
 		onappearance?.({ preset: appearance.preset });
-	}
-
-	function setLod(patch: Partial<BodyLod>) {
-		onlod?.({ ...lod, ...patch });
 	}
 
 	const overrideCount = $derived(Object.keys(appearance.overrides ?? {}).length);
@@ -98,26 +92,6 @@
 		</EditorSubsection>
 	{/each}
 
-	<EditorSubsection title="LOD (projected px)">
-		<label class="lod-row">
-			<span class="lod-label">sphere above</span>
-			<input
-				type="number"
-				step="any"
-				value={lod.sphereAbovePx ?? 2}
-				onchange={(e) => setLod({ sphereAbovePx: Number(e.currentTarget.value) })}
-			/>
-		</label>
-		<label class="lod-row">
-			<span class="lod-label">procedural above</span>
-			<input
-				type="number"
-				step="any"
-				value={lod.proceduralAbovePx ?? 240}
-				onchange={(e) => setLod({ proceduralAbovePx: Number(e.currentTarget.value) })}
-			/>
-		</label>
-	</EditorSubsection>
 </div>
 
 <style>
@@ -150,30 +124,6 @@
 		flex: 1;
 		text-align: right;
 		opacity: 0.8;
-	}
-
-	.lod-row {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		font-size: 11px;
-		margin: 2px 0;
-	}
-
-	.lod-label {
-		flex: 0 0 40%;
-		min-width: 0;
-		opacity: 0.8;
-	}
-
-	.lod-row input[type='number'] {
-		flex: 1;
-		min-width: 0;
-		background: #1a1f30;
-		color: inherit;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
-		padding: 2px 4px;
 	}
 
 	select.preset,

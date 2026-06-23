@@ -3,7 +3,6 @@
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
-		BodyLod,
 		BodyNode,
 		Constraint,
 		FieldTerm,
@@ -34,7 +33,6 @@
 		onBindingsChange?: (next: FieldTerm[]) => void;
 		onConstraintsChange?: (next: Constraint[]) => void;
 		onAppearanceChange?: (a: BodyAppearance) => void;
-		onLodChange?: (l: BodyLod) => void;
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
 		onRenderProcedural?: () => void;
 		onOpenPlanet?: () => void;
@@ -75,7 +73,6 @@
 		onBindingsChange,
 		onConstraintsChange,
 		onAppearanceChange,
-		onLodChange,
 		onAtmosphereChange,
 		onRenderProcedural,
 		onOpenPlanet,
@@ -186,11 +183,7 @@
 								<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
 							</EditorSubsection>
 						{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
-							<AppearanceEditor
-								body={bodyNode}
-								onappearance={onAppearanceChange}
-								onlod={onLodChange}
-							/>
+							<AppearanceEditor body={bodyNode} onappearance={onAppearanceChange} />
 						{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
 							<EditorSubsection title="Design" defaultOpen>
 								<AtmosphereEditor

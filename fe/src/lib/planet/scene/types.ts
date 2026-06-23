@@ -203,12 +203,6 @@ export interface BodyAtmosphere {
 	sunDiskIntensity: number;
 }
 
-/** Render-LOD thresholds (projected px): below sphere → dot, above procedural → terrain. */
-export interface BodyLod {
-	sphereAbovePx?: number;
-	proceduralAbovePx?: number;
-}
-
 export interface BodyNode extends SceneNodeBase {
 	kind: 'body';
 	bodyType: BodyType;
@@ -223,8 +217,6 @@ export interface BodyNode extends SceneNodeBase {
 	appearance?: BodyAppearance;
 	/** Atmosphere design (planet/moon). Absent → radius-derived defaults. */
 	atmosphere?: BodyAtmosphere;
-	/** Per-body render-LOD thresholds; absent → defaults. */
-	lod?: BodyLod;
 }
 
 export interface DirectionalLightNode extends SceneNodeBase {

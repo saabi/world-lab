@@ -39,29 +39,41 @@ export function diffAppearanceOverrides(
 
 export type LodLevel = 'dot' | 'sphere' | 'procedural';
 
-const DEFAULT_SPHERE_ABOVE_PX = 2;
-const DEFAULT_PROCEDURAL_ABOVE_PX = 240;
+/**
+ * Screen-size LOD thresholds, expressed as the body's **projected radius in pixels** (the
+ * intuitive unit: half the on-screen disc). These are a global render-quality setting
+ * (see `SceneViewportPrefs.lod`), not per-body.
+ */
+export interface LodThresholds {
+	/** Above this projected radius (px) a body renders as a sphere; below it, a dot. */
+	sphereAboveRadiusPx: number;
+	/** Above this projected radius (px) a body renders procedural terrain. */
+	proceduralAboveRadiusPx: number;
+}
+
+export const DEFAULT_LOD_THRESHOLDS: LodThresholds = {
+	sphereAboveRadiusPx: 1,
+	proceduralAboveRadiusPx: 120
+};
 
 /**
- * Pick a render LOD from the body's on-screen size (projected px) and its thresholds.
+ * Pick a render LOD from the body's on-screen size (projected radius px) and the thresholds.
  * Stateless; the renderer adds hysteresis around the boundaries to avoid flicker.
  */
-export function selectLod(body: BodyNode, projectedPx: number): LodLevel {
-	const procAbove = body.lod?.proceduralAbovePx ?? DEFAULT_PROCEDURAL_ABOVE_PX;
-	const sphereAbove = body.lod?.sphereAbovePx ?? DEFAULT_SPHERE_ABOVE_PX;
-	if (projectedPx >= procAbove) return 'procedural';
-	if (projectedPx >= sphereAbove) return 'sphere';
+export function selectLod(projectedRadiusPx: number, t: LodThresholds): LodLevel {
+	if (projectedRadiusPx >= t.proceduralAboveRadiusPx) return 'procedural';
+	if (projectedRadiusPx >= t.sphereAboveRadiusPx) return 'sphere';
 	return 'dot';
 }
 
 /** Fraction (0..1) the procedural body is fade-composited over its sphere across the
- *  band starting at `proceduralAbovePx`. 0 below the threshold; ramps to 1 over the
+ *  band starting at `proceduralAboveRadiusPx`. 0 below the threshold; ramps to 1 over the
  *  next `PROCEDURAL_FADE_BAND` of growth. Lets the planet dissolve in over the sphere
  *  instead of popping. */
 const PROCEDURAL_FADE_BAND = 0.5; // fade over the next +50% of projected size
 
-export function proceduralBlend(body: BodyNode, projectedPx: number): number {
-	const procAbove = body.lod?.proceduralAbovePx ?? DEFAULT_PROCEDURAL_ABOVE_PX;
+export function proceduralBlend(projectedRadiusPx: number, t: LodThresholds): number {
+	const procAbove = t.proceduralAboveRadiusPx;
 	const band = Math.max(1, procAbove * PROCEDURAL_FADE_BAND);
-	return Math.max(0, Math.min(1, (projectedPx - procAbove) / band));
+	return Math.max(0, Math.min(1, (projectedRadiusPx - procAbove) / band));
 }

@@ -14,7 +14,7 @@
 	import { getWorldTransform, listBodies } from '../scene/sceneTree.js';
 	import { collectSceneLights } from '../scene/collectLights.js';
 	import { packSceneLighting } from '../scene/packLighting.js';
-	import type { LodLevel } from '../scene/bodyParams.js';
+	import { DEFAULT_LOD_THRESHOLDS, type LodLevel } from '../scene/bodyParams.js';
 	import { buildDrawList, type DrawItem } from '../scene3d/drawList.js';
 	import { buildProceduralRenderInput } from '../scene3d/proceduralRender.js';
 	import { SceneAtmospherePass } from '../scene3d/sceneAtmospherePass.js';
@@ -200,7 +200,7 @@
 		const aspect = w / h;
 		const vp = resolveViewProjection(animated, aspect);
 		const orbitCam = { ...camera, target: targetOf(animated) };
-		const drawList = buildDrawList(animated, vp, w, h, lodState);
+		const drawList = buildDrawList(animated, vp, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
 		const light = lighting(animated);
 		updateMarker(animated, vp);
 		updateProcedural(animated, drawList);

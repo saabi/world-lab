@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	DEFAULT_LOD_THRESHOLDS,
 	diffAppearanceOverrides,
 	proceduralBlend,
 	resolveBodyParams,
@@ -62,28 +63,27 @@ describe('diffAppearanceOverrides', () => {
 });
 
 describe('selectLod', () => {
-	it('picks dot / sphere / procedural by projected size (defaults)', () => {
-		const b = body();
-		expect(selectLod(b, 0.5)).toBe('dot');
-		expect(selectLod(b, 50)).toBe('sphere');
-		expect(selectLod(b, 500)).toBe('procedural');
+	it('picks dot / sphere / procedural by projected radius (defaults)', () => {
+		expect(selectLod(0.5, DEFAULT_LOD_THRESHOLDS)).toBe('dot');
+		expect(selectLod(50, DEFAULT_LOD_THRESHOLDS)).toBe('sphere');
+		expect(selectLod(500, DEFAULT_LOD_THRESHOLDS)).toBe('procedural');
 	});
 
-	it('honours per-body thresholds', () => {
-		const b = body({ lod: { sphereAbovePx: 10, proceduralAbovePx: 100 } });
-		expect(selectLod(b, 5)).toBe('dot');
-		expect(selectLod(b, 50)).toBe('sphere');
-		expect(selectLod(b, 150)).toBe('procedural');
+	it('honours the given thresholds', () => {
+		const t = { sphereAboveRadiusPx: 10, proceduralAboveRadiusPx: 100 };
+		expect(selectLod(5, t)).toBe('dot');
+		expect(selectLod(50, t)).toBe('sphere');
+		expect(selectLod(150, t)).toBe('procedural');
 	});
 });
 
 describe('proceduralBlend', () => {
 	it('ramps 0→1 over the fade band above the procedural threshold', () => {
-		const b = body({ lod: { proceduralAbovePx: 100 } }); // band = 50px → full at 150
-		expect(proceduralBlend(b, 80)).toBe(0); // below threshold: sphere only
-		expect(proceduralBlend(b, 100)).toBe(0); // at threshold: just starting
-		expect(proceduralBlend(b, 125)).toBeCloseTo(0.5, 6); // mid-fade
-		expect(proceduralBlend(b, 150)).toBe(1); // fully procedural
-		expect(proceduralBlend(b, 400)).toBe(1); // clamped
+		const t = { sphereAboveRadiusPx: 1, proceduralAboveRadiusPx: 100 }; // band = 50px → full at 150
+		expect(proceduralBlend(80, t)).toBe(0); // below threshold: sphere only
+		expect(proceduralBlend(100, t)).toBe(0); // at threshold: just starting
+		expect(proceduralBlend(125, t)).toBeCloseTo(0.5, 6); // mid-fade
+		expect(proceduralBlend(150, t)).toBe(1); // fully procedural
+		expect(proceduralBlend(400, t)).toBe(1); // clamped
 	});
 });

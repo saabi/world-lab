@@ -7,6 +7,7 @@ import {
 	type TessellationSettings
 } from '$lib/planet/patches/tessellationSettings.js';
 import { DEFAULT_ATMOSPHERE_INTEGRATE_STEPS } from '$lib/planet/scene/bodyAtmosphere.js';
+import { DEFAULT_LOD_THRESHOLDS, type LodThresholds } from '$lib/planet/scene/bodyParams.js';
 
 export interface ViewportDebugSettings {
 	wireframe: boolean;
@@ -28,6 +29,8 @@ export interface SceneViewportPrefs {
 	materialOverrides: MaterialOverrides;
 	/** Ray-march step count for the atmosphere volume integral (global render quality). */
 	atmosphereIntegrateSteps: number;
+	/** Screen-size LOD thresholds (projected radius px); global, not per-body. */
+	lod: LodThresholds;
 }
 
 export function createDefaultViewportPrefs(): SceneViewportPrefs {
@@ -43,7 +46,8 @@ export function createDefaultViewportPrefs(): SceneViewportPrefs {
 		},
 		tessellation: { ...DEFAULT_TESSELLATION },
 		materialOverrides: { ...DEFAULT_MATERIAL_OVERRIDES },
-		atmosphereIntegrateSteps: DEFAULT_ATMOSPHERE_INTEGRATE_STEPS
+		atmosphereIntegrateSteps: DEFAULT_ATMOSPHERE_INTEGRATE_STEPS,
+		lod: { ...DEFAULT_LOD_THRESHOLDS }
 	};
 }
 
@@ -67,4 +71,6 @@ export function viewportPrefsRenderDeps(p: SceneViewportPrefs | undefined): void
 	void m.waterGloss;
 	void m.fogDensity;
 	void p.atmosphereIntegrateSteps;
+	void p.lod.sphereAboveRadiusPx;
+	void p.lod.proceduralAboveRadiusPx;
 }

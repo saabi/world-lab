@@ -7,7 +7,6 @@
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
-		BodyLod,
 		BodyNode,
 		Constraint,
 		FieldTerm,
@@ -51,7 +50,6 @@
 		onBindingsChange?: (next: FieldTerm[]) => void;
 		onConstraintsChange?: (next: Constraint[]) => void;
 		onAppearanceChange?: (a: BodyAppearance) => void;
-		onLodChange?: (l: BodyLod) => void;
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
 		onRenderProcedural?: () => void;
 		onOpenPlanet?: () => void;
@@ -98,7 +96,6 @@
 		onBindingsChange,
 		onConstraintsChange,
 		onAppearanceChange,
-		onLodChange,
 		onAtmosphereChange,
 		onRenderProcedural,
 		onOpenPlanet,
@@ -153,7 +150,6 @@
 		{onBindingsChange}
 		{onConstraintsChange}
 		{onAppearanceChange}
-		{onLodChange}
 		{onAtmosphereChange}
 		{onRenderProcedural}
 		{onOpenPlanet}

@@ -34,7 +34,6 @@
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
-		BodyLod,
 		Constraint,
 		FieldTerm,
 		PlanetScene,
@@ -202,9 +201,6 @@
 	function onAppearanceChange(a: BodyAppearance) {
 		if (selectedId) scene = updateNode(scene, selectedId, { appearance: a });
 	}
-	function onLodChange(l: BodyLod) {
-		if (selectedId) scene = updateNode(scene, selectedId, { lod: l });
-	}
 	function onAtmosphereChange(a: BodyAtmosphere) {
 		if (selectedId) scene = updateNode(scene, selectedId, { atmosphere: a });
 	}
@@ -309,7 +305,6 @@
 	{onBindingsChange}
 	{onConstraintsChange}
 	{onAppearanceChange}
-	{onLodChange}
 	{onAtmosphereChange}
 	onRenderProcedural={renderProcedural}
 	onOpenPlanet={() => openInPlanetEditor(false)}

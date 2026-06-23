@@ -131,15 +131,18 @@ For each body it stores:
 - Body id/type/radius.
 - Evaluated world position.
 - Screen position and clip-w depth, or `null` if behind the camera.
-- Projected pixel diameter.
+- Projected pixel **radius** (`screenRadiusPx` — half the on-screen disc, the intuitive
+  unit the thresholds are expressed in).
 - Selected LOD.
 - Procedural cross-fade blend.
 
-LOD rules come from `fe/src/lib/planet/scene/bodyParams.ts`:
+LOD rules come from `fe/src/lib/planet/scene/bodyParams.ts`, fed the thresholds from the
+**global** render-quality setting `SceneViewportPrefs.lod` (edited in the Render panel's
+Quality section, not per-body):
 
-- Below `sphereAbovePx`, render as a dot.
-- Above `sphereAbovePx`, render as a sphere.
-- Above `proceduralAbovePx`, begin the procedural path.
+- Below `sphereAboveRadiusPx`, render as a dot.
+- Above `sphereAboveRadiusPx`, render as a sphere.
+- Above `proceduralAboveRadiusPx`, begin the procedural path.
 - `proceduralBlend()` returns an activation/blend value across the next 50% of
   projected-size growth. `/scene` passes the blend as the terrain's `objectOpacity` (a
   `MaterialOverrides` field) and keeps the selected body's **base sphere drawn until

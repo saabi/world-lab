@@ -84,6 +84,28 @@
 						</label>
 					</EditorSubsection>
 				{:else if section.id === 'quality'}
+					<EditorSubsection title="Level of detail" defaultOpen>
+						<ul class="slider-list">
+							<Range
+								id="lod-sphere"
+								label="Sphere above (radius px)"
+								min={0}
+								max={20}
+								step={0.5}
+								variant="scene"
+								bind:value={viewportPrefs.lod.sphereAboveRadiusPx}
+							/>
+							<Range
+								id="lod-procedural"
+								label="Procedural above (radius px)"
+								min={10}
+								max={600}
+								step={5}
+								variant="scene"
+								bind:value={viewportPrefs.lod.proceduralAboveRadiusPx}
+							/>
+						</ul>
+					</EditorSubsection>
 					<EditorSubsection title="Tessellation" defaultOpen>
 						<ul class="slider-list">
 							<Range
