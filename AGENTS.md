@@ -40,7 +40,7 @@ Data flows one direction: **`PlanetParameters` + `CameraState` + `PatchScheduler
 - **`lib/planet/render/`** — `RenderBackend` interface, `WebGPUBackend`, pass stubs.
 - **`lib/planet/gpu/wgsl/`** — WGSL kernel and terrain shaders (primary).
 - **`lib/planet/gpu/glsl/`** — GLSL mirror for WebGL fallback (may lag WGSL).
-- **`lib/planet/components/`** — `PlanetViewport.svelte` owns the render loop.
+- **`lib/planet/components/`** — `PlanetViewport.svelte` owns the render loop. Component scripts follow [_docs/svelte-component-organization.md](_docs/svelte-component-organization.md) (module script for imports/types/constants; instance script for props, runes, lifecycle, handlers).
 
 WGSL imports use `#include "relative/path.wgsl"` resolved by `fe/vite-wgsl.ts`. GLSL uses glslify via `fe/vite-glslify.ts`.
 
@@ -70,6 +70,7 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 
 ## Key documentation
 
+- [_docs/svelte-component-organization.md](_docs/svelte-component-organization.md) — Two-script-block component structure, section ordering, and migration procedure.
 - [_docs/specs/virtual_planet_architecture_plan.md](_docs/specs/virtual_planet_architecture_plan.md) — full architecture
 - [_docs/current-renderer.md](_docs/current-renderer.md) — `/old` baseline notes (Phase 0)
 - [README.md](README.md) — quick start
