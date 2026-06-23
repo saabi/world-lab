@@ -76,16 +76,19 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
-  // Recompute body_dir from the ideal-sphere fragment coordinate so terrain analytics
-  // don't crawl with tessellation; fall back to the interpolated value on a miss
-  // (grazing / above-silhouette, deferred). See common/idealSphere.wgsl.
+  // Geometry/height/material/normal follow the displaced surface (the interpolated body
+  // dir the vertices displaced along), so the interior is displaced exactly like the rims.
+  // Only the fine texture noise samples the tessellation-stable ideal-sphere direction
+  // (the term that crawls); on a grazing miss it falls back to the interpolated dir.
+  // See common/idealSphere.wgsl and ideal-sphere-fragment-sampling.md.
+  let body_dir = in.body_dir;
   let ideal = ideal_sphere_body_dir(
     in.position.xy, view_u.viewport.xy, view_u.inv_view_projection,
     view_u.camera_pos.xyz, view_u.planet_rot, planet.radius
   );
-  let body_dir = select(in.body_dir, ideal.body_dir, ideal.hit);
+  let tex_dir = select(body_dir, ideal.body_dir, ideal.hit);
   let sample = sample_planet(body_dir, planet, scale_ctx);
-  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
+  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx, tex_dir), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.y > 0.5) {
     col = face_debug_color(in.face);

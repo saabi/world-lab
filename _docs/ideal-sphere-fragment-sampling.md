@@ -1,13 +1,22 @@
 # Ideal-sphere fragment sampling
 
-Status: **implemented** (plan Phase 2). The first open-implementation option below was
-chosen — `inv_view_projection` + `viewport` were added to `ViewUniforms`, and both terrain
-fragment shaders derive `body_dir` through the shared `gpu/wgsl/common/idealSphere.wgsl`
-node before `sample_planet`/`surface_material`/`planet_surface_normal`. On a base-sphere
-miss (grazing / above the silhouette) the shader falls back to the interpolated vertex
-direction; the proper grazing-angle handling remains deferred. A CPU mirror test
-(`render/idealSphereFragment.test.ts`) locks the ray-reconstruction + intersection math;
-the on-GPU stability check is the lat/long debug grid under a tessellation sweep.
+Status: **implemented (approach a)**. `inv_view_projection` + `viewport` were added to
+`ViewUniforms`, and the ideal-sphere coordinate is produced by the shared
+`gpu/wgsl/common/idealSphere.wgsl` node.
+
+**Important correction:** the ideal-sphere coordinate must NOT replace the displaced
+surface for the fragment. An earlier pass routed *height/material/normal* through the
+ideal (undisplaced) base-sphere intersection, so the interior shaded as the undisplaced
+sphere while the displaced vertices (and the grazing-miss fallback) shaded the displaced
+surface — the planet rendered as two surfaces (a shorter interior with a taller one
+overflowing at the limb). The fix (approach a): fragment height/material/normal sample the
+**displaced** surface (the interpolated body direction the vertices displaced along, so
+the interior is displaced exactly like the rims), and **only the fine `texture_noise`
+term** samples the tessellation-stable ideal direction (the term that actually crawls),
+with a grazing-miss fallback to the interpolated dir. Vertices stay displaced. A CPU mirror
+test (`render/idealSphereFragment.test.ts`) locks the ray/intersection math; the on-GPU
+checks are (1) one consistent displaced surface, no "second planet" at the profile, and
+(2) the fine texture not crawling under a tessellation sweep.
 
 ## Problem
 

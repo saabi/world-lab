@@ -62,15 +62,17 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VSOut) -> @location(0) vec4f {
-  // Ideal-sphere fragment coordinate (tessellation-independent); fall back to the
-  // interpolated body dir on a miss. See common/idealSphere.wgsl.
+  // Geometry/height/material/normal follow the displaced surface (the interpolated body
+  // dir, here in.unit_dir); only the fine texture noise uses the tessellation-stable
+  // ideal-sphere dir (with a grazing-miss fallback). See common/idealSphere.wgsl.
+  let body_dir = in.unit_dir;
   let ideal = ideal_sphere_body_dir(
     in.position.xy, view_u.viewport.xy, view_u.inv_view_projection,
     view_u.camera_pos.xyz, view_u.planet_rot, planet.radius
   );
-  let body_dir = select(in.unit_dir, ideal.body_dir, ideal.hit);
+  let tex_dir = select(body_dir, ideal.body_dir, ideal.hit);
   let sample = sample_planet(body_dir, planet, scale_ctx);
-  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx), mat_overrides);
+  var material = apply_material_overrides(surface_material(sample, planet, scale_ctx, tex_dir), mat_overrides);
   var col = material.albedo;
   if (view_u.debug.w > 0.5) {
     col = ring_debug_color(in.ring);
