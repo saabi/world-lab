@@ -212,7 +212,11 @@
 		// pass: selected-body surface-distance target for march end, shared scene depth for
 		// foreground occlusion by moons and other rendered bodies.
 		const procActive = !!(procBody && procBlend > 0 && proceduralRenderer);
-		const instances = instancesFromDrawList(drawList, procActive ? procBody!.id : null);
+		// Keep the base sphere drawn through the cross-fade so the terrain alpha-blends over a
+		// solid body, not the background: raised terrain wins the depth test over the sphere
+		// while valleys keep showing it. Drop the sphere only once the terrain is fully opaque.
+		const hideSphere = procActive && procBlend >= 1;
+		const instances = instancesFromDrawList(drawList, hideSphere ? procBody!.id : null);
 
 		// Build the terrain input once and reuse its body-local camera for the atmosphere.
 		const procInput = procActive

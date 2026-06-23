@@ -114,9 +114,22 @@ fn shade_atmosphere(uv: vec2f, scene_rgb: vec3f, hardware_alpha: bool) -> vec4f 
   }
 
   // March end = the surface distance produced by the selected body's terrain fragments.
-  // Pixels without selected terrain (halo/sky) march through the shell.
+  // Where no terrain distance was written, fall back to the analytic base-sphere surface so
+  // the march still stops at the planet rather than cutting through it. This matters during
+  // the sphere→terrain cross-fade: valley fragments below the base radius lose the depth
+  // test to the base sphere and write no surface_t, so without this they'd march the full
+  // shell through the planet interior. A genuine miss (sky/halo, base sphere not hit) keeps
+  // marching the full shell.
   let sun_dir = primary_sun_dir(lighting);
-  let t_max = select(shell.y, surface_t, surface_t >= 0.0);
+  var t_max = shell.y;
+  if (surface_t >= 0.0) {
+    t_max = surface_t;
+  } else {
+    let surf = ray_sphere_intersect(eye, omega, atmo.planet_center, atmo.planet_radius);
+    if (surf.x > 0.0) {
+      t_max = surf.x;
+    }
+  }
 
   if (debug_mode == ATMOS_DEBUG_VIEW_SUN) {
     let phase = dot(omega, sun_dir) * 0.5 + 0.5;
