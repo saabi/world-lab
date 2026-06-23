@@ -121,8 +121,13 @@ See [body-vs-viewport-state.md](body-vs-viewport-state.md). `illumination` leave
   `resolveBodyAtmosphere(body)`, and the global route-debug atmosphere knobs are retired.
   Atmosphere now round-trips through the `/scene`↔`/planet` handoff. `integrateSteps` stays
   a default (the `RenderQualitySettings`/`ViewportState` split is the remaining Phase-4 bit).
-- **Not started:** `RenderQualitySettings`/`ViewportState` split (rest of Phase 4),
-  single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph compiler.
+- **Phase 4 — viewport/body boundary (code done):** named `/planet` saves now persist
+  **body design only** (`toBodySnapshot` / `applyBodyDesign`); loading a saved planet no
+  longer moves the camera (look-mode/azimuth/altitude). The session still restores the
+  full viewport. `RenderQualitySettings` is **deferred** — `integrateSteps` already has no
+  editor (it's a constant default), so the split has no current consumer.
+- **Not started:** single-engine composite (Phase 5), eclipse shadows (Phase 6), the graph
+  compiler.
 
 ## 5. Contradictions resolved
 
@@ -166,8 +171,10 @@ radius 100 and world scale.
 `BodyAtmosphere` on `BodyNode` (optional → no `SCENE_DOC_VERSION` bump needed; the
 hard-reject deserializer would otherwise drop existing scenes), per-body
 `AtmosphereEditor`, procedural/focused render consume it, round-trips through the handoff.
-*Remaining:* `RenderQualitySettings` (move `integrateSteps` off the default) +
-`ViewportState` (keep camera/look-mode out of named saves). (body-vs-viewport Phases A–B.)
+*ViewportState ✅ done:* named saves persist body design only (`toBodySnapshot` /
+`applyBodyDesign`); loading a planet no longer restores camera/look-mode (session still
+does). *Deferred:* `RenderQualitySettings` — `integrateSteps` has no editor today (it's a
+constant), so the split has no consumer yet. (body-vs-viewport Phases A–B.)
 
 **Phase 5 — Single engine.** Move procedural terrain + atmosphere into `SceneEngine`'s
 shared color+depth via `bodyRelativeView`; `objectOpacity` cross-fade (sphere fades out,

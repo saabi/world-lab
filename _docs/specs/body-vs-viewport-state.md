@@ -262,9 +262,13 @@ live state ([documents README](../../fe/src/lib/planet/documents/README.md)).
 ### Phase A — Types and save behaviour (low risk)
 
 1. Introduce `ViewportState` in `documents/types.ts` (or `scene/viewportState.ts`).
-2. **`toSnapshot` for named documents:** pick body fields only; omit `camera`.
-3. **Session restore:** keep camera in `PlanetSessionEnvelope` or split to
-   `viewport` sub-object.
+2. ✅ **Named documents = body design only:** `toBodySnapshot` (neutral camera) +
+   `applyBodyDesign` (restore preset/params/atmosphere, never camera). `handleSave`/
+   `handleSaveAs` use them; loading a saved planet no longer moves the camera. (Camera
+   is kept required in the type with a neutral value rather than made optional — avoids a
+   schema/coerce change; `coerceSnapshot` already tolerates a missing camera anyway.)
+3. ✅ **Session restore:** the session envelope still keeps the live camera
+   (`toSnapshot` + `applySnapshot` in the autosave/hydrate path).
 4. UI: document Save does not claim to persist camera (tooltip or section label).
 
 ### Phase B — Body node completeness + render quality split

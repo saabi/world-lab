@@ -41,7 +41,7 @@
 		parseSelection,
 		selectionLabel
 	} from '../documents/selection.js';
-	import { applySnapshot, toSnapshot } from '../documents/snapshot.js';
+	import { applyBodyDesign, applySnapshot, toBodySnapshot, toSnapshot } from '../documents/snapshot.js';
 	import {
 		deleteDocument,
 		getDocument,
@@ -251,11 +251,15 @@
 	);
 	let cameraDistance = $derived(altitudeToDistance(params, altitudeMeters));
 
+	/** Body design only (preset/params/atmosphere) — what a named save persists. */
+	function currentBodyDesign() {
+		return { presetName, params, atmosphere };
+	}
+
+	/** Full session input: body design + the live camera/viewport (session restore only). */
 	function currentSnapshotInput() {
 		return {
-			presetName,
-			params,
-			atmosphere,
+			...currentBodyDesign(),
 			camera: {
 				azimuth,
 				elevation,
@@ -278,17 +282,12 @@
 	function applyDocument(id: string) {
 		const doc = getDocument(id);
 		if (!doc) return;
-		const applied = applySnapshot(doc.snapshot);
+		// Body design only — loading a named planet must not move the camera (that is
+		// viewport state, kept in the session). See body-vs-viewport-state.md.
+		const applied = applyBodyDesign(doc.snapshot);
 		presetName = applied.presetName;
 		params = applied.params;
 		atmosphere = applied.atmosphere;
-		azimuth = applied.camera.azimuth;
-		elevation = applied.camera.elevation;
-		altitudeMeters =
-			applied.camera.altitudeMeters ??
-			distanceToAltitude(applied.params, applied.camera.distance);
-		orbitSpeedRadPerSec = applied.camera.orbitSpeedRadPerSec ?? 0;
-		lookAtHorizon = applied.camera.lookAtHorizon ?? true;
 		activeDocumentId = id;
 		selection = documentSelection(id);
 		detachScene();
@@ -330,7 +329,7 @@
 		if (!existing) return;
 		upsertDocument({
 			...existing,
-			snapshot: toSnapshot(currentSnapshotInput()),
+			snapshot: toBodySnapshot(currentBodyDesign()),
 			updatedAt: Date.now()
 		});
 		refreshDocuments();
@@ -340,7 +339,7 @@
 		const name = window.prompt('Save planet as…', 'My planet');
 		if (!name?.trim()) return;
 		const id = crypto.randomUUID();
-		const snapshot = toSnapshot(currentSnapshotInput());
+		const snapshot = toBodySnapshot(currentBodyDesign());
 		if (
 			!upsertDocument({
 				id,
