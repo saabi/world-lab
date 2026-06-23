@@ -18,8 +18,12 @@ rendered into a shadow map.
 - `evaluate_pbr` (`lighting.wgsl`) multiplies the **direct** contribution by the
   shadow factor for **directional lights only**; sky/IBL ambient stays lit so
   shadowed valleys do not go black.
-- The march runs in `cubeSphereVertex.wgsl` (orbit / cube-sphere path), gated by
-  the **Shading → Shadows** toggle (`MaterialOverrides.shadows`).
+- The march runs in `cubeSphereVertex.wgsl` (orbit / cube-sphere path) and
+  `surfacePatchVertex.wgsl` (flight / surface path), gated by the **Shading →
+  Shadows** toggle (`MaterialOverrides.shadows`).
+- `sample_shadow_height` and `terrain_sun_shadow` scale relief amplitudes by
+  `params.radius` (same as `sample_planet`) so shadow reach and caster height stay
+  correct at world scale, not only at the authoring reference radius.
 
 ## What makes this an MVP (vs. a complete implementation)
 
@@ -27,7 +31,7 @@ rendered into a shadow map.
 |------|---------------|----------|
 | **Edge quality** | Hard shadows — single 0/1 occlusion test, prone to aliasing/banding at the edge. | Soft penumbra via tracked `min(clearance / t)` along the ray; penumbra widens with caster distance. |
 | **Caster fidelity** | Coarse height only (macro voronoi). Detail/texture-noise relief neither casts nor self-occludes. | Match the caster to the visible surface, or a dedicated multi-scale height the shadow ray can afford. |
-| **Coverage** | Cube-sphere (orbit) fragment path only. The surface-patch path (low altitude) passes `1.0` — no shadows. | Surface-patch path wired up, including mapping the rebased local-frame position back to a planet-center direction before sampling. |
+| **Coverage** | Cube-sphere and surface-patch fragment paths (orbit, flight, surface modes). | Eclipse / ring shadows composited with terrain self-shadow. |
 | **Step budget** | Fixed `SHADOW_STEPS = 16`, uniform linear stepping, distance bounded by `relief / sin(sun elevation)`. | Altitude/LOD-adaptive step count and spacing; reuse `should_eval_layer` so distant pixels march cheaper. |
 | **Grazing light** | March distance is capped, so very long terminator shadows are clipped. | Longer/adaptive marching or horizon-angle precomputation for grazing angles. |
 | **Lights** | Primary directional sun only. | Optional shadows for additional directional lights; point-light shadowing is out of scope (too expensive per-pixel). |
@@ -49,7 +53,7 @@ rendered into a shadow map.
 ## Next steps (suggested order)
 
 1. Soft penumbra (one-line change to the marcher).
-2. Surface-patch coordinate mapping + wiring.
+2. Detail relief in the shadow caster for detail-heavy presets.
 3. Performance: altitude-adaptive step budget.
 
 ## Related

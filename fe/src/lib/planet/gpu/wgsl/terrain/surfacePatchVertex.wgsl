@@ -1,6 +1,7 @@
 #include "../planet/material.wgsl"
 #include "../planet/normal.wgsl"
 #include "../planet/lighting.wgsl"
+#include "../planet/shadow.wgsl"
 #include "../debug/materialDebug.wgsl"
 #include "../common/frame.wgsl"
 #include "../common/idealSphere.wgsl"
@@ -95,6 +96,11 @@ fn fs_main(in: VSOut) -> FSOut {
     let n_body = planet_surface_normal(body_dir, planet, scale_ctx);
     n = rotate_vector_by_quat(view_u.planet_rot, n_body);
     let v = view_u.camera_pos.xyz - in.world_pos;
+    var sun_shadow = 1.0;
+    if (mat_overrides.shadows_enabled > 0.5 && lighting.light_count > 0u) {
+      let raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot);
+      sun_shadow = mix(clamp(mat_overrides.shadow_fill, 0.0, 1.0), 1.0, raw_shadow);
+    }
     lit = evaluate_pbr(
       material,
       n,
@@ -104,7 +110,7 @@ fn fs_main(in: VSOut) -> FSOut {
       mat_overrides,
       atmo,
       view_u.camera_pos.xyz,
-      1.0, // TODO: surface-patch self-shadow (needs planet-center coordinate mapping)
+      sun_shadow,
     );
     col = lit.color;
   }

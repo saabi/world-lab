@@ -6,8 +6,7 @@
 // displacement, so at each step we compare the sample point's distance from the
 // planet center against the terrain radius in that direction.
 //
-// MVP: hard shadows, sun only, coarse (macro-relief) height. Soft penumbra and
-// surface-patch coordinate handling are deferred.
+// MVP: hard shadows, sun only, coarse (macro-relief) height. Soft penumbra is deferred.
 
 #include "kernel.wgsl"
 
@@ -17,7 +16,10 @@ const SHADOW_STEPS: u32 = 16u;
 /// erosion remap and ocean clamp, skipping the detail/texture-noise layers that
 /// rarely cast meaningful shadows. Cheaper than a full `sample_planet`.
 fn sample_shadow_height(unit_dir: vec3f, params: PlanetParams) -> f32 {
-  let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
+  // Relief amplitudes are ratios of radius (scale-independent); convert to metres.
+  let v_amp = params.voronoi_amplitude * params.radius;
+  let d_amp = params.detail_amplitude * params.radius;
+  let total_amplitude = v_amp + d_amp;
   let wl = total_amplitude * (params.water_level - 0.5);
 
   var distortion = 0.0;
@@ -26,7 +28,7 @@ fn sample_shadow_height(unit_dir: vec3f, params: PlanetParams) -> f32 {
   }
   let vor = voronoi3(unit_dir * params.voronoi_scale + (distortion - 0.5) * params.voronoi_distortion_amplitude);
 
-  var height = (vor.x - 0.5) * params.voronoi_amplitude;
+  var height = (vor.x - 0.5) * v_amp;
   var th = height - wl;
   var thf: f32;
   if (th > 0.0) {
@@ -60,7 +62,7 @@ fn terrain_sun_shadow(
     return 0.0; // sun below the local horizon — the body itself occludes it
   }
 
-  let total_amplitude = params.voronoi_amplitude + params.detail_amplitude;
+  let total_amplitude = (params.voronoi_amplitude + params.detail_amplitude) * params.radius;
   if (total_amplitude <= 0.0) {
     return 1.0; // flat planet, nothing to cast a shadow
   }
