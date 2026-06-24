@@ -281,6 +281,24 @@
 								bind:value={viewportPrefs.materialOverrides.shadowFill}
 							/>
 							<Range
+								id="shadow-softness"
+								label="Shadow Softness"
+								min={0}
+								max={1}
+								step={0.01}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.shadowSoftness}
+							/>
+							<Range
+								id="shadow-steps"
+								label="Shadow Steps"
+								min={4}
+								max={64}
+								step={1}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.shadowSteps}
+							/>
+							<Range
 								id="eclipse-contrast"
 								label="Eclipse Contrast (→ darker)"
 								min={0.25}

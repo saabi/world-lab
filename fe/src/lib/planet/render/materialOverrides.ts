@@ -23,6 +23,8 @@ export function writeMaterialOverrides(buffer: ArrayBuffer, o: MaterialOverrides
 	view.setFloat32(28, o.objectOpacity, true);
 	view.setFloat32(32, o.heightBlend, true);
 	view.setFloat32(36, o.displacementBlend, true);
+	view.setFloat32(40, o.shadowSoftness, true);
+	view.setFloat32(44, o.shadowSteps, true);
 }
 
 export function defaultMaterialOverrides(): MaterialOverrides {

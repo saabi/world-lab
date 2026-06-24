@@ -83,6 +83,10 @@ export interface MaterialOverrides {
 	shadows: boolean;
 	/** Sun light retained inside shadows (0 = black, 1 = none); fakes scattered fill past the fold. */
 	shadowFill: number;
+	/** Terrain self-shadow penumbra width: 0 = crisp edge, 1 = soft/wide. */
+	shadowSoftness: number;
+	/** Terrain self-shadow march steps (cost vs. penumbra smoothness); clamped to [4, 64]. */
+	shadowSteps: number;
 	/** Terrain fragment alpha (0..1). 1 = fully opaque (/planet and /scene). */
 	objectOpacity: number;
 	/** Fragment macro relief scale (scene LOD height transition). */
@@ -108,6 +112,8 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	fogDensity: 0.8,
 	shadows: true,
 	shadowFill: 0.15,
+	shadowSoftness: 0.5,
+	shadowSteps: 16,
 	objectOpacity: 1.0,
 	heightBlend: 1.0,
 	displacementBlend: 1.0

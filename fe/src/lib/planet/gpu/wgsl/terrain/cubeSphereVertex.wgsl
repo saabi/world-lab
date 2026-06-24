@@ -124,7 +124,7 @@ fn fs_main(in: VSOut) -> FSOut {
       // moons/planets) always applies. They operate at different scales and multiply.
       var raw_shadow = 1.0;
       if (mat_overrides.shadows_enabled > 0.5) {
-        raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot);
+        raw_shadow = terrain_sun_shadow(in.world_pos, primary_sun_dir(lighting), planet, scale_ctx, view_u.planet_rot, mat_overrides.shadow_softness, mat_overrides.shadow_steps);
       }
       let eclipse_visibility = body_eclipse_visibility(in.world_pos, eclipse);
       // Lift shadows back toward full sun by shadow_fill, faking scattered fill past the fold.

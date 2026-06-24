@@ -6,11 +6,13 @@
 // displacement, so at each step we compare the sample point's distance from the
 // planet center against the terrain radius in that direction.
 //
-// MVP: hard shadows, sun only, coarse (macro-relief) height. Soft penumbra is deferred.
+// Sun only, coarse (macro-relief) height. Soft penumbra via closest-approach, with
+// knob-controlled softness and step count (see terrain_sun_shadow).
 
 #include "kernel.wgsl"
 
-const SHADOW_STEPS: u32 = 16u;
+const SHADOW_STEPS_MIN: u32 = 4u;
+const SHADOW_STEPS_MAX: u32 = 64u;
 
 /// Coarse terrain radius used for shadow casting: macro voronoi relief plus the
 /// erosion remap, skipping the detail/texture-noise layers that
@@ -45,13 +47,17 @@ fn sample_shadow_height(unit_dir: vec3f, params: PlanetParams) -> f32 {
   return radius;
 }
 
-/// 1.0 = lit, 0.0 = in shadow. `surface_pos` is planet-centered world space.
+/// 1.0 = lit, 0.0 = fully shadowed, with a soft penumbra in between. `surface_pos` is
+/// planet-centered world space. `softness` ∈ [0,1] widens the penumbra (0 ≈ crisp);
+/// `step_count` trades cost for smoothness (clamped to [4, 64]).
 fn terrain_sun_shadow(
   surface_pos: vec3f,
   sun_dir: vec3f,
   params: PlanetParams,
   scale: ScaleContext,
   planet_rot: vec4f, // planet rotation quaternion [x, y, z, w]
+  softness: f32,
+  step_count: f32,
 ) -> f32 {
   let n = normalize(surface_pos);
   let sun_elev = dot(n, sun_dir);
@@ -69,16 +75,24 @@ fn terrain_sun_shadow(
   // A shadow's horizontal reach grows as relief / sin(sun elevation); bound the
   // march so grazing light stays affordable (longer shadows are clipped softly).
   let max_dist = total_amplitude / max(sun_elev, 0.08);
-  let step = max_dist / f32(SHADOW_STEPS);
+  let steps = u32(clamp(step_count, f32(SHADOW_STEPS_MIN), f32(SHADOW_STEPS_MAX)));
+  let step = max_dist / f32(steps);
 
+  // Soft penumbra (Inigo-Quilez closest-approach): track the smallest ratio of the ray's
+  // clearance above the terrain to distance travelled. Negative clearance is a hard hit
+  // (umbra). `k` is the penumbra hardness — high = crisp edge, low = wide/soft.
+  let k = mix(60.0, 4.0, clamp(softness, 0.0, 1.0));
+  var shade = 1.0;
   var t = bias + step;
-  for (var i = 0u; i < SHADOW_STEPS; i++) {
+  for (var i = 0u; i < steps; i++) {
     let p = surface_pos + sun_dir * t;
     let surf_r = sample_shadow_height(rotate_vector_by_quat_inv(planet_rot, normalize(p)), params);
-    if (length(p) < surf_r) {
-      return 0.0; // terrain rises above the ray — occluded
+    let clearance = length(p) - surf_r;
+    if (clearance < 0.0) {
+      return 0.0; // terrain rises above the ray — fully occluded
     }
+    shade = min(shade, k * clearance / t);
     t += step;
   }
-  return 1.0;
+  return clamp(shade, 0.0, 1.0);
 }

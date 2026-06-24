@@ -41,8 +41,8 @@ struct MaterialOverrides {
   object_opacity: f32,
   height_blend: f32,
   displacement_blend: f32,
-  _pad0: f32,
-  _pad1: f32,
+  shadow_softness: f32,
+  shadow_steps: f32,
 }
 
 fn biome_props(biome_id: u32) -> BiomeProps {
