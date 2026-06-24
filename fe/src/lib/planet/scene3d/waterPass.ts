@@ -2,6 +2,7 @@ import waterWgsl from '../gpu/wgsl/scene3d/water.wgsl';
 import { makeUVSphere, type SphereMesh } from './sphereMesh.js';
 import type { Quat } from '../scene/types.js';
 import type { Vec3 } from '../math/vec.js';
+import { invert4 } from '../math/mat4.js';
 import {
 	DEFAULT_ECLIPSE_UNIFORMS,
 	ECLIPSE_UNIFORM_SIZE,
@@ -25,16 +26,18 @@ export interface WaterRecordOptions {
 	waveStrength?: number;
 	glintStrength?: number;
 	absorptionStrength?: number;
+	foamStrength?: number;
+	shoreWidth?: number;
 	meshLod?: WaterLodLevel;
 	viewportWidth?: number;
 	viewportHeight?: number;
-	/** 0 = shaded, 1 = flat cyan, 2 = lat/long grid. */
+	/** 0 = shaded, 1 = flat cyan, 2 = lat/long grid, 3+ = diagnostic views. */
 	waterDebug?: number;
 }
 
 const INSTANCE_FLOATS = 16;
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
-const UNIFORM_SIZE = 160;
+const UNIFORM_SIZE = 224;
 
 function quatToMat3Cols(q: Quat, s: number): [number, number, number][] {
 	const [x, y, z, w] = q;
@@ -180,7 +183,10 @@ export class WaterPass {
 		});
 		this.depthDebugBindGroup = device.createBindGroup({
 			layout: this.depthDebugPipeline.getBindGroupLayout(0),
-			entries: [{ binding: 0, resource: { buffer: this.ubuf } }]
+			entries: [
+				{ binding: 0, resource: { buffer: this.ubuf } },
+				{ binding: 1, resource: { buffer: this.eclipseBuf } }
+			]
 		});
 	}
 
@@ -274,6 +280,9 @@ export class WaterPass {
 		f32[35] = options.waveStrength ?? 0.75;
 		f32[36] = options.glintStrength ?? 1.0;
 		f32[37] = options.absorptionStrength ?? 1.0;
+		f32[38] = options.foamStrength ?? 0.35;
+		f32[39] = options.shoreWidth ?? 0.25;
+		f32.set(invert4(viewProj), 40);
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 
 		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);

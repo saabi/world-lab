@@ -132,3 +132,26 @@ Implement scene-color transmission:
 - Apply Beer-Lambert-style RGB attenuation to the sampled terrain color.
 - Add a simple scattering term and Fresnel/specular on top.
 - Keep existing water debug modes working.
+
+## Implemented Follow-Up
+
+The next shader pass adds synchronized shore foam and water diagnostics:
+
+- Wave normals, crest strength, and foam use the same body-local wave phase.
+- `Water Foam` scales the animated foam contribution.
+- `Shore Width` controls how far the shallow-water/shore factor spreads from the terrain
+  intersection.
+- Water thickness now reconstructs the opaque scene point from depth with
+  `inverse(viewProjection)` and measures the eye-relative distance from the water shell to
+  that point. The depth buffer still handles occlusion, but absorption/shore/foam tuning no
+  longer depends directly on hyperbolic clip-depth deltas.
+- Material debug views now include:
+  - `Water thickness`
+  - `Water shore factor`
+  - `Water wave normals`
+  - `Water foam mask`
+
+This is still a heuristic shore factor because it maps water-column distance to a shore
+mask with artistic thresholds. The longer-term version can replace that threshold mapping
+with a terrain-authored shoreline/coastal-energy metric, but the current metric is now
+linear and camera-scale stable enough for shader tuning.

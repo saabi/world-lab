@@ -71,6 +71,8 @@ export interface MaterialOverrides {
 	waterWaveStrength: number;
 	waterGlintStrength: number;
 	waterAbsorptionStrength: number;
+	waterFoamStrength: number;
+	waterShoreWidth: number;
 	materialDebug: MaterialDebugMode;
 	fogDensity: number;
 	/** Terrain self-shadows for the directional sun. */
@@ -92,6 +94,8 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	waterWaveStrength: 0.75,
 	waterGlintStrength: 1.0,
 	waterAbsorptionStrength: 1.0,
+	waterFoamStrength: 0.35,
+	waterShoreWidth: 0.25,
 	materialDebug: 'off',
 	fogDensity: 0.8,
 	shadows: true,

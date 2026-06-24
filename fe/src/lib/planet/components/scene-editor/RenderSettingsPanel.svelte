@@ -344,6 +344,24 @@
 								bind:value={viewportPrefs.materialOverrides.waterAbsorptionStrength}
 							/>
 							<Range
+								id="water-foam-strength"
+								label="Water Foam"
+								min={0}
+								max={2}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterFoamStrength}
+							/>
+							<Range
+								id="water-shore-width"
+								label="Shore Width"
+								min={0.05}
+								max={0.9}
+								step={0.01}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterShoreWidth}
+							/>
+							<Range
 								id="aerial-fog"
 								label="Aerial Fog"
 								min={0}
