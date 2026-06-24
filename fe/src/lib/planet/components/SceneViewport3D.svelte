@@ -45,7 +45,7 @@
 	import { invert4 } from '../math/mat4.js';
 	import { len3, sub3 } from '../math/vec.js';
 	import { DEFAULT_MATERIAL_OVERRIDES } from '../material/biomes.js';
-	import { resolveBodyAtmosphere, bodyAtmosphereToParameters } from '../scene/bodyAtmosphere.js';
+	import { resolveBodyAtmosphere, bodyAtmosphereToParameters, waterSkyTintRgb } from '../scene/bodyAtmosphere.js';
 	import { toGpuAtmosphereParams } from '../params/atmosphereParams.js';
 	import type { Vec3 } from '../math/vec.js';
 	import type { BodyNode, PlanetScene } from '../scene/types.js';
@@ -450,6 +450,14 @@
 				const waterTargets = selectProceduralWaterTargets(terrainTargets, MAX_PROCEDURAL_BODIES);
 				if (waterTargets.length === 0) return null;
 				const meshLod = batchWaterLodLevel(waterTargets);
+				const skyTintSource =
+					(primaryTarget && waterTargets.some((t) => t.id === primaryTarget.id)
+						? primaryTarget
+						: waterTargets[0])?.body;
+				const skyTint =
+					skyTintSource?.kind === 'body'
+						? waterSkyTintRgb(resolveBodyAtmosphere(skyTintSource))
+						: ([0.4, 0.58, 0.85] as [number, number, number]);
 				const waterInstances: WaterInstance[] = waterTargets.map((target) => ({
 					position: sub3(target.worldPos, eye),
 					seaLevelRadius: target.seaLevelRadiusMeters,
@@ -470,6 +478,9 @@
 						absorptionStrength: viewportPrefs?.materialOverrides.waterAbsorptionStrength ?? 1.0,
 						scatterStrength: viewportPrefs?.materialOverrides.waterScatterStrength ?? 0.85,
 						refractionStrength: viewportPrefs?.materialOverrides.waterRefractionStrength ?? 0.35,
+						skyReflectionStrength:
+							viewportPrefs?.materialOverrides.waterSkyReflectionStrength ?? 0.65,
+						skyTint,
 						foamStrength: viewportPrefs?.materialOverrides.waterFoamStrength ?? 0.35,
 						shoreWidth: viewportPrefs?.materialOverrides.waterShoreWidth ?? 0.25,
 						waterDebug: sceneWaterDebugToGpu(materialDebug)

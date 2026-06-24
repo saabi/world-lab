@@ -42,7 +42,7 @@ Depth/column length still uses screen UV; only the color sample is refracted.
 Fresnel mix toward analytic sky color (sun + ambient) at grazing angles. Optional atmosphere
 tint uniform from viewport.
 
-**Status:** pending
+**Status:** done
 
 ## Slice D — Shore turbidity
 

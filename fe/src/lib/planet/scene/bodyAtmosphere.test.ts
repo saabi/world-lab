@@ -4,7 +4,8 @@ import {
 	bodyAtmosphereFromParameters,
 	bodyAtmosphereToParameters,
 	defaultBodyAtmosphere,
-	resolveBodyAtmosphere
+	resolveBodyAtmosphere,
+	waterSkyTintRgb
 } from './bodyAtmosphere.js';
 import { defaultAtmosphereParams } from '../params/atmosphereParams.js';
 import type { BodyNode } from './types.js';
@@ -54,5 +55,18 @@ describe('bodyAtmosphere', () => {
 		expect(params.mieStrength).toBe(0.7);
 		// from() drops the render-quality step count again (round-trips the design)
 		expect(bodyAtmosphereFromParameters(bodyAtmosphereToParameters(a, 32))).toEqual(a);
+	});
+
+	it('derives a darker sky tint when atmosphere is disabled', () => {
+		const disabled = { ...defaultBodyAtmosphere(5e5), enabled: false };
+		expect(waterSkyTintRgb(disabled)).toEqual([0.32, 0.46, 0.72]);
+	});
+
+	it('brightens sky tint with stronger Rayleigh scattering', () => {
+		const weak = { ...defaultBodyAtmosphere(5e5), rayleighStrength: 0.5 };
+		const strong = { ...defaultBodyAtmosphere(5e5), rayleighStrength: 2.0 };
+		const weakTint = waterSkyTintRgb(weak);
+		const strongTint = waterSkyTintRgb(strong);
+		expect(strongTint[2]).toBeGreaterThan(weakTint[2]);
 	});
 });

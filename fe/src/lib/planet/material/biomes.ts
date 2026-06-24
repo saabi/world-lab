@@ -73,6 +73,7 @@ export interface MaterialOverrides {
 	waterAbsorptionStrength: number;
 	waterScatterStrength: number;
 	waterRefractionStrength: number;
+	waterSkyReflectionStrength: number;
 	waterFoamStrength: number;
 	waterShoreWidth: number;
 	materialDebug: MaterialDebugMode;
@@ -98,6 +99,7 @@ export const DEFAULT_MATERIAL_OVERRIDES: MaterialOverrides = {
 	waterAbsorptionStrength: 1.0,
 	waterScatterStrength: 0.85,
 	waterRefractionStrength: 0.35,
+	waterSkyReflectionStrength: 0.65,
 	waterFoamStrength: 0.35,
 	waterShoreWidth: 0.25,
 	materialDebug: 'off',

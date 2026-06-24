@@ -362,6 +362,15 @@
 								bind:value={viewportPrefs.materialOverrides.waterRefractionStrength}
 							/>
 							<Range
+								id="water-sky-reflection-strength"
+								label="Water Sky Reflect"
+								min={0}
+								max={2}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterSkyReflectionStrength}
+							/>
+							<Range
 								id="water-foam-strength"
 								label="Water Foam"
 								min={0}

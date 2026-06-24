@@ -19,8 +19,9 @@ struct Uniforms {
 	foamStrength : f32,
 	shoreWidth : f32,
 	refractionStrength : f32,
-	_padAlign0 : f32,
-	_padAlign1 : f32,
+	skyReflectionStrength : f32,
+	_padSkyTint : f32,
+	skyTint : vec3f,
 	invViewProj : mat4x4<f32>,
 };
 
@@ -187,6 +188,33 @@ fn foam_mask(in : VSOut, thickness : f32, wave : WaveState) -> f32 {
 	return clamp(shore * patchMask * crest * max(u.foamStrength, 0.0), 0.0, 1.0);
 }
 
+fn sun_direction() -> vec3f {
+	return normalize(u.lightPos.xyz);
+}
+
+fn sun_hemisphere(nrm: vec3f) -> f32 {
+	return clamp(max(dot(nrm, sun_direction()), 0.0), 0.0, 1.0);
+}
+
+fn analytic_sky_radiance(refl: vec3f, rough: f32) -> vec3f {
+	let sun_dir = sun_direction();
+	let up = max(refl.y, 0.0);
+	let horizon = mix(vec3f(0.48, 0.66, 0.9), u.skyTint, 0.88);
+	let zenith = mix(vec3f(0.1, 0.3, 0.68), u.skyTint * 0.85 + vec3f(0.04, 0.08, 0.12), 0.75);
+	let grad = mix(horizon, zenith, pow(up, 0.42));
+	let sun_disk = u.lightColor.rgb * u.lightColor.w
+		* pow(max(dot(refl, sun_dir), 0.0), mix(320.0, 20.0, rough));
+	return grad * 0.6 + sun_disk * 0.4 + u.ambient.rgb * 0.2;
+}
+
+fn water_sky_reflection(nrm: vec3f, v: vec3f, rough: f32) -> vec3f {
+	let refl = reflect(-v, nrm);
+	let sun_lit = sun_hemisphere(nrm);
+	let day = analytic_sky_radiance(refl, rough);
+	let night = u.ambient.rgb * vec3f(0.12, 0.15, 0.28) + vec3f(0.01, 0.012, 0.03);
+	return mix(night, day, pow(sun_lit, 0.55));
+}
+
 fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32> {
 	let shell_n = normalize(in.normal);
 	let wave = wave_state(in, shell_n);
@@ -213,10 +241,13 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let base = mix(SHALLOW_WATER, DEEP_WATER, thickness);
 	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * eclipse_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
-	let rim_scatter = SHALLOW_WATER * fresnel * (0.5 + 0.7 * grazing);
 	let foam_hint = FOAM_TINT * (foam * 0.85 + shore * 0.05);
 	let specular = u.lightColor.rgb * u.lightColor.w * glint * eclipse_vis * u.glintStrength * (0.08 + 1.4 * fresnel);
-	let surface = (diffuse + rim_scatter + foam_hint + specular) * u.exposure;
+	let sky_refl = water_sky_reflection(n, v, rough) * eclipse_vis;
+	let sky_weight = fresnel * max(u.skyReflectionStrength, 0.0) * (0.35 + 0.65 * grazing);
+	let rim_scatter = SHALLOW_WATER * fresnel * (0.12 + 0.2 * grazing);
+	let sky_surface = sky_refl * sky_weight;
+	let surface = (diffuse + rim_scatter + foam_hint + specular + sky_surface) * u.exposure;
 	let surface_mix = clamp(u.waterOpacity * (0.18 + 0.55 * thickness + 0.45 * fresnel + foam * 0.5), 0.0, 1.0);
 	return mix(transmitted, surface, surface_mix);
 }

@@ -166,3 +166,6 @@ scatterStrength` adds volume scatter. **Water Scatter** slider in Render → Sha
 
 **Slice B (refraction UV):** scene color is sampled at a wave-normal-offset UV
 (shallow water refracts more). **Water Refraction** slider in Render → Shading.
+
+**Slice C (sky reflection):** Fresnel-weighted analytic sky/atmosphere color at grazing
+angles; `skyTint` from the focused body's atmosphere design. **Water Sky Reflect** slider.

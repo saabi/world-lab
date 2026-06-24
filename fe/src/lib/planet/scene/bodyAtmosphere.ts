@@ -49,3 +49,15 @@ export function bodyAtmosphereFromParameters(p: AtmosphereParameters): BodyAtmos
 		sunDiskIntensity: p.sunDiskIntensity
 	};
 }
+
+/** RGB sky tint for water Fresnel reflection — derived from body atmosphere design. */
+export function waterSkyTintRgb(atmo: BodyAtmosphere): [number, number, number] {
+	if (!atmo.enabled) {
+		return [0.32, 0.46, 0.72];
+	}
+	return [
+		0.36 + 0.06 * atmo.rayleighStrength,
+		0.5 + 0.1 * atmo.rayleighStrength,
+		0.68 + 0.12 * atmo.rayleighStrength + 0.05 * atmo.mieStrength
+	];
+}
