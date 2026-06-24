@@ -45,7 +45,9 @@ export function resolveOrbitPathVisible(
 	keplerNode: SceneNode,
 	prefs: SceneViewportPrefs | undefined,
 	selectedId: string | null,
-	scene: PlanetScene
+	scene: PlanetScene,
+	/** When true (camera framed on the whole system), show every orbit even in "selected" mode. */
+	systemView = false
 ): boolean {
 	const mode = prefs?.overlays.orbitPaths ?? 'all';
 	if (mode === 'off') return false;
@@ -53,8 +55,15 @@ export function resolveOrbitPathVisible(
 
 	if (mode === 'all') return true;
 
-	// selected: draw if kepler node is selected, or is an ancestor of the selection.
+	if (systemView) return true;
+
+	// selected + zoomed in: draw if kepler node is selected, or is an ancestor of the selection.
 	if (!selectedId) return false;
 	if (keplerNode.id === selectedId) return true;
 	return isAncestorOrSelf(scene, keplerNode.id, selectedId);
+}
+
+/** True when the camera is far enough to see the full system (not zoomed on one body). */
+export function orbitPathSystemView(cameraDistance: number, systemSpan: number): boolean {
+	return cameraDistance > systemSpan * 1.15;
 }

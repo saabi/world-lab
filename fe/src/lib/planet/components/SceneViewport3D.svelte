@@ -5,7 +5,7 @@
 	import { SpherePass, type BodyInstance, type SceneLighting } from '../scene3d/spherePass.js';
 	import { OrbitLinePass } from '../scene3d/orbitLinePass.js';
 	import { collectOrbitPathSpecs, buildOrbitPath3D, orbitPathSegmentCount, orbitPathBoundsForNearFar } from '../scene/orbitPaths.js';
-	import { resolveAtmosphereVisible, resolveOrbitPathVisible } from '../scene/renderFeatures.js';
+	import { resolveAtmosphereVisible, resolveOrbitPathVisible, orbitPathSystemView } from '../scene/renderFeatures.js';
 	import {
 		clampElevation,
 		cameraEye,
@@ -218,11 +218,19 @@
 		// f32 precise when bodies sit ~1e11 m from the world origin; clip depth is identical
 		// to the absolute view-projection, so the shared depth buffer stays comparable.
 		const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
-		const visibleOrbitSpecs = collectOrbitPathSpecs(animated).filter((p) => {
+		const allOrbitSpecs = collectOrbitPathSpecs(animated);
+		const systemSpan = allOrbitSpecs.reduce(
+			(m, s) => Math.max(m, s.elements.semiMajorAxis * (1 + s.elements.eccentricity)),
+			1
+		);
+		const cameraDistance =
+			cameraMode === 'freeFly' ? len3(sub3(eye, targetOf(animated))) : orbitCam.distance;
+		const systemView = orbitPathSystemView(cameraDistance, systemSpan);
+		const visibleOrbitSpecs = allOrbitSpecs.filter((p) => {
 			const node = animated.nodes.get(p.keplerNodeId);
 			return (
 				node &&
-				resolveOrbitPathVisible(node, viewportPrefs, selectedId ?? null, animated)
+				resolveOrbitPathVisible(node, viewportPrefs, selectedId ?? null, animated, systemView)
 			);
 		});
 		// Depth range fit to every body in view and visible orbit ellipses (not just the
@@ -240,23 +248,28 @@
 			cameraMode === 'freeFly'
 				? sceneFreeFlyViewProjectionRelative(freeFly, aspect, nearFar)
 				: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
-		const visibleOrbitPaths = visibleOrbitSpecs.map((spec) => {
-			const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
-			const orbitMode = viewportPrefs?.overlays.orbitPaths ?? 'all';
-			// High tessellation only for the focused path in "selected" mode. In "all"
-			// mode every path shares the same LOD so one orbit does not dominate at 4096
-			// segments while the system is framed.
-			const highLod = orbitMode === 'selected' && isSelected;
-			const segments = orbitPathSegmentCount(
-				spec.elements,
-				len3(sub3(spec.center, eye)),
-				h,
-				highLod
-					? { maxChordPx: 1.5, min: 32, max: 4096 }
-					: { maxChordPx: 4, min: 32, max: 256 }
+		const visibleOrbitPaths = visibleOrbitSpecs
+			.map((spec) => {
+				const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
+				const orbitMode = viewportPrefs?.overlays.orbitPaths ?? 'all';
+				// High tessellation only for the focused path in "selected" mode. In "all"
+				// mode every path shares the same LOD so one orbit does not dominate at 4096
+				// segments while the system is framed.
+				const highLod = orbitMode === 'selected' && isSelected && !systemView;
+				const segments = orbitPathSegmentCount(
+					spec.elements,
+					len3(sub3(spec.center, eye)),
+					h,
+					highLod
+						? { maxChordPx: 1.5, min: 32, max: 4096 }
+						: { maxChordPx: 4, min: 32, max: 256 }
+				);
+				return buildOrbitPath3D(spec, segments, time);
+			})
+			// Inner rings first, outer last (alpha blend on the rare shared pixel).
+			.sort(
+				(a, b) => a.elements.semiMajorAxis - b.elements.semiMajorAxis
 			);
-			return buildOrbitPath3D(spec, segments, time);
-		});
 		const drawList = buildDrawList(animated, vpRel, eye, w, h, lodState, viewportPrefs?.lod ?? DEFAULT_LOD_THRESHOLDS);
 		const light = lighting(animated);
 		updateMarker(animated, vpRel, eye);

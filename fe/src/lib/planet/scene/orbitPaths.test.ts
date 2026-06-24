@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { len3, sub3 } from '../math/vec.js';
 import { orbitLocalPosition } from './orbit.js';
+import { getSystem } from '../sundog/catalog.js';
+import { createSceneFromCatalogSystem } from '../sundog/createSceneFromCatalogSystem.js';
+import { evaluateScene } from './driver.js';
 import {
 	buildOrbitPath3D,
 	collectOrbitPathSpecs,
@@ -114,5 +117,17 @@ describe('sampleOrbitPath', () => {
 		expect(path.keplerNodeId).toBe(spec.keplerNodeId);
 		expect(path.points.length).toBe(48);
 		expect(path.localPoints.length).toBe(48);
+	});
+});
+
+describe('collectOrbitPathSpecs (catalog)', () => {
+	it('collects one path per planet in the Glory system', () => {
+		const glory = getSystem('glory');
+		expect(glory).toBeTruthy();
+		const scene = createSceneFromCatalogSystem(glory!);
+		const specs = collectOrbitPathSpecs(evaluateScene(scene, 0));
+		expect(specs).toHaveLength(3);
+		const ids = specs.map((s) => s.keplerNodeId).sort();
+		expect(ids).toEqual(['glory-i-orbit', 'glory-ii-orbit', 'glory-iii-orbit']);
 	});
 });

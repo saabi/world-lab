@@ -3,6 +3,7 @@ import { makeOrbitingBody, makeGroup, addChild } from './sceneEdit.js';
 import { createToySolarSystemScene } from './solarSystem.js';
 import {
 	isAncestorOrSelf,
+	orbitPathSystemView,
 	resolveAtmosphereVisible,
 	resolveOrbitPathVisible
 } from './renderFeatures.js';
@@ -59,6 +60,22 @@ describe('resolveOrbitPathVisible', () => {
 		expect(resolveOrbitPathVisible(orbitNode, selPrefs, null, scene)).toBe(false);
 		expect(resolveOrbitPathVisible(orbitNode, selPrefs, orbitNode.id, scene)).toBe(true);
 		expect(resolveOrbitPathVisible(orbitNode, selPrefs, bodyId, scene)).toBe(true);
+	});
+
+	it('shows every orbit in selected mode when the camera is in system view', () => {
+		let scene = sceneWithRoot();
+		scene = addChild(scene, makeGroup('root', 'star'));
+		const nodes = makeOrbitingBody('star', { name: 'P' });
+		for (const n of nodes) scene = addChild(scene, n);
+		const orbitNode = nodes[0]!;
+		const bodyId = nodes.at(-1)!.id;
+		const selPrefs = {
+			...prefs,
+			overlays: { ...prefs.overlays, orbitPaths: 'selected' as const }
+		};
+		expect(resolveOrbitPathVisible(orbitNode, selPrefs, bodyId, scene, true)).toBe(true);
+		expect(orbitPathSystemView(2e11, 1e11)).toBe(true);
+		expect(orbitPathSystemView(5e10, 1e11)).toBe(false);
 	});
 
 	it('honours per-node display.orbitPath === false', () => {

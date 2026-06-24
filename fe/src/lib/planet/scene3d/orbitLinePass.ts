@@ -52,7 +52,9 @@ export class OrbitLinePass {
 				]
 			},
 			primitive: { topology: 'line-strip' },
-			depthStencil: { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'less-equal' }
+			// Decorative overlay: skip depth test so nested coplanar rings (e.g. Glory I–III)
+			// are not culled by far-pinned dot bodies or outer orbit fragments.
+			depthStencil: { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'always' }
 		});
 
 		this.ubuf = device.createBuffer({
