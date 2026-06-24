@@ -155,3 +155,11 @@ This is still a heuristic shore factor because it maps water-column distance to 
 mask with artistic thresholds. The longer-term version can replace that threshold mapping
 with a terrain-authored shoreline/coastal-energy metric, but the current metric is now
 linear and camera-scale stable enough for shader tuning.
+
+## Incremental slices
+
+See [_docs/specs/ocean-water-slice-plan.md](specs/ocean-water-slice-plan.md).
+
+**Slice A (RGB extinction + in-scatter):** `transmittance = exp(-ABSORPTION_RGB * column *
+absorptionStrength)` filters scene color; `(1 - transmittance) * SCATTER_RGB *
+scatterStrength` adds volume scatter. **Water Scatter** slider in Render → Shading.

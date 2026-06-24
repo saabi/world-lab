@@ -468,6 +468,7 @@
 						waveStrength: viewportPrefs?.materialOverrides.waterWaveStrength ?? 0.75,
 						glintStrength: viewportPrefs?.materialOverrides.waterGlintStrength ?? 1.0,
 						absorptionStrength: viewportPrefs?.materialOverrides.waterAbsorptionStrength ?? 1.0,
+						scatterStrength: viewportPrefs?.materialOverrides.waterScatterStrength ?? 0.85,
 						foamStrength: viewportPrefs?.materialOverrides.waterFoamStrength ?? 0.35,
 						shoreWidth: viewportPrefs?.materialOverrides.waterShoreWidth ?? 0.25,
 						waterDebug: sceneWaterDebugToGpu(materialDebug)

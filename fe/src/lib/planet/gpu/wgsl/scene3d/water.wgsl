@@ -15,10 +15,16 @@ struct Uniforms {
 	waveStrength : f32,
 	glintStrength : f32,
 	absorptionStrength : f32,
+	scatterStrength : f32,
 	foamStrength : f32,
 	shoreWidth : f32,
 	invViewProj : mat4x4<f32>,
 };
+
+// Extinction per meter at absorptionStrength = 1 (red dies fastest).
+const ABSORPTION_RGB : vec3f = vec3f(0.0048, 0.0016, 0.0007);
+// In-scatter albedo for shallow/participating medium.
+const SCATTER_RGB : vec3f = vec3f(0.04, 0.14, 0.22);
 
 @group(0) @binding(0) var<uniform> u : Uniforms;
 @group(0) @binding(1) var<uniform> eclipse : EclipseUniforms;
@@ -149,9 +155,14 @@ fn water_column_meters(in : VSOut, uv : vec2f, scene_depth_value : f32, depth_ga
 	return max(column, 0.0) * visible;
 }
 
+fn transmittance_rgb(column_meters : f32) -> vec3f {
+	let k = max(u.absorptionStrength, 0.0);
+	return exp(-ABSORPTION_RGB * max(column_meters, 0.0) * k);
+}
+
 fn water_thickness(column_meters : f32) -> f32 {
-	let absorption = max(u.absorptionStrength, 0.0);
-	return clamp(1.0 - exp(-max(column_meters, 0.0) * 0.0018 * absorption), 0.0, 1.0);
+	let t = transmittance_rgb(column_meters);
+	return clamp(1.0 - dot(t, vec3f(0.299, 0.587, 0.114)), 0.0, 1.0);
 }
 
 fn shore_factor_from_thickness(thickness : f32) -> f32 {
@@ -191,9 +202,12 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let foam = foam_mask(in, thickness, wave);
 	let shallow = 1.0 - thickness;
 	let grazing = pow(1.0 - ndv, 2.0);
+	let transmittance = transmittance_rgb(column_meters);
+	var transmitted = background * transmittance;
+	let scatter_amt = (vec3f(1.0) - transmittance) * max(u.scatterStrength, 0.0);
+	let inscatter = SCATTER_RGB * scatter_amt * (0.5 + 0.5 * (1.0 - fresnel * 0.65));
+	transmitted += inscatter;
 	let base = mix(SHALLOW_WATER, DEEP_WATER, thickness);
-	let absorb = mix(vec3f(0.9, 0.97, 1.0), vec3f(0.08, 0.22, 0.5), thickness);
-	let transmitted = background * absorb;
 	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * eclipse_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
 	let rim_scatter = SHALLOW_WATER * fresnel * (0.5 + 0.7 * grazing);

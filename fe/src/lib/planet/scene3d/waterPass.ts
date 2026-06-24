@@ -26,6 +26,7 @@ export interface WaterRecordOptions {
 	waveStrength?: number;
 	glintStrength?: number;
 	absorptionStrength?: number;
+	scatterStrength?: number;
 	foamStrength?: number;
 	shoreWidth?: number;
 	meshLod?: WaterLodLevel;
@@ -37,7 +38,7 @@ export interface WaterRecordOptions {
 
 const INSTANCE_FLOATS = 16;
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
-const UNIFORM_SIZE = 224;
+const UNIFORM_SIZE = 240;
 
 function quatToMat3Cols(q: Quat, s: number): [number, number, number][] {
 	const [x, y, z, w] = q;
@@ -280,9 +281,10 @@ export class WaterPass {
 		f32[35] = options.waveStrength ?? 0.75;
 		f32[36] = options.glintStrength ?? 1.0;
 		f32[37] = options.absorptionStrength ?? 1.0;
-		f32[38] = options.foamStrength ?? 0.35;
-		f32[39] = options.shoreWidth ?? 0.25;
-		f32.set(invert4(viewProj), 40);
+		f32[38] = options.scatterStrength ?? 0.85;
+		f32[39] = options.foamStrength ?? 0.35;
+		f32[40] = options.shoreWidth ?? 0.25;
+		f32.set(invert4(viewProj), 44);
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 
 		const eclipseStaging = new ArrayBuffer(ECLIPSE_UNIFORM_SIZE);
