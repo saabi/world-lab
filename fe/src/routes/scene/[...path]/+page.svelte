@@ -11,12 +11,6 @@
 		serializeScene,
 		SYSTEM_SCENE_KEY
 	} from '$lib/planet/scene/sceneDocument.js';
-	import { resolveBodyParams } from '$lib/planet/scene/bodyParams.js';
-	import { writeHandoffLink } from '$lib/planet/scene/planetHandoff.js';
-	import { toSnapshot } from '$lib/planet/documents/snapshot.js';
-	import { writeSession } from '$lib/planet/documents/storage.js';
-	import { CURRENT_SNAPSHOT_VERSION } from '$lib/planet/documents/types.js';
-	import { DEFAULT_PRESET } from '$lib/planet/params/presets.js';
 	import {
 		addChild,
 		addOrbitingBody,
@@ -35,10 +29,6 @@
 	} from '$lib/planet/scene/sceneViewSettings.js';
 	import type { SceneDebugMode } from '$lib/planet/scene/sceneDebug.js';
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
-	import {
-		resolveBodyAtmosphere,
-		bodyAtmosphereToParameters
-	} from '$lib/planet/scene/bodyAtmosphere.js';
 	import type {
 		BodyAppearance,
 		BodyAtmosphere,
@@ -133,7 +123,7 @@
 		bodyNode?.bodyType === 'planet' || bodyNode?.bodyType === 'moon'
 	);
 
-	// Focused procedural body (full-screen overlay via the /planet pipeline).
+	// Focused procedural body (full-screen overlay).
 	let focusedBodyId = $state<string | null>(null);
 	const focusedBody = $derived.by(() => {
 		if (!focusedBodyId) return null;
@@ -209,11 +199,9 @@
 	});
 	// Global render/view settings, restored from localStorage (vp.sceneViewSettings).
 	const initialViewSettings = loadSceneViewSettings();
-	// Material debug view for the procedural body — parity diagnostic mirroring /planet's
-	// dropdown (e.g. body-dir / lat-long grid to spot tessellation-dependent sampling).
+	// Material debug view for the procedural body (e.g. body-dir / lat-long grid).
 	let materialDebug = $state<SceneDebugMode>(initialViewSettings.materialDebug);
-	// Focused-body look mode — viewport state (not body data). planet-center targets the
-	// body; horizon aims along travel for low-orbit views, matching /planet's toggle.
+	// Focused-body look mode — viewport state (not body data).
 	let lookMode = $state<OrbitLookMode>(initialViewSettings.lookMode);
 	let viewportPrefs = $state(initialViewSettings.viewportPrefs);
 
@@ -294,39 +282,11 @@
 		if (selectedId) scene = updateNodeDisplay(scene, selectedId, patch);
 	}
 
-	// Hand the selected body off to the /planet editor: copy its resolved params into
-	// /planet's session (so PlanetViewport hydrates them) + a persistent "link" record so
-	// /planet can save edits back to this body. Persist the scene first so that save-back
-	// round-trips against the current tree. See scene/planetHandoff.ts.
-	function openInPlanetEditor(newTab: boolean) {
-		if (!browser || !bodyNode) return;
-		const presetName = bodyNode.appearance?.preset ?? DEFAULT_PRESET;
-		const params = resolveBodyParams(bodyNode);
-		saveScene();
-		writeSession({
-			schemaVersion: CURRENT_SNAPSHOT_VERSION,
-			snapshot: toSnapshot({
-				presetName,
-				params,
-				atmosphere: bodyAtmosphereToParameters(resolveBodyAtmosphere(bodyNode)),
-				camera: {
-					azimuth: 0.6,
-					elevation: 0.35,
-					distance: params.radius * 3,
-					altitudeMeters: params.radius * 2,
-					orbitSpeedRadPerSec: 0,
-					lookAtHorizon: false
-				}
-			}),
-			activeDocumentId: null
-		});
-		writeHandoffLink({ bodyId: bodyNode.id, bodyName: bodyNode.name, presetName, scenePath: page.url.pathname });
-		if (newTab) window.open('/planet', '_blank');
-		else goto('/planet');
+	function renderProcedural() {
+		if (bodyNode) focusedBodyId = bodyNode.id;
 	}
 
-	// Live round-trip: when /planet (another tab) saves edits back into the scene, reload.
-	// storage events fire only in *other* tabs, so this never echoes our own writes.
+	// Reload when another tab writes the shared scene document.
 	$effect(() => {
 		if (!browser) return;
 		const onStorage = (e: StorageEvent) => {
@@ -357,10 +317,6 @@
 		const parentId = getNode(scene, selectedId)?.parentId ?? null;
 		scene = removeSubtree(scene, selectedId);
 		selectedId = parentId && parentId !== scene.rootId ? parentId : null;
-	}
-
-	function renderProcedural() {
-		if (bodyNode) focusedBodyId = bodyNode.id;
 	}
 
 	function onEnterSpaceflight() {
@@ -439,8 +395,6 @@
 	{onAtmosphereChange}
 	{onDisplayChange}
 	onRenderProcedural={renderProcedural}
-	onOpenPlanet={() => openInPlanetEditor(false)}
-	onOpenPlanetNewTab={() => openInPlanetEditor(true)}
 	onCloseFocused={() => (focusedBodyId = null)}
 	bind:shipState
 	bind:spaceflightActive

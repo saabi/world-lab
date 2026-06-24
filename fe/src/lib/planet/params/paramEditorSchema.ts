@@ -32,7 +32,7 @@ export interface EditorSuperSectionDef {
 	defaultOpen?: boolean;
 }
 
-/** Top-level accordion groups in PlanetEditorPanel (one open at a time). */
+/** Top-level accordion groups in AppearanceEditor shape sections. */
 export const EDITOR_SUPER_SECTIONS: EditorSuperSectionDef[] = [
 	{ id: 'camera', title: 'Camera', defaultOpen: true },
 	{ id: 'shape', title: 'Shape' },

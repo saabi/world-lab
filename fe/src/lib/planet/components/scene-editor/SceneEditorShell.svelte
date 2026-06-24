@@ -64,8 +64,6 @@
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
 		onDisplayChange?: (patch: Partial<NodeDisplay>) => void;
 		onRenderProcedural?: () => void;
-		onOpenPlanet?: () => void;
-		onOpenPlanetNewTab?: () => void;
 		onCloseFocused?: () => void;
 		shipState?: ShipState;
 		spaceflightActive?: boolean;
@@ -128,8 +126,6 @@
 		onAtmosphereChange,
 		onDisplayChange,
 		onRenderProcedural,
-		onOpenPlanet,
-		onOpenPlanetNewTab,
 		onCloseFocused,
 		shipState = $bindable(createDefaultShipState()),
 		spaceflightActive = $bindable(false),
@@ -200,8 +196,6 @@
 		{onAtmosphereChange}
 		{onDisplayChange}
 		{onRenderProcedural}
-		{onOpenPlanet}
-		{onOpenPlanetNewTab}
 	/>
 {/snippet}
 

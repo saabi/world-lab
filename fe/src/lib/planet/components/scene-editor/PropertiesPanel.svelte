@@ -37,8 +37,6 @@
 		onAtmosphereChange?: (a: BodyAtmosphere) => void;
 		onDisplayChange?: (patch: Partial<NodeDisplay>) => void;
 		onRenderProcedural?: () => void;
-		onOpenPlanet?: () => void;
-		onOpenPlanetNewTab?: () => void;
 	}
 </script>
 
@@ -77,9 +75,7 @@
 		onAppearanceChange,
 		onAtmosphereChange,
 		onDisplayChange,
-		onRenderProcedural,
-		onOpenPlanet,
-		onOpenPlanetNewTab
+		onRenderProcedural
 	}: Props = $props();
 
 	const visibleSections = $derived(
@@ -219,22 +215,6 @@
 									Render procedurally →
 								</button>
 							</EditorSubsection>
-							<EditorSubsection title="Handoff">
-								<div class="editor-handoff">
-									<button type="button" class="edit-link" onclick={onOpenPlanet}>
-										Edit in /planet →
-									</button>
-									<button
-										type="button"
-										class="edit-link new-tab"
-										title="Open in a new tab (compare side by side)"
-										aria-label="Open in planet editor in a new tab"
-										onclick={onOpenPlanetNewTab}
-									>
-										↗
-									</button>
-								</div>
-							</EditorSubsection>
 						{/if}
 					</EditorAccordionSection>
 				{/if}
@@ -330,29 +310,5 @@
 		background: rgba(110, 160, 120, 0.15);
 		color: #cfedd6;
 		cursor: pointer;
-	}
-
-	.editor-handoff {
-		display: flex;
-		align-items: stretch;
-		gap: 4px;
-	}
-
-	.edit-link {
-		font: 11px/1.2 system-ui, sans-serif;
-		padding: 3px 10px;
-		border-radius: 4px;
-		border: 1px solid rgba(158, 192, 255, 0.4);
-		background: rgba(158, 192, 255, 0.12);
-		color: #cfe0ff;
-		cursor: pointer;
-	}
-
-	.edit-link:hover {
-		background: rgba(158, 192, 255, 0.22);
-	}
-
-	.edit-link.new-tab {
-		padding: 3px 8px;
 	}
 </style>

@@ -22,8 +22,7 @@ export function resolveBodyParams(body: BodyNode): PlanetParameters {
 /**
  * Inverse of resolveBodyParams: the sparse overrides that, layered on `preset`, reproduce
  * `params` — only fields differing from the preset, which is what the scene stores in
- * `appearance.overrides` (matching AppearanceEditor). Used by the `/planet` → `/scene`
- * save-back round-trip (see scene/planetHandoff.ts).
+ * `appearance.overrides` (matching AppearanceEditor).
  */
 export function diffAppearanceOverrides(
 	params: PlanetParameters,

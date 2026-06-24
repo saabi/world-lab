@@ -15,9 +15,9 @@ monorepo** (root `package.json`, single root `package-lock.json`):
 - **`fe.old/`** — archived Sapper / Svelte 3 reference (not a workspace). Do not develop here.
 
 Within `fe/`, routes:
-- **`/planet`** — the active WebGPU renderer (now also the **legacy per-body editor**).
 - **`/scene/[...path]`** — the path-addressed scene/solar-system editor (URL = the scene-tree path); top-down map + body tree + schema-driven node editor. `/system` redirects here. See `_docs/specs/`.
-- **`/old`** — frozen legacy Three.js editor kept as a visual reference. Do not break it.
+- **`/solar-systems`** — SunDog galaxy map; opens systems into `/scene`.
+- **`/planet`**, **`/old`** — retired (308 redirect to `/scene`).
 
 ## Commands
 
@@ -44,29 +44,29 @@ Monorepo: run `npm install` **from the root** (one lockfile links all workspaces
 
 Data flows one direction each frame:
 
-**`PlanetParameters` + `CameraState` + scene/lighting → patch schedulers → `RenderFrame` → `RenderBackend` → GPU passes.**
+**`PlanetScene` + camera + lighting → `SceneViewport3D` / `PlanetRenderer` → `RenderBackend` → GPU passes.**
 
-`PlanetViewport.svelte` (`lib/planet/components/`) owns the render loop and all live state (Svelte 5 runes). Each frame it: updates the camera, rebases the local frame to fight float jitter, schedules patches, collects + packs lighting, assembles a `RenderFrame`, and calls `backend.render(frame)`. Math, scheduling, and document logic are pure TypeScript modules with no Svelte dependency.
+`SceneViewport3D.svelte` (`lib/planet/components/`) owns the `/scene` render loop. Procedural bodies use `PlanetRenderer` + `WebGPUBackend` via `recordInto`. Math, scheduling, and scene document logic are pure TypeScript modules with no Svelte dependency.
 
 ### Key modules (`fe/src/lib/planet/`)
 
-- **`params/`** — `PlanetParameters` shape, `presets.ts` (read-only built-in templates), `gpuBuffers.ts` packing, `paramEditorSchema.ts` (drives the editor panel UI).
-- **`math/`** — geodetic, ECEF, `localFrame.ts` (origin-rebasing for precision), `vec.ts`. Double precision on CPU.
-- **`patches/`** — cube-sphere mapping, `cubeSphereScheduler.ts` (orbit LOD), `surfaceScheduler.ts` (near-surface rings), culling, vertex-budget. `types.ts` is a shared contract.
-- **`camera/`** — orbit / flight / surface-fly modes; `cameraModes.ts` selects + blends render modes by altitude.
-- **`scene/`** — scene-graph tree (`sceneTree.ts`, `types.ts`), `collectLights.ts` (walks the tree → world-space lights), `packLighting.ts` (→ GPU uniforms). Lights live as scene nodes.
-- **`material/`** — `biomes.ts`: material overrides + debug modes fed into shading.
-- **`documents/`** — localStorage persistence (named saves + auto-restored session). See `documents/README.md`; loads go through `detectSchemaVersion → migrate → coerce` and never merge raw JSON into live state.
-- **`render/`** — `RenderBackend` interface (`RenderBackend.ts` defines `RenderFrame`/`RenderStats`), `WebGPUBackend` (primary), `WebGLBackend` (fallback), `device.ts`, `uniformLayouts.ts`, and `passes/` (terrain, atmosphere, debug, plus deferred picking/heightfield stubs).
-- **`gpu/wgsl/`** — primary WGSL shaders, grouped by domain (`planet/`, `terrain/`, `atmosphere/`, `noise/`, `common/`, `debug/`).
-- **`gpu/glsl/`** — GLSL mirror for the WebGL fallback; may lag the WGSL source.
+- **`params/`** — `PlanetParameters` shape, `presets.ts`, GPU buffer packing, `paramEditorSchema.ts` (Appearance editor).
+- **`math/`** — geodetic, ECEF, `localFrame.ts`, `vec.ts`. Double precision on CPU.
+- **`patches/`** — cube-sphere mapping, schedulers, culling, vertex-budget. `types.ts` is a shared contract.
+- **`camera/`** — orbit, free-fly, spaceflight modes.
+- **`scene/`** — scene graph, drivers, `collectLights.ts`, `sceneDocument.ts` (localStorage scene persistence).
+- **`scene3d/`** — draw list, sphere/water/atmosphere passes, `sceneEngine.ts`.
+- **`material/`** — `biomes.ts`: material overrides + debug modes.
+- **`render/`** — `RenderBackend`, `WebGPUBackend`, `passes/` (terrain, atmosphere).
+- **`gpu/wgsl/`** — primary WGSL shaders (`planet/`, `terrain/`, `atmosphere/`, `scene3d/`, …).
+- **`gpu/glsl/`** — GLSL mirror for WebGL fallback (may lag WGSL).
 
 ### Shaders
 
-- WGSL files support `#include "relative/path.wgsl"`, inlined at build time by **`fe/vite-wgsl.ts`** (imported `.wgsl` becomes a default-exported string). The same resolver exists standalone in `gpu/resolveWgslIncludes.ts` for Node/test use.
-- GLSL uses glslify via **`fe/vite-glslify.ts`**.
-- `gpu/wgslCompile.test.ts` compiles shaders against a real WebGPU device when one is available (`it.skipIf(!hasWebGPU)`), so those checks are skipped in headless CI without GPU.
+- WGSL: `#include "relative/path.wgsl"` via **`fe/vite-wgsl.ts`**.
+- GLSL: glslify via **`fe/vite-glslify.ts`**.
+- `gpu/wgslCompile.test.ts` compiles against a real WebGPU device when available.
 
 ### Deferred work
 
-Picking pass, heightfield pass, and the walk camera are intentionally stubs — method signatures exist on `RenderBackend`/in `passes/` but are not implemented until their rendering gate passes (see `AGENTS.md`).
+Picking pass, heightfield pass, and walk camera are stubs on `RenderBackend` until rendering gates pass (see `AGENTS.md`).

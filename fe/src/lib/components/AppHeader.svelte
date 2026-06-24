@@ -7,10 +7,8 @@
 	export const APP_TITLE = 'Virtual Planet';
 
 	export const NAV_ITEMS: NavItem[] = [
-		{ href: '/planet', label: 'Planet' },
 		{ href: '/scene', label: 'Scene' },
-		{ href: '/solar-systems', label: 'SunDog' },
-		{ href: '/old', label: 'Legacy' }
+		{ href: '/solar-systems', label: 'SunDog' }
 	];
 
 	export function isNavActive(href: string, pathname: string): boolean {

@@ -4,12 +4,13 @@ This file provides centralized guidance to AI coding assistants when working wit
 
 ## Layout
 
-**Virtual Planet** — procedural multi-scale planet renderer. The active app is **`fe/`** (SvelteKit 2 + Svelte 5 runes + TypeScript, WebGPU-first). **`fe.old/`** is the archived Sapper reference. **`_docs/specs/virtual_planet_architecture_plan.md`** is the canonical architecture spec. All commands below run from `fe/`.
+**Virtual Planet** — procedural multi-scale planet renderer. The active app is **`fe/`** (SvelteKit 2 + Svelte 5 runes + TypeScript, WebGPU-first). **`fe.old/`** is the archived Sapper reference (not a workspace). **`_docs/specs/virtual_planet_architecture_plan.md`** is the canonical architecture spec. All commands below run from `fe/`.
 
 | Route | Role |
 |-------|------|
-| **`/planet`** | Active WebGPU renderer (under construction) |
-| **`/old`** | Frozen legacy Three.js planet editor — visual reference; do not break |
+| **`/scene/[...path]`** | Scene / solar-system editor (URL = scene-tree path); WebGPU viewport, node editor, SunDog import |
+| **`/solar-systems`** | SunDog galaxy map — open systems into `/scene` |
+| **`/planet`**, **`/old`** | Retired (308 → `/scene`); do not revive without an explicit request |
 
 ## Commands
 
@@ -33,14 +34,14 @@ npx vitest run src/lib/planet/params/planetParams.test.ts   # single test file
 
 Data flows one direction: **`PlanetParameters` + `CameraState` + `PatchScheduler` → `RenderBackend` → GPU passes**. State lives in Svelte 5 runes; math and scheduling are pure TypeScript.
 
-- **`lib/planet/params/`** — `PlanetParameters`, GPU buffer packing, presets ported from `/old`.
+- **`lib/planet/params/`** — `PlanetParameters`, GPU buffer packing, presets.
 - **`lib/planet/math/`** — geodetic, ECEF, local frame (double precision on CPU).
 - **`lib/planet/patches/`** — patch descriptors, cube-sphere mapping, surface scheduler, culling.
 - **`lib/planet/camera/`** — orbit, flight, surface-fly modes.
 - **`lib/planet/render/`** — `RenderBackend` interface, `WebGPUBackend`, pass stubs.
 - **`lib/planet/gpu/wgsl/`** — WGSL kernel and terrain shaders (primary).
 - **`lib/planet/gpu/glsl/`** — GLSL mirror for WebGL fallback (may lag WGSL).
-- **`lib/planet/components/`** — `PlanetViewport.svelte` owns the render loop. Component scripts follow [_docs/svelte-component-organization.md](_docs/svelte-component-organization.md) (module script for imports/types/constants; instance script for props, runes, lifecycle, handlers).
+- **`lib/planet/components/`** — `SceneViewport3D.svelte` owns the `/scene` render loop. Component scripts follow [_docs/svelte-component-organization.md](_docs/svelte-component-organization.md) (module script for imports/types/constants; instance script for props, runes, lifecycle, handlers).
 
 WGSL imports use `#include "relative/path.wgsl"` resolved by `fe/vite-wgsl.ts`. GLSL uses glslify via `fe/vite-glslify.ts`.
 
@@ -52,9 +53,9 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 
 | Gate | Command | Visual |
 |------|---------|--------|
-| G0 | `npm run check && npm run build` | `/old` still renders |
+| G0 | `npm run check && npm run build` | App builds; `/scene` loads |
 | G1 | `npm run check && npm test` | WGSL modules compile; presets typed |
-| G2 | dev `/planet` | Full cube-sphere planet from orbit |
+| G2 | dev `/scene` | Full cube-sphere planet from orbit |
 | G3 | fly to ~100 m altitude | No jitter; patch carpet visible |
 | G4 | orbit ↔ surface-fly | Stable horizon with fog |
 
@@ -64,9 +65,8 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 2. **Stream ownership** — each agent owns listed paths; do not edit another stream's contract files without coordination.
 3. **Contracts are sacred** — `patches/types.ts`, `params/planetParams.ts`, `render/RenderBackend.ts` are merged sequentially or by integrator only.
 4. **WGSL-first** — new GPU code lands in `gpu/wgsl/`; GLSL mirror is a separate stream.
-5. **Do not touch `/old`** except for regression fixes that keep visuals unchanged.
-6. **Svelte 5 events** — use `onclick`, `onpointerdown`, etc. Never `on:click` / `on:pointerdown` (legacy); mixing syntaxes is a compile error.
-7. **Template typings** — `src/app.d.ts` augments `svelteHTML.HTMLAttributes` from `svelte/elements` so IDE analysis accepts Svelte 5 event attributes on native elements.
+5. **Svelte 5 events** — use `onclick`, `onpointerdown`, etc. Never `on:click` / `on:pointerdown` (legacy); mixing syntaxes is a compile error.
+6. **Template typings** — `src/app.d.ts` augments `svelteHTML.HTMLAttributes` from `svelte/elements` so IDE analysis accepts Svelte 5 event attributes on native elements.
 
 ## Key documentation
 
@@ -75,5 +75,4 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 - [_docs/specs/scene-transform-pipeline.md](_docs/specs/scene-transform-pipeline.md) — deferred model-matrix / ellipsoid transform intention
 - [_docs/specs/sundog-enrichment.md](_docs/specs/sundog-enrichment.md) — SunDog authored overlay (orbits, appearance, prototype trade)
 - [_docs/specs/scene-spaceflight.md](_docs/specs/scene-spaceflight.md) — `/scene` orbital flight panel, RCS modes, atmosphere entry
-- [_docs/current-renderer.md](_docs/current-renderer.md) — `/old` baseline notes (Phase 0)
 - [README.md](README.md) — quick start
