@@ -3,7 +3,8 @@ import { sub3, type Vec3 } from '../math/vec.js';
 import type { OrbitPath3D } from '../scene/orbitPaths.js';
 
 const DEFAULT_COLOR: [number, number, number, number] = [0.45, 0.65, 0.95, 0.4];
-const UBUF_FLOATS = 20; // mat4(16) + color(4)
+// mat4(16) + color(4) + centerEye(4)
+const UBUF_FLOATS = 24;
 
 export class OrbitLinePass {
 	private device: GPUDevice;
@@ -74,7 +75,7 @@ export class OrbitLinePass {
 		});
 	}
 
-	/** Record orbit polylines into the shared scene pass (eye-relative positions). */
+	/** Record orbit polylines into the shared scene pass (orbit-local verts + centerEye). */
 	record(
 		pass: GPURenderPassEncoder,
 		paths: OrbitPath3D[],
@@ -84,19 +85,13 @@ export class OrbitLinePass {
 	) {
 		if (paths.length === 0) return;
 
-		const u = new Float32Array(UBUF_FLOATS);
-		u.set(viewProj, 0);
-		u.set(color, 16);
-		this.device.queue.writeBuffer(this.ubuf, 0, u);
-
 		pass.setPipeline(this.pipeline);
 		pass.setBindGroup(0, this.bindGroup);
 
 		for (const path of paths) {
-			if (path.points.length < 2) continue;
+			if (path.localPoints.length < 2) continue;
 			// Closed line-strip: repeat the first point at the end.
-			const verts = path.points.map((p) => sub3(p, eye));
-			verts.push(verts[0]!);
+			const verts = [...path.localPoints, path.localPoints[0]!];
 			this.ensureVerts(verts.length);
 			const data = new Float32Array(verts.length * 3);
 			for (let i = 0; i < verts.length; i++) {
@@ -105,6 +100,16 @@ export class OrbitLinePass {
 				data[i * 3 + 2] = verts[i]![2];
 			}
 			this.device.queue.writeBuffer(this.vbuf!, 0, data);
+
+			const centerEye = sub3(path.center, eye);
+			const u = new Float32Array(UBUF_FLOATS);
+			u.set(viewProj, 0);
+			u.set(color, 16);
+			u[20] = centerEye[0];
+			u[21] = centerEye[1];
+			u[22] = centerEye[2];
+			this.device.queue.writeBuffer(this.ubuf, 0, u);
+
 			pass.setVertexBuffer(0, this.vbuf!);
 			pass.draw(verts.length);
 		}

@@ -242,11 +242,16 @@
 				: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
 		const visibleOrbitPaths = visibleOrbitSpecs.map((spec) => {
 			const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
+			const orbitMode = viewportPrefs?.overlays.orbitPaths ?? 'all';
+			// High tessellation only for the focused path in "selected" mode. In "all"
+			// mode every path shares the same LOD so one orbit does not dominate at 4096
+			// segments while the system is framed.
+			const highLod = orbitMode === 'selected' && isSelected;
 			const segments = orbitPathSegmentCount(
 				spec.elements,
 				len3(sub3(spec.center, eye)),
 				h,
-				isSelected
+				highLod
 					? { maxChordPx: 1.5, min: 32, max: 4096 }
 					: { maxChordPx: 4, min: 32, max: 256 }
 			);

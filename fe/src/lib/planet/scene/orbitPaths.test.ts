@@ -113,5 +113,6 @@ describe('sampleOrbitPath', () => {
 		const path = buildOrbitPath3D(spec, 48, 0);
 		expect(path.keplerNodeId).toBe(spec.keplerNodeId);
 		expect(path.points.length).toBe(48);
+		expect(path.localPoints.length).toBe(48);
 	});
 });

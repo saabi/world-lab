@@ -18,7 +18,9 @@ export interface OrbitPathSpec {
 
 /** Sampled orbit path ready for rendering. */
 export interface OrbitPath3D extends OrbitPathSpec {
-	/** Closed ellipse loop in world space (XZ plane, y from center). */
+	/** Parent-local ellipse samples (metres). Used by the 3D line pass for precision. */
+	localPoints: Vec3[];
+	/** World-space loop for 2D map projection. */
 	points: Vec3[];
 }
 
@@ -65,16 +67,27 @@ export function orbitPathBoundsForNearFar(spec: OrbitPathSpec): { center: Vec3; 
 	};
 }
 
-/** Sample world-space orbit points. Optionally inject the body's eccentric anomaly. */
-export function sampleOrbitPath(
+/** Sample parent-local orbit points. Optionally inject the body's eccentric anomaly. */
+export function sampleOrbitPathLocal(
 	spec: OrbitPathSpec,
 	segments: number,
 	opts?: { injectBodyE?: number; sceneTime?: number }
 ): Vec3[] {
 	const injectE =
 		opts?.injectBodyE ??
-		(opts?.sceneTime !== undefined && spec.bodyId ? eccentricAnomalyAtTime(spec.elements, opts.sceneTime) : undefined);
-	const local = orbitPathLocal(spec.elements, segments, injectE);
+		(opts?.sceneTime !== undefined && spec.bodyId
+			? eccentricAnomalyAtTime(spec.elements, opts.sceneTime)
+			: undefined);
+	return orbitPathLocal(spec.elements, segments, injectE);
+}
+
+/** Sample world-space orbit points. Optionally inject the body's eccentric anomaly. */
+export function sampleOrbitPath(
+	spec: OrbitPathSpec,
+	segments: number,
+	opts?: { injectBodyE?: number; sceneTime?: number }
+): Vec3[] {
+	const local = sampleOrbitPathLocal(spec, segments, opts);
 	return local.map((p) => add3(spec.center, p));
 }
 
@@ -142,8 +155,21 @@ export function collectOrbitPaths(
 ): OrbitPath3D[] {
 	return collectOrbitPathSpecs(scene).map((spec) => ({
 		...spec,
-		points: sampleOrbitPath(spec, segments, { sceneTime })
+		...buildOrbitPathSamples(spec, segments, sceneTime)
 	}));
+}
+
+function buildOrbitPathSamples(
+	spec: OrbitPathSpec,
+	segments: number,
+	sceneTime?: number
+): Pick<OrbitPath3D, 'localPoints' | 'points'> {
+	const opts = sceneTime !== undefined ? { sceneTime } : undefined;
+	const localPoints = sampleOrbitPathLocal(spec, segments, opts);
+	return {
+		localPoints,
+		points: localPoints.map((p) => add3(spec.center, p))
+	};
 }
 
 /** Build a rendered path from a spec with adaptive segment count. */
@@ -154,6 +180,6 @@ export function buildOrbitPath3D(
 ): OrbitPath3D {
 	return {
 		...spec,
-		points: sampleOrbitPath(spec, segments, { sceneTime })
+		...buildOrbitPathSamples(spec, segments, sceneTime)
 	};
 }

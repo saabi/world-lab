@@ -80,31 +80,33 @@ export function orbitLocalPosition(o: OrbitElements, t: number): Vec3 {
  * in eccentric anomaly (smooth outline). The time-position from orbitLocalPosition
  * always lies on this path. When `injectE` is set, the nearest sample is moved to that
  * eccentric anomaly so the polyline passes through the body's current orbital position.
+ * Samples are emitted in ascending E so the line strip never chords across the interior.
  */
 export function orbitPathLocal(o: OrbitElements, segments: number, injectE?: number): Vec3[] {
 	const c = Math.cos(o.periapsisAngle);
 	const s = Math.sin(o.periapsisAngle);
 	const b = o.semiMajorAxis * Math.sqrt(1 - o.eccentricity * o.eccentricity);
 
-	let injectIndex = -1;
-	let injectENorm: number | undefined;
+	const Es: number[] = [];
+	for (let i = 0; i < segments; i++) Es.push((TWO_PI * i) / segments);
 	if (injectE !== undefined) {
-		injectENorm = injectE % TWO_PI;
-		if (injectENorm < 0) injectENorm += TWO_PI;
+		let e = injectE % TWO_PI;
+		if (e < 0) e += TWO_PI;
+		let best = 0;
 		let bestDist = Infinity;
-		for (let i = 0; i < segments; i++) {
-			const E = (TWO_PI * i) / segments;
-			const d = angularDist(E, injectENorm);
+		for (let i = 0; i < Es.length; i++) {
+			const d = angularDist(Es[i]!, e);
 			if (d < bestDist) {
 				bestDist = d;
-				injectIndex = i;
+				best = i;
 			}
 		}
+		Es[best] = e;
+		Es.sort((a, b) => a - b);
 	}
 
 	const pts: Vec3[] = [];
-	for (let i = 0; i < segments; i++) {
-		const E = injectIndex === i && injectENorm !== undefined ? injectENorm : (TWO_PI * i) / segments;
+	for (const E of Es) {
 		const xp = o.semiMajorAxis * (Math.cos(E) - o.eccentricity);
 		const yp = b * Math.sin(E);
 		pts.push([xp * c - yp * s, 0, xp * s + yp * c]);

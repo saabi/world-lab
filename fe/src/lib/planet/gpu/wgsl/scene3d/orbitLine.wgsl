@@ -1,9 +1,11 @@
-// Unlit orbit ellipse polylines for the scene-3d viewport. Positions are eye-relative
-// (camera at the origin) for precision at planetary distances.
+// Unlit orbit ellipse polylines for the scene-3d viewport. Vertex positions are in the
+// orbit parent's local frame (O(semi-major axis)); centerEye rebases to the camera in
+// the vertex shader so AU-scale paths stay precise in f32.
 
 struct Uniforms {
 	viewProj : mat4x4<f32>,
 	color : vec4<f32>,
+	centerEye : vec4<f32>, // xyz = orbit-center relative to camera; w unused
 };
 
 @group(0) @binding(0) var<uniform> u : Uniforms;
@@ -18,9 +20,10 @@ struct FSOut {
 };
 
 @vertex
-fn vs(@location(0) pos : vec3<f32>) -> VSOut {
+fn vs(@location(0) localPos : vec3<f32>) -> VSOut {
 	var out : VSOut;
-	out.clip = u.viewProj * vec4<f32>(pos, 1.0);
+	let eyeRel = u.centerEye.xyz + localPos;
+	out.clip = u.viewProj * vec4<f32>(eyeRel, 1.0);
 	return out;
 }
 
