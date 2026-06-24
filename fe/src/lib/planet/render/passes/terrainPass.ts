@@ -17,6 +17,7 @@ import {
 	type GpuScaleContext
 } from '../../params/planetParams.js';
 import { buildScaleContext, gatedParams } from '../../planet/layers.js';
+import { localFrameInBodySpace } from '../../math/localFrame.js';
 import {
 	BIND_GROUP,
 	LIGHTING_UNIFORM_SIZE,
@@ -438,13 +439,14 @@ export class TerrainPass {
 		writeScaleContextToBuffer(scaleStaging, 0, scale);
 		this.device.queue.writeBuffer(this.scaleBuffer, 0, scaleStaging);
 
+		const bodyLocalFrame = localFrameInBodySpace(frame.localFrame, frame.planetRotation);
 		const lf: GpuLocalFrame = {
-			origin_ecef: [...frame.localFrame.originEcef, 0],
-			east: [...frame.localFrame.east, 0],
-			north: [...frame.localFrame.north, 0],
-			up: [...frame.localFrame.up, 0],
-			planet_center_local: [...frame.localFrame.planetCenterLocal, 0],
-			camera_local: [...frame.localFrame.cameraLocal, 0]
+			origin_ecef: [...bodyLocalFrame.originEcef, 0],
+			east: [...bodyLocalFrame.east, 0],
+			north: [...bodyLocalFrame.north, 0],
+			up: [...bodyLocalFrame.up, 0],
+			planet_center_local: [...bodyLocalFrame.planetCenterLocal, 0],
+			camera_local: [...bodyLocalFrame.cameraLocal, 0]
 		};
 		const lfStaging = new ArrayBuffer(96);
 		writeLocalFrameToBuffer(lfStaging, 0, lf);

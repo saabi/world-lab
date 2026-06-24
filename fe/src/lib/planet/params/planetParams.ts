@@ -5,10 +5,11 @@ import type { RenderMode } from '../patches/types.js';
  *
  * PARAMETER CONTRACT (see _docs/renderer-unification-plan.md §3.1 and
  * planet-shaping-pipeline-graph.md). Every shape/material field is sampled in the
- * BODY frame: the shader's `sample_planet(unit_dir, …)` receives `body_dir =
- * inverse(planetRotation)·world_dir`, so terrain is anchored to the body, never the
- * viewport. The trailing tag is the field's *scale-behavior* — how its look survives a
- * change of `radius`. The renderer sets `radius = radiusMeters` (world scale), so only
+ * BODY frame: tessellation UVs define a fixed `body_dir` per vertex (cube-face or
+ * body-local tangent patch). `sample_planet(body_dir, …)` samples terrain there;
+ * displaced vertices are placed at `rotate(planetRotation, body_dir) × radius`. The
+ * trailing tag is the field's *scale-behavior* — how its look survives a change of
+ * `radius`. The renderer sets `radius = radiusMeters` (world scale), so only
  * scale-invariant fields keep their appearance across sizes:
  *
  *   freq    multiplies the unit direction (`unit_dir·value`)          → invariant

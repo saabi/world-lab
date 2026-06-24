@@ -55,14 +55,14 @@ fn vs_main(
   let corner = vid % 3u;
   let uv_cell = quad_verts[tri * 3u + corner];
   let local_xy = vec2f(patch_desc.origin_x, patch_desc.origin_y) + (uv_cell - 0.5) * patch_desc.size_meters;
-  let unit_dir = tangent_offset_to_unit_dir(local_xy, local_frame);
-  let body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir);
+  let body_dir = tangent_offset_to_unit_dir(local_xy, local_frame);
   var world_radius = planet.radius;
   if (mat_overrides.displacement_blend > 1e-4) {
     let sample = sample_planet(body_dir, planet, scale_ctx);
     world_radius = mix(planet.radius, sample.world_radius_meters, mat_overrides.displacement_blend);
   }
-  let local_pos = unit_dir * world_radius;
+  let world_dir = rotate_vector_by_quat(view_u.planet_rot, body_dir);
+  let local_pos = world_dir * world_radius;
   var out: VSOut;
   out.world_pos = local_pos;
   out.unit_dir = body_dir;

@@ -11,6 +11,8 @@ import { applyVertexBudget, DEFAULT_MAX_VERTICES_PER_FRAME } from './vertexBudge
 import type { ViewportSize } from './screenSpace.js';
 import { MAX_CUBE_PATCHES, encodeCubeSpherePatches } from '../params/gpuBuffers.js';
 import { budgetAndPackFlat, initSchedulerFromUrl, scheduleCandidatesFlat } from './wasm/schedulerWasm.js';
+import type { Quat } from '../scene/types.js';
+import { IDENTITY_QUAT, quatNear } from '../scene/transform.js';
 
 // Kick off the async WASM scheduler load in the browser. Until it resolves (or
 // if it fails / WebGL fallback / Node tests), scheduleOrbitPatches uses the JS
@@ -133,6 +135,7 @@ const MAX_SPACING_RETRIES = 3;
 interface ScheduleCache {
 	cameraPos: Vec3;
 	planetRadius: number;
+	planetRotation: Quat;
 	vw: number;
 	vh: number;
 	detail: number;
@@ -263,6 +266,8 @@ export interface OrbitScheduleOptions {
 	maxPatchResolution?: number;
 	/** Cap on subdivision depth; 0/undefined = altitude-based auto. */
 	maxDepth?: number;
+	/** Body world rotation — patch culling matches rotated vertex placement. */
+	planetRotation?: Quat;
 }
 
 export interface OrbitScheduleResult {
@@ -287,6 +292,7 @@ export function scheduleOrbitPatches(
 ): OrbitScheduleResult {
 	const maxVertices = options.maxVertices ?? DEFAULT_MAX_VERTICES_PER_FRAME;
 	const baseSpacing = options.targetVertexSpacingPx ?? 6;
+	const planetRotation = options.planetRotation ?? IDENTITY_QUAT;
 	// Honor user detail down to a small sanity clamp (the UI exposes values well
 	// below the old 0.25 floor for low-density mobile meshes).
 	const detail = Math.max(options.detail ?? 1, 0.01);
@@ -303,6 +309,7 @@ export function scheduleOrbitPatches(
 	if (
 		cache &&
 		cache.planetRadius === planetRadius &&
+		quatNear(cache.planetRotation, planetRotation) &&
 		cache.vw === vw &&
 		cache.vh === vh &&
 		cache.detail === detail &&
@@ -332,6 +339,7 @@ export function scheduleOrbitPatches(
 		planetRadius,
 		viewProj,
 		viewport: options.viewport,
+		planetRotation,
 		...(maxPatchResolution ? { maxPatchResolution } : {}),
 		...(maxDepth ? { maxDepth } : {})
 	};
@@ -349,6 +357,7 @@ export function scheduleOrbitPatches(
 	scheduleCache = {
 		cameraPos: [cameraPos[0], cameraPos[1], cameraPos[2]],
 		planetRadius,
+		planetRotation: [...planetRotation] as Quat,
 		vw,
 		vh,
 		detail,

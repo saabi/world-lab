@@ -7,6 +7,11 @@
 // or before the async load resolves).
 import type { CubeSpherePatch, PackedBucket } from '../types.js';
 import type { OrbitSchedulerInput, ScheduledPatch } from '../cubeSphereScheduler.js';
+import { IDENTITY_QUAT } from '../../scene/transform.js';
+import {
+	composeScheduleViewProj,
+	scheduleHemisphereCamDir
+} from '../orbitScheduleCoords.js';
 
 // Linear-memory layout (byte offsets). Mirrors the regions scheduler.ts reads.
 const VP_OFF = 0; // 16 f32 (view-projection)
@@ -135,11 +140,18 @@ export function scheduleCandidatesFlat(input: OrbitSchedulerInput): FlatCandidat
 	const dv = f64;
 	if (!fn || !fv || !dv) return null;
 
-	const vp = input.viewProj;
-	for (let i = 0; i < 16; i++) fv[VP_F32 + i] = vp[i];
+	const schedVp = composeScheduleViewProj(
+		input.viewProj,
+		input.planetRotation ?? IDENTITY_QUAT
+	);
+	for (let i = 0; i < 16; i++) fv[VP_F32 + i] = schedVp[i]!;
 	dv[CAM_F64] = input.cameraPos[0];
 	dv[CAM_F64 + 1] = input.cameraPos[1];
 	dv[CAM_F64 + 2] = input.cameraPos[2];
+	const hemi = scheduleHemisphereCamDir(input.cameraPos, input.planetRotation ?? IDENTITY_QUAT);
+	dv[CAM_F64 + 3] = hemi[0];
+	dv[CAM_F64 + 4] = hemi[1];
+	dv[CAM_F64 + 5] = hemi[2];
 
 	const target = input.targetVertexSpacingPx ?? 6;
 	const count = fn(

@@ -15,6 +15,12 @@ import {
 	patchScreenDiameterPx,
 	type ViewportSize
 } from './screenSpace.js';
+import type { Quat } from '../scene/types.js';
+import { IDENTITY_QUAT } from '../scene/transform.js';
+import {
+	composeScheduleViewProj,
+	scheduleHemisphereCamDir
+} from './orbitScheduleCoords.js';
 
 export const RESOLUTION_LEVELS = [8, 16, 32, 64, 96] as const;
 
@@ -46,6 +52,7 @@ export interface OrbitSchedulerInput {
 	targetVertexSpacingPx?: number;
 	maxDepth?: number;
 	maxPatchResolution?: number;
+	planetRotation?: Quat;
 }
 
 interface QuadNode {
@@ -81,17 +88,20 @@ export function isCubeFaceOnScreen(
 	planetRadius: number,
 	viewProj: Float32Array,
 	viewport: ViewportSize,
-	marginPx = VIEWPORT_CULL_MARGIN_PX
+	marginPx = VIEWPORT_CULL_MARGIN_PX,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
+	const schedViewProj = composeScheduleViewProj(viewProj, planetRotation);
+	const hemiCamDir = scheduleHemisphereCamDir(cameraPos, planetRotation);
 	const rootPatch = nodeToPatch(
 		{ face: face as CubeSpherePatch['face'], uvMin: [0, 0], uvMax: [1, 1], depth: 0 },
 		0,
 		8
 	);
-	const bounds = patchScreenBounds(viewProj, viewport, planetRadius, rootPatch);
+	const bounds = patchScreenBounds(schedViewProj, viewport, planetRadius, rootPatch);
 	return (
 		patchIntersectsViewport(bounds, viewport, marginPx) ||
-		patchIntersectsFrontHemisphere(rootPatch, cameraPos)
+		patchIntersectsFrontHemisphere(rootPatch, hemiCamDir)
 	);
 }
 
@@ -137,12 +147,14 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 		viewProj,
 		viewport,
 		targetVertexSpacingPx = 6,
-		maxDepth: maxDepthInput
+		maxDepth: maxDepthInput,
+		planetRotation = IDENTITY_QUAT
 	} = input;
 	const altitude = Math.max(len3(cameraPos) - planetRadius, 0);
 	const maxDepth = maxDepthInput ?? chooseMaxDepth(altitude, planetRadius);
 	const maxRes = input.maxPatchResolution ?? chooseOrbitPatchResolution(altitude, planetRadius);
-	const camDir = normalize3(cameraPos);
+	const schedViewProj = composeScheduleViewProj(viewProj, planetRotation);
+	const hemiCamDir = scheduleHemisphereCamDir(cameraPos, planetRotation);
 	const searchMarginPx = Math.max(viewport.width, viewport.height);
 
 	const leaves: ScheduledPatch[] = [];
@@ -156,11 +168,11 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			depth: 0
 		};
 		const rootPatch = nodeToPatch(rootNode, nextId, 8);
-		const rootBounds = patchScreenBounds(viewProj, viewport, planetRadius, rootPatch, {
+		const rootBounds = patchScreenBounds(schedViewProj, viewport, planetRadius, rootPatch, {
 			cornersOnly: true
 		});
 		const rootOnScreen = patchIntersectsViewport(rootBounds, viewport, VIEWPORT_CULL_MARGIN_PX);
-		const rootOnHemisphere = patchIntersectsFrontHemisphere(rootPatch, cameraPos);
+		const rootOnHemisphere = patchIntersectsFrontHemisphere(rootPatch, hemiCamDir);
 		if (!rootOnScreen && !rootOnHemisphere) continue;
 
 		const stack: QuadNode[] = [rootNode];
@@ -169,7 +181,7 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			const node = stack.pop()!;
 			const patch = nodeToPatch(node, nextId, 8);
 
-			const bounds = patchScreenBounds(viewProj, viewport, planetRadius, patch, {
+			const bounds = patchScreenBounds(schedViewProj, viewport, planetRadius, patch, {
 				cornersOnly: true
 			});
 			// A patch with corners on both sides of the near plane has untrustworthy
@@ -185,7 +197,7 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			const inSearchRegion =
 				onOrNearScreen ||
 				patchIntersectsViewport(bounds, viewport, searchMarginPx) ||
-				(!bounds.anyVisible && patchIntersectsFrontHemisphere(patch, cameraPos));
+				(!bounds.anyVisible && patchIntersectsFrontHemisphere(patch, hemiCamDir));
 
 			if (!onOrNearScreen && !inSearchRegion) continue;
 
@@ -205,12 +217,12 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 				continue;
 			}
 
-			const onHemisphere = patchIntersectsFrontHemisphere(patch, cameraPos);
+			const onHemisphere = patchIntersectsFrontHemisphere(patch, hemiCamDir);
 			// Limb-only fallback: corners project behind camera but tile is still front-facing.
 			const limbTile = !bounds.anyVisible && onHemisphere;
 			const emitBounds =
 				limbTile || !bounds.anyVisible
-					? patchScreenBounds(viewProj, viewport, planetRadius, patch)
+					? patchScreenBounds(schedViewProj, viewport, planetRadius, patch)
 					: bounds;
 			const overlapsViewport =
 				emitBounds.anyVisible &&
@@ -231,7 +243,7 @@ export function scheduleAdaptiveOrbitPatches(input: OrbitSchedulerInput): Schedu
 			// the visible terrain — that produced an empty view below ~20 m altitude.
 			const res = straddlesNearPlane ? Math.min(rawRes, STRADDLE_MAX_RESOLUTION) : rawRes;
 			const finalPatch = nodeToPatch(node, nextId++, res);
-			const facing = Math.max(0, dot3(patchCenterDir(finalPatch), camDir));
+			const facing = Math.max(0, dot3(patchCenterDir(finalPatch), hemiCamDir));
 			const area = patchScreenAreaPx(emitBounds);
 			finalPatch.priority = area * facing;
 			leaves.push(finalPatch);

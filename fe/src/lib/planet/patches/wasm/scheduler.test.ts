@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createOrbitCamera, type OrbitLookMode } from '../../camera/orbitCamera.js';
+import { quatFromAxisAngle } from '../../scene/transform.js';
 import {
 	scheduleAdaptiveOrbitPatches,
 	type OrbitSchedulerInput,
@@ -155,6 +156,21 @@ describe('scheduler.wasm parity with JS scheduleAdaptiveOrbitPatches', () => {
 			viewport,
 			targetVertexSpacingPx: 6
 		});
+	});
+
+	it('matches with non-identity planet rotation (body-fixed scheduling)', () => {
+		const rot = quatFromAxisAngle([0, 1, 0], 0.9);
+		for (const distance of [105, 140, 240]) {
+			const cam = makeCam(distance, radius);
+			assertParity({
+				cameraPos: cam.position,
+				planetRadius: radius,
+				viewProj: cam.viewProjectionMatrix,
+				viewport,
+				targetVertexSpacingPx: 6,
+				planetRotation: rot
+			});
+		}
 	});
 
 	it('benchmarks wasm vs js full schedule throughput', { timeout: 30000 }, () => {

@@ -81,7 +81,8 @@ export function buildRenderFrame(input: BuildRenderFrameInputs): BuildRenderFram
 				detail: tessellation.detail,
 				maxVertices: tessellation.vertexBudgetMillions * 1_000_000,
 				maxPatchResolution: tessellation.maxPatchResolution,
-				maxDepth: tessellation.maxDepth
+				maxDepth: tessellation.maxDepth,
+				planetRotation: input.planetRotation
 			}
 		);
 		orbitSchedule = {

@@ -1,6 +1,21 @@
 import type { Vec3 } from '../math/vec.js';
 import { cubeFaceUvToUnitDir } from './cubeSphere.js';
 import type { CubeSpherePatch } from './types.js';
+import type { Quat } from '../scene/types.js';
+import { IDENTITY_QUAT, rotateVec3 } from '../scene/transform.js';
+
+export function bodyDirToWorldDir(bodyDir: Vec3, planetRotation: Quat = IDENTITY_QUAT): Vec3 {
+	return rotateVec3(planetRotation, bodyDir);
+}
+
+export function bodyDirToWorldPos(
+	bodyDir: Vec3,
+	planetRadius: number,
+	planetRotation: Quat = IDENTITY_QUAT
+): Vec3 {
+	const d = bodyDirToWorldDir(bodyDir, planetRotation);
+	return [d[0] * planetRadius, d[1] * planetRadius, d[2] * planetRadius];
+}
 
 export interface ViewportSize {
 	width: number;
@@ -57,11 +72,12 @@ export function projectWorldPoint(
 
 export function patchWorldCorners(
 	patch: CubeSpherePatch,
-	planetRadius: number
+	planetRadius: number,
+	planetRotation: Quat = IDENTITY_QUAT
 ): Vec3[] {
 	return patchSampleUvs(patch).map(([u, v]) => {
-		const dir = cubeFaceUvToUnitDir(patch.face, u, v);
-		return [dir[0] * planetRadius, dir[1] * planetRadius, dir[2] * planetRadius];
+		const bodyDir = cubeFaceUvToUnitDir(patch.face, u, v);
+		return bodyDirToWorldPos(bodyDir, planetRadius, planetRotation);
 	});
 }
 
@@ -100,12 +116,13 @@ export function patchScreenBounds(
 	viewport: ViewportSize,
 	planetRadius: number,
 	patch: CubeSpherePatch,
-	options?: { cornersOnly?: boolean }
+	options?: { cornersOnly?: boolean; planetRotation?: Quat }
 ): ScreenBounds {
 	const sampleUvs = options?.cornersOnly ? patchCornerUvs(patch) : patchSampleUvs(patch);
+	const rot = options?.planetRotation ?? IDENTITY_QUAT;
 	const corners = sampleUvs.map(([u, v]) => {
-		const dir = cubeFaceUvToUnitDir(patch.face, u, v);
-		return [dir[0] * planetRadius, dir[1] * planetRadius, dir[2] * planetRadius] as Vec3;
+		const bodyDir = cubeFaceUvToUnitDir(patch.face, u, v);
+		return bodyDirToWorldPos(bodyDir, planetRadius, rot);
 	});
 	let minX = Infinity;
 	let minY = Infinity;

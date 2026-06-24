@@ -4,6 +4,16 @@ import type { Quat, Transform } from './types.js';
 
 export const IDENTITY_QUAT: Quat = [0, 0, 0, 1];
 
+export function isIdentityQuat(q: Quat, eps = 1e-5): boolean {
+	return Math.hypot(q[0], q[1], q[2]) < eps && Math.abs(Math.abs(q[3]) - 1) < eps;
+}
+
+/** True when a and b represent the same rotation (q and -q equivalent). */
+export function quatNear(a: Quat, b: Quat, eps = 1e-4): boolean {
+	const d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+	return Math.abs(Math.abs(d) - 1) < eps;
+}
+
 export function quatFromAxisAngle(axis: Vec3, angleRad: number): Quat {
 	const half = angleRad * 0.5;
 	const s = Math.sin(half);

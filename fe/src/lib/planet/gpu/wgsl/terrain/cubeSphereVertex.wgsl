@@ -62,20 +62,17 @@ fn vs_main(
   let uv_cell = quad_verts[tri_in_cell * 3u + corner];
   let uv_local = (vec2f(f32(cell_x), f32(cell_y)) + uv_cell) / f32(res);
   let uv = mix(vec2f(patch_desc.uv_min_x, patch_desc.uv_min_y), vec2f(patch_desc.uv_max_x, patch_desc.uv_max_y), uv_local);
-  let unit_dir = cube_face_uv_to_unit_dir(patch_desc.face, uv.x, uv.y);
-  // Sample terrain in the planet's body frame (world dir rotated by -spin), but
-  // place the vertex at the world direction so the camera/sun stay fixed and the
-  // terrain rotates beneath them.
-  let body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir);
+  let body_dir = cube_face_uv_to_unit_dir(patch_desc.face, uv.x, uv.y);
   var world_radius = planet.radius;
   if (mat_overrides.displacement_blend > 1e-4) {
     let sample = sample_planet(body_dir, planet, scale_ctx);
     world_radius = mix(planet.radius, sample.world_radius_meters, mat_overrides.displacement_blend);
   }
-  let world_pos = unit_dir * world_radius;
+  let world_dir = rotate_vector_by_quat(view_u.planet_rot, body_dir);
+  let world_pos = world_dir * world_radius;
   var out: VSOut;
   out.world_pos = world_pos;
-  out.unit_dir = unit_dir;
+  out.unit_dir = world_dir;
   out.body_dir = body_dir;
   out.face = patch_desc.face;
   out.patch_uv = uv_local;

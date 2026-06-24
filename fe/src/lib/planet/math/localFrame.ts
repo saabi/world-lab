@@ -2,6 +2,8 @@ import { ecefToGeodetic, type GeodeticPosition } from './geodetic.js';
 import { ecefToLocalFloat } from './ecef.js';
 import type { Vec3, Vec3d } from './vec.js';
 import { cross3, dot3, normalize3, sub3 } from './vec.js';
+import type { Quat } from '../scene/types.js';
+import { rotateVec3 } from '../scene/transform.js';
 
 export interface LocalFrame {
 	originEcef: Vec3d;
@@ -44,6 +46,25 @@ export function buildLocalFrame(cameraWorld: Vec3, planetRadiusMeters: number): 
 		planetCenterLocal,
 		cameraLocal,
 		rebaseCount: 0
+	};
+}
+
+/** Rotate tangent basis into body space so surface-patch UVs yield spin-invariant body_dir. */
+export function localFrameInBodySpace(frame: LocalFrame, planetRotation: Quat): LocalFrame {
+	const inv: Quat = [
+		-planetRotation[0],
+		-planetRotation[1],
+		-planetRotation[2],
+		planetRotation[3]
+	];
+	const east = rotateVec3(inv, [frame.east[0], frame.east[1], frame.east[2]]);
+	const north = rotateVec3(inv, [frame.north[0], frame.north[1], frame.north[2]]);
+	const up = rotateVec3(inv, [frame.up[0], frame.up[1], frame.up[2]]);
+	return {
+		...frame,
+		east: [east[0], east[1], east[2]],
+		north: [north[0], north[1], north[2]],
+		up: [up[0], up[1], up[2]]
 	};
 }
 

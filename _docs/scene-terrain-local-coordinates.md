@@ -13,21 +13,30 @@ expects `unit_dir` to be in the planet's body-local frame. If scene/world direct
 reach `sample_planet`, the noise fields, biome bands, normals, and polar effects are
 anchored to the viewport/world frame instead of the body frame.
 
-## What Was Already Correct
+## Body-fixed tessellation (spin/orbit wobble fix)
 
-The cube-sphere orbit path already sampled in the body-local frame:
+Earlier placement kept a **render-frame-fixed** cube-sphere grid and inverse-rotated for
+`sample_planet`. As `planetRotation` changed (spin/orbit), each vertex sampled different
+body terrain while staying on a fixed render radial — relief swam under the mesh.
+
+Terrain shaders now use **body-fixed tessellation, rotated placement**:
 
 `fe/src/lib/planet/gpu/wgsl/terrain/cubeSphereVertex.wgsl`
 
-- Starts with a world/body-relative sphere direction, `unit_dir`.
-- Converts it with `rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir)`.
-- Calls `sample_planet(body_dir, planet, scale_ctx)`.
-- Places the vertex at `unit_dir * sample.world_radius_meters`.
-- Computes normals in body space and rotates them back with `planet_rot`.
+- `body_dir = cube_face_uv_to_unit_dir(face, uv)` — constant per patch vertex in body space.
+- `sample_planet(body_dir, …)` for displacement.
+- `world_pos = rotate(planet_rot, body_dir) * world_radius`.
+- Normals: body-space finite differences, then `rotate(planet_rot, n_body)`.
 
-So orbit-mode cube-sphere terrain had the intended body-local analytics.
+`fe/src/lib/planet/gpu/wgsl/terrain/surfacePatchVertex.wgsl`
 
-## Bugs Fixed
+- `LocalFrame` east/north/up are pre-rotated into body space on the CPU
+  (`localFrameInBodySpace` in `terrainPass`) so tangent patches share the same contract.
+
+Patch culling/scheduling rotates cube corners by `planetRotation` so LOD selection matches
+rotated geometry (`screenSpace.ts`, `cubeSphereScheduler.ts`).
+
+## Earlier fixes (rotation scope + surface patch sampling)
 
 ### 1. /scene Passed the Wrong Rotation Scope
 
@@ -45,24 +54,11 @@ That is the evaluated world rotation of the selected body's body frame. It inclu
 scene spin plus inherited frame rotation, so `planetRotation` describes the body frame
 used by the renderer.
 
-### 2. Surface Patches Sampled in World Space
+### 2. Surface Patches Bypassed planet_rot
 
-`surfacePatchVertex.wgsl` previously called:
-
-```wgsl
-let sample = sample_planet(unit_dir, planet, scale_ctx);
-```
-
-That bypassed `planet_rot`, so low-altitude surface patches were not using the same
-body-local analytics as cube-sphere patches.
-
-The surface patch path now:
-
-- Adds `planet_rot` to its `ViewUniforms`, matching the CPU uniform layout.
-- Computes `body_dir = rotate_vector_by_quat_inv(view_u.planet_rot, unit_dir)`.
-- Samples terrain/materials with `body_dir`.
-- Places geometry with the unrotated world/body-relative `unit_dir`.
-- Rotates body-space normals back into world/body-relative space.
+`surfacePatchVertex.wgsl` previously called `sample_planet(unit_dir, …)` without
+`planet_rot`. That was fixed before body-fixed placement; see the section above for the
+current surface-patch contract.
 
 ## Current Coordinate Contract
 
@@ -74,12 +70,13 @@ For procedural bodies rendered from `/scene`:
 4. `focusedBodyCamera()` builds the body-at-origin camera from the scene orbit (the
    shared `createOrbitCamera` builder; floating-origin compositing is Phase 5's
    `bodyRelativeView()`).
-5. Terrain shaders use world/body-relative directions for geometry placement.
-6. Terrain analytics use `inverse(planetRotation) * direction`.
-7. Normals return to world/body-relative space with `planetRotation * normal`.
+5. Tessellation UVs define **body-fixed** `body_dir` (cube face or body-local tangent).
+6. `sample_planet(body_dir, …)` samples terrain; vertices place at
+   `rotate(planetRotation, body_dir) × displaced_radius`.
+7. Normals return to the render frame with `planetRotation * n_body`.
 
-That keeps the analytic terrain attached to the body while the camera, sun, and scene
-frame remain external.
+Orbit camera motion only changes the view matrix. Body spin/orbit rotates the displaced
+mesh with the terrain features locked to each vertex's `body_dir`.
 
 ## Remaining Caveats
 

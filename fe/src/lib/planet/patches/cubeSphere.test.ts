@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createOrbitCamera } from '../camera/orbitCamera.js';
+import { quatFromAxisAngle } from '../scene/transform.js';
 import {
 	chooseOrbitPatchResolution,
 	cubeFaceUvToPosition,
@@ -194,5 +195,30 @@ describe('cubeSphere mapping', () => {
 		const facesUsed = new Set(patches.map((p) => p.face));
 		expect(facesUsed.size).toBeGreaterThanOrEqual(3);
 		expect(facesUsed.size).toBeLessThanOrEqual(facesOnScreen);
+	});
+
+	it('schedules with rotated patch corners when the body spins', () => {
+		const cam = createOrbitCamera({
+			distance: 150,
+			azimuth: 0.2,
+			elevation: 0.3,
+			fovDeg: 60,
+			aspect: 16 / 9,
+			near: 0.1,
+			far: 10_000,
+			planetRadius: 100
+		});
+		const viewport = { width: 1280, height: 720 };
+		const spin = quatFromAxisAngle([0, 1, 0], 1.2);
+		resetOrbitScheduleCache();
+		const spun = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport,
+			planetRotation: spin
+		});
+		const identity = scheduleOrbitPatches(cam.position, 100, cam.viewProjectionMatrix, {
+			viewport
+		});
+		expect(spun.patchCount).toBeGreaterThan(0);
+		expect(identity.patchCount).toBeGreaterThan(0);
 	});
 });

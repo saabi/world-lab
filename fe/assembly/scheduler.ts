@@ -35,7 +35,8 @@ let m4: f64 = 0, m5: f64 = 0, m7: f64 = 0;
 let m8: f64 = 0, m9: f64 = 0, m11: f64 = 0;
 let m12: f64 = 0, m13: f64 = 0, m15: f64 = 0;
 let gVw: f64 = 0, gVh: f64 = 0, gRadius: f64 = 0;
-let gCamX: f64 = 0, gCamY: f64 = 0, gCamZ: f64 = 1; // normalized camera direction
+let gCamX: f64 = 0, gCamY: f64 = 0, gCamZ: f64 = 1; // normalized camera direction (altitude)
+let gHemiCamX: f64 = 0, gHemiCamY: f64 = 0, gHemiCamZ: f64 = 1; // inv(rot)·cam for body-dir dots
 
 // projectPoint outputs
 let pScreenX: f64 = 0, pScreenY: f64 = 0;
@@ -128,7 +129,7 @@ function frontHemisphere(face: i32, u0: f64, v0: f64, u1: f64, v1: f64): bool {
 	const eps: f64 = -0.02;
 	for (let i = 0; i < 9; i++) {
 		cubeDir(face, sampleU(i, u0, u1, um), sampleV(i, v0, v1, vm));
-		if (dX * gCamX + dY * gCamY + dZ * gCamZ > eps) return true;
+		if (dX * gHemiCamX + dY * gHemiCamY + dZ * gHemiCamZ > eps) return true;
 	}
 	return false;
 }
@@ -224,6 +225,9 @@ export function scheduleOrbit(
 	const camX = load<f64>(camPtr);
 	const camY = load<f64>(camPtr + 8);
 	const camZ = load<f64>(camPtr + 16);
+	gHemiCamX = load<f64>(camPtr + 24);
+	gHemiCamY = load<f64>(camPtr + 32);
+	gHemiCamZ = load<f64>(camPtr + 40);
 	const camLen = Math.sqrt(camX * camX + camY * camY + camZ * camZ);
 	if (camLen < 1e-12) { gCamX = 0; gCamY = 0; gCamZ = 1; }
 	else { gCamX = camX / camLen; gCamY = camY / camLen; gCamZ = camZ / camLen; }
@@ -306,7 +310,7 @@ export function scheduleOrbit(
 			const res = straddle ? (rawRes < STRADDLE_MAX_RESOLUTION ? rawRes : STRADDLE_MAX_RESOLUTION) : rawRes;
 
 			cubeDir(face, (u0 + u1) * 0.5, (v0 + v1) * 0.5);
-			let facing = dX * gCamX + dY * gCamY + dZ * gCamZ;
+			let facing = dX * gHemiCamX + dY * gHemiCamY + dZ * gHemiCamZ;
 			if (facing < 0) facing = 0;
 			const priority = areaOf(eVis, eMinX, eMinY, eMaxX, eMaxY) * facing;
 

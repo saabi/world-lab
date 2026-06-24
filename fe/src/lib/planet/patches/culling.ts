@@ -1,8 +1,10 @@
 import type { Vec3 } from '../math/vec.js';
 import { dot3, len3, normalize3 } from '../math/vec.js';
 import { cubeFaceUvToUnitDir } from './cubeSphere.js';
-import { patchSampleUvs, patchWorldCorners } from './screenSpace.js';
+import { bodyDirToWorldDir, patchSampleUvs, patchWorldCorners } from './screenSpace.js';
 import type { CubeSpherePatch } from './types.js';
+import type { Quat } from '../scene/types.js';
+import { IDENTITY_QUAT } from '../scene/transform.js';
 
 export interface FrustumPlanes {
 	planes: Vec3[];
@@ -54,13 +56,12 @@ export function patchCenterDir(patch: CubeSpherePatch): Vec3 {
 /** Any sample on the patch faces the camera hemisphere (limb-safe tile coverage). */
 export function patchIntersectsFrontHemisphere(
 	patch: CubeSpherePatch,
-	cameraPos: Vec3,
+	hemiCamDir: Vec3,
 	epsilon = -0.02
 ): boolean {
-	const camDir = normalize3(cameraPos);
 	for (const [u, v] of patchSampleUvs(patch)) {
-		const dir = cubeFaceUvToUnitDir(patch.face, u, v);
-		if (dot3(dir, camDir) > epsilon) return true;
+		const bodyDir = cubeFaceUvToUnitDir(patch.face, u, v);
+		if (dot3(bodyDir, hemiCamDir) > epsilon) return true;
 	}
 	return false;
 }
@@ -68,29 +69,34 @@ export function patchIntersectsFrontHemisphere(
 export function isPatchBackfacing(
 	patch: CubeSpherePatch,
 	cameraPos: Vec3,
-	params: CullParams
+	params: CullParams,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
 	const camDir = normalize3(cameraPos);
-	return dot3(patchCenterDir(patch), camDir) < params.backfaceDot;
+	const worldCenter = bodyDirToWorldDir(patchCenterDir(patch), planetRotation);
+	return dot3(worldCenter, camDir) < params.backfaceDot;
 }
 
 export function isPatchAboveHorizon(
 	patch: CubeSpherePatch,
 	cameraPos: Vec3,
-	params: CullParams
+	params: CullParams,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
 	if (!params.useHorizonCull) return true;
 	const camDir = normalize3(cameraPos);
-	return dot3(patchCenterDir(patch), camDir) >= params.horizonDot;
+	const worldCenter = bodyDirToWorldDir(patchCenterDir(patch), planetRotation);
+	return dot3(worldCenter, camDir) >= params.horizonDot;
 }
 
 /** True when the patch lies entirely outside one frustum plane (corner-based). */
 export function isPatchFullyOutsideFrustum(
 	patch: CubeSpherePatch,
 	planetRadius: number,
-	frustum: FrustumPlanes
+	frustum: FrustumPlanes,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
-	const corners = patchWorldCorners(patch, planetRadius);
+	const corners = patchWorldCorners(patch, planetRadius, planetRotation);
 	for (let i = 0; i < 6; i++) {
 		let allOutside = true;
 		for (const corner of corners) {
@@ -108,9 +114,10 @@ export function isPatchFullyOutsideFrustum(
 export function isPatchInFrustum(
 	patch: CubeSpherePatch,
 	planetRadius: number,
-	frustum: FrustumPlanes
+	frustum: FrustumPlanes,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
-	return !isPatchFullyOutsideFrustum(patch, planetRadius, frustum);
+	return !isPatchFullyOutsideFrustum(patch, planetRadius, frustum, planetRotation);
 }
 
 export function isPatchVisible(
@@ -118,11 +125,12 @@ export function isPatchVisible(
 	cameraPos: Vec3,
 	planetRadius: number,
 	frustum: FrustumPlanes,
-	params: CullParams
+	params: CullParams,
+	planetRotation: Quat = IDENTITY_QUAT
 ): boolean {
-	if (isPatchBackfacing(patch, cameraPos, params)) return false;
-	if (!isPatchInFrustum(patch, planetRadius, frustum)) return false;
-	if (!isPatchAboveHorizon(patch, cameraPos, params)) return false;
+	if (isPatchBackfacing(patch, cameraPos, params, planetRotation)) return false;
+	if (!isPatchInFrustum(patch, planetRadius, frustum, planetRotation)) return false;
+	if (!isPatchAboveHorizon(patch, cameraPos, params, planetRotation)) return false;
 	return true;
 }
 
@@ -131,9 +139,12 @@ export function cullCubeSpherePatches(
 	patches: CubeSpherePatch[],
 	cameraPos: Vec3,
 	planetRadius: number,
-	viewProj: Float32Array
+	viewProj: Float32Array,
+	planetRotation: Quat = IDENTITY_QUAT
 ): CubeSpherePatch[] {
 	const frustum = extractFrustumPlanes(viewProj);
 	const params = buildCullParams(cameraPos, planetRadius);
-	return patches.filter((patch) => isPatchVisible(patch, cameraPos, planetRadius, frustum, params));
+	return patches.filter((patch) =>
+		isPatchVisible(patch, cameraPos, planetRadius, frustum, params, planetRotation)
+	);
 }
