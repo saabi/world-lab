@@ -2,6 +2,7 @@
 #include "raySphere.wgsl"
 #include "density.wgsl"
 #include "phase.wgsl"
+#include "../planet/eclipse.wgsl"
 
 const SUN_STEPS: u32 = 4u;
 
@@ -49,6 +50,7 @@ fn integrate_atmosphere(
   t_max: f32,
   sun_dir: vec3f,
   atmo: AtmosphereParams,
+  eclipse: EclipseUniforms,
 ) -> vec4f {
   // March only the segment of the ray that lies inside the atmosphere shell,
   // clamped to the occluder distance (terrain) in `t_max`. The step size then
@@ -89,11 +91,15 @@ fn integrate_atmosphere(
     let ext = rho * sigma_t;
     let sample_trans = exp(-ext * dt);
     let sun_trans = sun_transmittance(pos, sun_dir, atmo, sigma_t);
+    // Body-to-body eclipse, sampled per step: the fraction of the sun's disk visible at
+    // THIS point. Only samples inside the umbra/penumbra cone darken, so the shadow shows
+    // as a volume crossing the halo rather than dimming the whole atmosphere at once.
+    let sun_vis = body_eclipse_visibility(pos, eclipse);
     // Source radiance is ∫ rho * beta * phase * dt. `sample_trans` still uses
     // sigma_t for extinction, but using (1 - sample_trans) here would multiply by
     // sigma_t and then by the beta already present in `phase`, effectively squaring
     // the radius-normalized coefficients and making world-scale atmospheres black.
-    inscatter += transmittance * rho * phase * dt * sun_trans * atmo.sun_radiance;
+    inscatter += transmittance * rho * phase * dt * sun_trans * sun_vis * atmo.sun_radiance;
     transmittance *= sample_trans;
   }
 

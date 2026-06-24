@@ -199,12 +199,10 @@ fn composite_body_atmosphere(
     }
   }
 
-  let scatter = integrate_atmosphere(eye_rel, omega, t_max, sun_dir, atmo);
-  // Eclipse dims the inscattered sunlight (≈0 in the umbra) — scale the radiance before
-  // tone mapping; the background-extinction transmittance is unchanged. Evaluated at the
-  // body center, so the whole halo dims together (a per-sample eval would graze the limb).
-  let eclipse_vis = body_eclipse_visibility(atmo.planet_center, eclipse);
-  let inscatter = tone_map_reinhard_atmo(scatter.rgb * eclipse_vis);
+  // Eclipse is sampled per march step inside integrate_atmosphere, so only the volume of
+  // the halo crossing the umbra/penumbra cone darkens (not the whole atmosphere at once).
+  let scatter = integrate_atmosphere(eye_rel, omega, t_max, sun_dir, atmo, eclipse);
+  let inscatter = tone_map_reinhard_atmo(scatter.rgb);
   let inscatter_faded = inscatter * atmosphere_opacity;
   let transmittance_faded = mix(1.0, scatter.a, atmosphere_opacity);
   if (hardware_alpha) {

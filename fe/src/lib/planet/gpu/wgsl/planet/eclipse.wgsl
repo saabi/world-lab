@@ -7,6 +7,12 @@ struct EclipseUniforms {
   occluders: array<vec4f, MAX_ECLIPSE_OCCLUDERS>,
 }
 
+// Disabled set (params.y = 0 ⇒ body_eclipse_visibility returns 1.0). For callers with no
+// eclipse data, e.g. the standalone /planet atmosphere passing through integrate_atmosphere.
+fn no_eclipse() -> EclipseUniforms {
+  return EclipseUniforms(vec4f(0.0), vec4f(0.0), array<vec4f, MAX_ECLIPSE_OCCLUDERS>());
+}
+
 fn eclipse_disk_overlap_area(a: f32, b: f32, d: f32) -> f32 {
   if (a <= 0.0 || b <= 0.0 || d >= a + b) {
     return 0.0;

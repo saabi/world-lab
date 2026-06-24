@@ -66,8 +66,10 @@ by the camera eye), so any body shadows any body regardless of its LOD:
   its moon even when the moon is too small to be a procedural receiver. (This was the
   cause of the earlier "planets don't shadow moons" asymmetry: occluders were always
   scene-wide, but only procedural terrain *received* a shadow.)
-- `gpu/wgsl/scene3d/sceneAtmosphere.wgsl` dims each body's inscatter by the eclipse
-  visibility at its center (pre-tone-map), so halos darken in shadow.
+- `gpu/wgsl/scene3d/sceneAtmosphere.wgsl` dims the inscatter **per ray-march sample**
+  (the eclipse term is evaluated inside `integrate_atmosphere`, scaling each step's sun
+  contribution by the visibility at that point), so only the volume of the halo crossing
+  the umbra/penumbra cone darkens — not the whole atmosphere when the center is covered.
 
 The shader skips a body's self-occlusion (a surface fragment sits within its own radius),
 so one global set serves every receiver in a draw.
@@ -79,8 +81,6 @@ Current limitations:
   position/radius per fragment.
 - The global (sphere/atmosphere) occluder set is capped at `MAX_ECLIPSE_OCCLUDERS = 8` of
   the largest bodies; a tiny moon could be dropped as an occluder at sphere LOD.
-- Atmosphere eclipse is evaluated at the body center (the whole halo dims together), not
-  per ray-march sample, so the umbra/penumbra edge across a halo is not graded.
 - Ring shadows, multi-star lighting, disk-union of overlapping occluders, and map debug
   overlays remain deferred.
 

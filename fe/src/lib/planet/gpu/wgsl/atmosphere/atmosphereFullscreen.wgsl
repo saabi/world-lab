@@ -82,7 +82,7 @@ fn fs_main(in: VSOut) -> @location(0) vec4f {
     t_max = min(t_atmo, t_terrain);
   }
 
-  let scatter = integrate_atmosphere(eye, omega, t_max, sun_dir, atmo);
+  let scatter = integrate_atmosphere(eye, omega, t_max, sun_dir, atmo, no_eclipse());
   let inscatter = tone_map_reinhard_atmo(scatter.rgb);
   let transmittance = scatter.a;
 
