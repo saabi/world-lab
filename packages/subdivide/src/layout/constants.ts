@@ -1,5 +1,5 @@
 /** Bump when persisted layout JSON shape changes incompatibly. */
-export const LAYOUT_DOCUMENT_VERSION = 1;
+export const LAYOUT_DOCUMENT_VERSION = 2;
 
 export const NORTH = 'NORTH' as const;
 export const SOUTH = 'SOUTH' as const;

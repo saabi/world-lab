@@ -15,6 +15,16 @@
 		Transform,
 		NodeDisplay
 	} from '$lib/planet/scene/types.js';
+	import type { FlightInputState } from '$lib/planet/flight/controls.js';
+	import { createFlightInputState } from '$lib/planet/flight/controls.js';
+	import type { FlightRegime } from '$lib/planet/flight/atmosphereFlight.js';
+	import {
+		createDefaultShipState,
+		defaultSpaceflightSettings,
+		type OrbitPrediction,
+		type ShipState,
+		type SpaceflightSettings
+	} from '$lib/planet/flight/types.js';
 
 	interface BreadcrumbCrumb {
 		id: string;
@@ -57,6 +67,22 @@
 		onOpenPlanet?: () => void;
 		onOpenPlanetNewTab?: () => void;
 		onCloseFocused?: () => void;
+		shipState?: ShipState;
+		spaceflightActive?: boolean;
+		spaceflightSettings?: SpaceflightSettings;
+		flightInputState?: FlightInputState;
+		prediction?: OrbitPrediction;
+		flightRegime?: FlightRegime;
+		atmoBlend?: number;
+		gamepadConnected?: boolean;
+		gamepadId?: string;
+		onEnterSpaceflight?: () => void;
+		onExitSpaceflight?: () => void;
+		onPrograde?: () => void;
+		onRetrograde?: () => void;
+		onReleaseOrientation?: () => void;
+		onCircularize?: () => void;
+		onKillVelocity?: () => void;
 	}
 </script>
 
@@ -66,6 +92,7 @@
 	import PropertiesPanel from './PropertiesPanel.svelte';
 	import RenderSettingsPanel from './RenderSettingsPanel.svelte';
 	import ViewportZone from './ViewportZone.svelte';
+	import FlightPanel from './FlightPanel.svelte';
 	import { debounce, loadSceneLayout, saveSceneLayout } from './layoutStorage.js';
 
 	let {
@@ -103,7 +130,23 @@
 		onRenderProcedural,
 		onOpenPlanet,
 		onOpenPlanetNewTab,
-		onCloseFocused
+		onCloseFocused,
+		shipState = $bindable(createDefaultShipState()),
+		spaceflightActive = $bindable(false),
+		spaceflightSettings = $bindable(defaultSpaceflightSettings()),
+		flightInputState = $bindable(createFlightInputState()),
+		prediction = { pathPoints: [], crashed: false, pePoint: null, apPoint: null },
+		flightRegime = 'vacuum',
+		atmoBlend = 0,
+		gamepadConnected = false,
+		gamepadId = '',
+		onEnterSpaceflight,
+		onExitSpaceflight,
+		onPrograde,
+		onRetrograde,
+		onReleaseOrientation,
+		onCircularize,
+		onKillVelocity
 	}: Props = $props();
 
 	let layout = $state<LayoutDocument>(loadSceneLayout());
@@ -112,7 +155,8 @@
 		outliner: 'Outliner',
 		properties: 'Properties',
 		renderSettings: 'Render',
-		viewport: 'Viewport'
+		viewport: 'Viewport',
+		flight: 'Flight'
 	};
 
 	const persistLayout = debounce((doc: LayoutDocument) => saveSceneLayout(doc), 300);
@@ -176,14 +220,45 @@
 		{lookMode}
 		bind:viewportPrefs
 		{focusedBody}
-		{onCloseFocused}
+		bind:shipState
+		bind:spaceflightActive
+		bind:spaceflightSettings
+		bind:flightInputState
+		bind:atmoBlend
+		bind:flightRegime
+		bind:gamepadConnected
+		bind:gamepadId
+		onCloseFocused={onCloseFocused}
+	/>
+{/snippet}
+
+{#snippet flight()}
+	<FlightPanel
+		{scene}
+		{clock}
+		bind:shipState
+		bind:spaceflightActive
+		bind:spaceflightSettings
+		bind:flightInputState
+		{prediction}
+		{flightRegime}
+		{atmoBlend}
+		{gamepadConnected}
+		{gamepadId}
+		onEnter={onEnterSpaceflight}
+		onExit={onExitSpaceflight}
+		onPrograde={onPrograde}
+		onRetrograde={onRetrograde}
+		onRelease={onReleaseOrientation}
+		onCircularize={onCircularize}
+		onKillVelocity={onKillVelocity}
 	/>
 {/snippet}
 
 <div class="system-page">
 	<Subdivide
 		bind:layout
-		zones={{ outliner, properties, renderSettings, viewport }}
+		zones={{ outliner, properties, renderSettings, viewport, flight }}
 		{zoneLabels}
 		thickness="2px"
 		padding="6px"

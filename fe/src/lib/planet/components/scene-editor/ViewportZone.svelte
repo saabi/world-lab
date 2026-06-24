@@ -3,6 +3,9 @@
 	import type { OrbitLookMode } from '$lib/planet/camera/orbitCamera.js';
 	import type { SceneViewportPrefs } from '$lib/planet/scene/viewportPrefs.js';
 	import type { BodyNode, PlanetScene } from '$lib/planet/scene/types.js';
+	import type { FlightInputState } from '$lib/planet/flight/controls.js';
+	import type { ShipState, SpaceflightSettings } from '$lib/planet/flight/types.js';
+	import type { FlightRegime } from '$lib/planet/flight/atmosphereFlight.js';
 
 	interface Props {
 		scene: PlanetScene;
@@ -14,6 +17,14 @@
 		lookMode: OrbitLookMode;
 		viewportPrefs: SceneViewportPrefs;
 		focusedBody: BodyNode | null;
+		shipState?: ShipState;
+		spaceflightActive?: boolean;
+		spaceflightSettings?: SpaceflightSettings;
+		flightInputState?: FlightInputState;
+		atmoBlend?: number;
+		flightRegime?: FlightRegime;
+		gamepadConnected?: boolean;
+		gamepadId?: string;
 		onCloseFocused?: () => void;
 	}
 </script>
@@ -34,14 +45,37 @@
 		lookMode,
 		viewportPrefs = $bindable(),
 		focusedBody,
+		shipState = $bindable(),
+		spaceflightActive = $bindable(false),
+		spaceflightSettings = $bindable(),
+		flightInputState = $bindable(),
+		atmoBlend = $bindable(0),
+		flightRegime = $bindable('vacuum' as FlightRegime),
+		gamepadConnected = $bindable(false),
+		gamepadId = $bindable(''),
 		onCloseFocused
 	}: Props = $props();
 	let atmosphereDebugActive = $derived(isSceneAtmosphereDebugMode(materialDebug));
 </script>
 
 <div class="viewport-zone">
-	<SceneViewport3D {scene} bind:selectedId time={clock} {materialDebug} {lookMode} bind:viewportPrefs />
-	{#if !atmosphereDebugActive}
+	<SceneViewport3D
+		{scene}
+		bind:selectedId
+		bind:time={clock}
+		{materialDebug}
+		{lookMode}
+		bind:viewportPrefs
+		bind:shipState
+		bind:spaceflightActive
+		bind:spaceflightSettings
+		bind:flightInputState
+		bind:atmoBlend
+		bind:flightRegime
+		bind:gamepadConnected
+		bind:gamepadId
+	/>
+	{#if !atmosphereDebugActive && !spaceflightActive}
 		<div class="map-inset">
 			<SystemMapPanel {scene} bind:selectedId time={clock} bind:playing bind:speed />
 		</div>
@@ -62,7 +96,6 @@
 		padding: 12px;
 	}
 
-	/* 2D map as an inset minimap over the 3D view (doubles as the HUD-element use). */
 	.map-inset {
 		position: absolute;
 		right: 18px;

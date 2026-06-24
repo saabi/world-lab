@@ -21,50 +21,65 @@ export function createDefaultLayout(zone = 'default'): LayoutDocument {
 	};
 }
 
-/** Horizontal split: left stack (outliner | properties | renderSettings) | viewport. */
+/** Column: main row (left stack | viewport) + flight deck along the bottom. */
 export function defaultSceneEditorLayout(): LayoutDocument {
 	return {
 		root: {
 			type: 'group',
-			row: true,
+			row: false,
 			pos: 0,
 			size: 1,
 			children: [
 				{
 					type: 'group',
-					row: false,
+					row: true,
 					pos: 0,
-					size: 0.22,
+					size: 0.78,
 					children: [
 						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'outliner',
+							type: 'group',
+							row: false,
 							pos: 0,
-							size: 0.45
+							size: 0.22,
+							children: [
+								{
+									type: 'pane',
+									id: createPaneId(),
+									zone: 'outliner',
+									pos: 0,
+									size: 0.45
+								},
+								{
+									type: 'pane',
+									id: createPaneId(),
+									zone: 'properties',
+									pos: 0.45,
+									size: 0.4
+								},
+								{
+									type: 'pane',
+									id: createPaneId(),
+									zone: 'renderSettings',
+									pos: 0.85,
+									size: 0.15
+								}
+							]
 						},
 						{
 							type: 'pane',
 							id: createPaneId(),
-							zone: 'properties',
-							pos: 0.45,
-							size: 0.4
-						},
-						{
-							type: 'pane',
-							id: createPaneId(),
-							zone: 'renderSettings',
-							pos: 0.85,
-							size: 0.15
+							zone: 'viewport',
+							pos: 0.22,
+							size: 0.78
 						}
 					]
 				},
 				{
 					type: 'pane',
 					id: createPaneId(),
-					zone: 'viewport',
-					pos: 0.22,
-					size: 0.78
+					zone: 'flight',
+					pos: 0.78,
+					size: 0.22
 				}
 			]
 		}

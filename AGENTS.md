@@ -74,5 +74,6 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 - [_docs/specs/unified-scene-renderer.md](_docs/specs/unified-scene-renderer.md) — scene engine frame (spheres + procedural)
 - [_docs/specs/scene-transform-pipeline.md](_docs/specs/scene-transform-pipeline.md) — deferred model-matrix / ellipsoid transform intention
 - [_docs/specs/sundog-enrichment.md](_docs/specs/sundog-enrichment.md) — SunDog authored overlay (orbits, appearance, prototype trade)
+- [_docs/specs/scene-spaceflight.md](_docs/specs/scene-spaceflight.md) — `/scene` orbital flight panel, RCS modes, atmosphere entry
 - [_docs/current-renderer.md](_docs/current-renderer.md) — `/old` baseline notes (Phase 0)
 - [README.md](README.md) — quick start

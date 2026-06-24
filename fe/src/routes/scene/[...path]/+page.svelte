@@ -48,6 +48,21 @@
 		PlanetScene,
 		Transform
 	} from '$lib/planet/scene/types.js';
+	import { onMount } from 'svelte';
+	import {
+		createDefaultShipState,
+		defaultSpaceflightSettings,
+		type OrbitPrediction,
+		type ShipState,
+		type SpaceflightSettings
+	} from '$lib/planet/flight/types.js';
+	import { createFlightInputState } from '$lib/planet/flight/controls.js';
+	import { OrbitPredictorClient } from '$lib/planet/flight/orbitPredictor.js';
+	import { pickDominantBody } from '$lib/planet/flight/dominantBody.js';
+	import { circularizeVelocity, killVelocity } from '$lib/planet/flight/init.js';
+	import { releaseOrientation, setOrientationMode } from '$lib/planet/flight/propagate.js';
+	import { sub3 } from '$lib/planet/math/vec.js';
+	import type { FlightRegime } from '$lib/planet/flight/atmosphereFlight.js';
 
 	const SCENE_KEY = SYSTEM_SCENE_KEY;
 
@@ -135,8 +150,55 @@
 	// multiply the clock rate; play/pause/speed are shared state bound into all panels.
 	let playing = $state(true);
 	let speed = $state(1);
+
+	let shipState = $state<ShipState>(createDefaultShipState());
+	let spaceflightActive = $state(false);
+	let spaceflightSettings = $state<SpaceflightSettings>(defaultSpaceflightSettings());
+	let flightInputState = $state(createFlightInputState());
+	let prediction = $state<OrbitPrediction>({
+		pathPoints: [],
+		crashed: false,
+		pePoint: null,
+		apPoint: null
+	});
+	let flightRegime = $state<FlightRegime>('vacuum');
+	let atmoBlend = $state(0);
+	let gamepadConnected = $state(false);
+	let gamepadId = $state('');
+
+	let predictor: OrbitPredictorClient | null = null;
+
+	onMount(() => {
+		predictor = new OrbitPredictorClient((r) => {
+			prediction = r;
+		});
+		predictor.start();
+		return () => predictor?.stop();
+	});
+
 	$effect(() => {
-		if (!browser || !playing) return;
+		if (!spaceflightActive || !predictor) return;
+		const animated = evaluateScene(scene, clock);
+		const body = pickDominantBody(
+			animated,
+			shipState.position,
+			spaceflightSettings.targetBodyId,
+			spaceflightSettings.gravityG
+		);
+		if (!body) return;
+		const rel = sub3(shipState.position, body.center);
+		predictor.request({
+			relPosition: rel,
+			velocity: shipState.velocity,
+			gravityG: body.gravityG,
+			radiusMeters: body.radiusMeters,
+			predictionHorizonSeconds: spaceflightSettings.predictionHorizonSeconds,
+			predictionAutoPeriod: spaceflightSettings.predictionAutoPeriod
+		});
+	});
+
+	$effect(() => {
+		if (!browser || !playing || spaceflightActive) return;
 		let last = 0;
 		let raf = requestAnimationFrame(function tick(ts: number) {
 			if (last) clock += ((ts - last) / 1000) * speed;
@@ -300,6 +362,48 @@
 	function renderProcedural() {
 		if (bodyNode) focusedBodyId = bodyNode.id;
 	}
+
+	function onEnterSpaceflight() {
+		spaceflightActive = true;
+		playing = true;
+	}
+
+	function onExitSpaceflight() {
+		spaceflightActive = false;
+	}
+
+	function onPrograde() {
+		spaceflightSettings = setOrientationMode(spaceflightSettings, 'prograde');
+	}
+
+	function onRetrograde() {
+		spaceflightSettings = setOrientationMode(spaceflightSettings, 'retrograde');
+	}
+
+	function onReleaseOrientation() {
+		spaceflightSettings = releaseOrientation(spaceflightSettings);
+	}
+
+	function onCircularize() {
+		const animated = evaluateScene(scene, clock);
+		const body = pickDominantBody(
+			animated,
+			shipState.position,
+			spaceflightSettings.targetBodyId,
+			spaceflightSettings.gravityG
+		);
+		if (!body) return;
+		shipState = circularizeVelocity(
+			shipState,
+			body.center,
+			body.gravityG,
+			body.radiusMeters
+		);
+	}
+
+	function onKillVelocity() {
+		shipState = killVelocity(shipState);
+	}
 </script>
 
 <SceneEditorShell
@@ -338,4 +442,20 @@
 	onOpenPlanet={() => openInPlanetEditor(false)}
 	onOpenPlanetNewTab={() => openInPlanetEditor(true)}
 	onCloseFocused={() => (focusedBodyId = null)}
+	bind:shipState
+	bind:spaceflightActive
+	bind:spaceflightSettings
+	bind:flightInputState
+	{prediction}
+	{flightRegime}
+	{atmoBlend}
+	{gamepadConnected}
+	{gamepadId}
+	onEnterSpaceflight={onEnterSpaceflight}
+	onExitSpaceflight={onExitSpaceflight}
+	onPrograde={onPrograde}
+	onRetrograde={onRetrograde}
+	onReleaseOrientation={onReleaseOrientation}
+	onCircularize={onCircularize}
+	onKillVelocity={onKillVelocity}
 />

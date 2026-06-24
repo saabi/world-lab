@@ -60,26 +60,59 @@
 		type FreeFlyKeys,
 		type FreeFlyState
 	} from '../camera/freeFly.js';
+	import {
+		createFlightInputState,
+		EMPTY_FLIGHT_KEYBOARD,
+		flightInputActive,
+		pollFlightInput,
+		type FlightInputState,
+		type FlightKeyboardState
+	} from '../flight/controls.js';
+	import { readGamepad } from '../flight/gamepad.js';
+	import { pickDominantBody } from '../flight/dominantBody.js';
+	import { initCircularOrbit } from '../flight/init.js';
+	import { propagateShip } from '../flight/propagate.js';
+	import { flightRegimeFromBlend } from '../flight/atmosphereFlight.js';
+	import type { FlightRegime } from '../flight/atmosphereFlight.js';
+	import {
+		createDefaultShipState,
+		defaultSpaceflightSettings,
+		type ShipState,
+		type SpaceflightSettings
+	} from '../flight/types.js';
 
 	interface Props {
 		scene: PlanetScene;
 		selectedId?: string | null;
-		/** Shared animation clock; re-renders as it advances (driven by the 2D map loop). */
+		/** Shared animation clock; advances with spaceflight simulation when active. */
 		time?: number;
-		/** Material debug view for the procedural layer (parity diagnostic). */
 		materialDebug?: SceneDebugMode;
-		/** Focused-body look mode (viewport state). */
 		lookMode?: OrbitLookMode;
-		/** Tessellation, debug overlays, and material overrides (session viewport prefs). */
 		viewportPrefs?: SceneViewportPrefs;
+		shipState?: ShipState;
+		spaceflightActive?: boolean;
+		spaceflightSettings?: SpaceflightSettings;
+		flightInputState?: FlightInputState;
+		atmoBlend?: number;
+		flightRegime?: FlightRegime;
+		gamepadConnected?: boolean;
+		gamepadId?: string;
 	}
 	let {
 		scene,
 		selectedId = $bindable(null),
-		time = 0,
+		time = $bindable(0),
 		materialDebug = 'off',
 		lookMode = 'planet-center',
-		viewportPrefs = $bindable()
+		viewportPrefs = $bindable(),
+		shipState = $bindable(createDefaultShipState()),
+		spaceflightActive = $bindable(false),
+		spaceflightSettings = $bindable(defaultSpaceflightSettings()),
+		flightInputState = $bindable(createFlightInputState()),
+		atmoBlend = $bindable(0),
+		flightRegime = $bindable('vacuum' as FlightRegime),
+		gamepadConnected = $bindable(false),
+		gamepadId = $bindable('')
 	}: Props = $props();
 	let atmosphereDebugActive = $derived(isSceneAtmosphereDebugMode(materialDebug));
 	let atmosphereOnWhite = $derived(materialDebug === 'atmosphereWhite');
@@ -114,9 +147,12 @@
 	// Orbit params; the target is computed each frame (follows the selection), so the
 	// camera tracks a body as it orbits. Stored target stays unused.
 	let camera = $state<OrbitCamera>({ azimuth: 0.7, elevation: 0.5, distance: 1.5e8, target: [0, 0, 0] });
-	let cameraMode = $state<'orbit' | 'freeFly'>('orbit');
+	let cameraMode = $state<'orbit' | 'freeFly' | 'spaceflight'>('orbit');
 	let freeFly = $state<FreeFlyState>({ position: [0, 0, 0], rotation: [0, 0, 0, 1] });
 	let keysPressed = $state<FreeFlyKeys>({ ...EMPTY_FREE_FLY_KEYS });
+	let flightKeys = $state<FlightKeyboardState>({ ...EMPTY_FLIGHT_KEYBOARD });
+	let wasInAtmosphere = $state(false);
+	let prevSpaceflightActive = false;
 
 	/** Camera target: the selected node's live world position, else the system centre. */
 	function targetOf(animated: PlanetScene): Vec3 {
@@ -218,14 +254,21 @@
 		// marker/picking projection, and the atmosphere overlay. Rebasing to the eye keeps
 		// f32 precise when bodies sit ~1e11 m from the world origin; clip depth is identical
 		// to the absolute view-projection, so the shared depth buffer stays comparable.
-		const eye = cameraMode === 'freeFly' ? freeFly.position : cameraEye(orbitCam);
+		const eye =
+			cameraMode === 'freeFly'
+				? freeFly.position
+				: cameraMode === 'spaceflight'
+					? shipState.position
+					: cameraEye(orbitCam);
 		const allOrbitSpecs = collectOrbitPathSpecs(animated);
 		const systemSpan = allOrbitSpecs.reduce(
 			(m, s) => Math.max(m, s.elements.semiMajorAxis * (1 + s.elements.eccentricity)),
 			1
 		);
 		const cameraDistance =
-			cameraMode === 'freeFly' ? len3(sub3(eye, targetOf(animated))) : orbitCam.distance;
+			cameraMode === 'freeFly' || cameraMode === 'spaceflight'
+				? len3(sub3(eye, targetOf(animated)))
+				: orbitCam.distance;
 		const systemView = orbitPathSystemView(cameraDistance, systemSpan);
 		const visibleOrbitSpecs = allOrbitSpecs.filter((p) => {
 			const node = animated.nodes.get(p.keplerNodeId);
@@ -245,10 +288,16 @@
 			[],
 			visibleOrbitSpecs.map(orbitPathBoundsForNearFar)
 		);
+		const spaceflightFly: FreeFlyState = {
+			position: shipState.position,
+			rotation: shipState.rotation
+		};
 		const vpRel =
 			cameraMode === 'freeFly'
 				? sceneFreeFlyViewProjectionRelative(freeFly, aspect, nearFar)
-				: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
+				: cameraMode === 'spaceflight'
+					? sceneFreeFlyViewProjectionRelative(spaceflightFly, aspect, nearFar)
+					: bodyRelativeView(orbitCam, eye, aspect, nearFar).viewProjection;
 		const visibleOrbitPaths = visibleOrbitSpecs
 			.map((spec) => {
 				const isSelected = spec.bodyId === selectedId || spec.keplerNodeId === selectedId;
@@ -301,7 +350,12 @@
 				sceneCamera:
 					cameraMode === 'freeFly'
 						? { mode: 'freeFly', camera: buildSceneFreeFlyCameraState(freeFly, aspect, nearFar) }
-						: { mode: 'orbit', camera: orbitCam, lookMode },
+						: cameraMode === 'spaceflight'
+							? {
+									mode: 'freeFly',
+									camera: buildSceneFreeFlyCameraState(spaceflightFly, aspect, nearFar)
+								}
+							: { mode: 'orbit', camera: orbitCam, lookMode },
 				bodyWorldPos: target.worldPos,
 				width: w,
 				height: h,
@@ -428,7 +482,7 @@
 
 	/** Pick the front-most body whose projected disc contains the click; else deselect. */
 	function pick(clientX: number, clientY: number) {
-		if (!canvas || cameraMode === 'freeFly') return;
+		if (!canvas || cameraMode === 'freeFly' || cameraMode === 'spaceflight') return;
 		const rect = canvas.getBoundingClientRect();
 		const px = clientX - rect.left;
 		const py = clientY - rect.top;
@@ -459,7 +513,7 @@
 	const DOLLY_DRAG_SENSITIVITY = 0.005;
 
 	function onPointerDown(e: PointerEvent) {
-		if (cameraMode === 'freeFly') {
+		if (cameraMode === 'freeFly' || cameraMode === 'spaceflight') {
 			if (document.pointerLockElement !== canvas) {
 				canvas?.requestPointerLock();
 			}
@@ -480,7 +534,17 @@
 				rotation: applyFreeFlyLook(freeFly.rotation, e.movementX, e.movementY)
 			};
 			requestRender();
-			ensureFlyLoop();
+			ensureFlightLoop();
+			return;
+		}
+		if (cameraMode === 'spaceflight') {
+			if (document.pointerLockElement !== canvas) return;
+			flightInputState = {
+				...flightInputState,
+				pointerLook: { dx: e.movementX, dy: e.movementY }
+			};
+			requestRender();
+			ensureFlightLoop();
 			return;
 		}
 		if (!dragging) return;
@@ -507,14 +571,14 @@
 		}
 	}
 	function onPointerUp(e: PointerEvent) {
-		if (cameraMode === 'freeFly') return;
+		if (cameraMode === 'freeFly' || cameraMode === 'spaceflight') return;
 		dragging = false;
 		dollyDrag = false;
 		canvas?.releasePointerCapture?.(e.pointerId);
 		if (!moved) pick(e.clientX, e.clientY); // a click → select
 	}
 	function onWheel(e: WheelEvent) {
-		if (cameraMode === 'freeFly') return;
+		if (cameraMode === 'freeFly' || cameraMode === 'spaceflight') return;
 		e.preventDefault();
 		camera = {
 			...camera,
@@ -523,13 +587,13 @@
 	}
 
 	function enterFreeFly() {
-		if (cameraMode === 'freeFly') return;
+		if (cameraMode === 'freeFly' || spaceflightActive) return;
 		const animated = evaluateScene(scene, time);
 		freeFly = orbitEyeToFreeFly({ ...camera, target: targetOf(animated) });
 		cameraMode = 'freeFly';
 		keysPressed = { ...EMPTY_FREE_FLY_KEYS };
 		canvas?.requestPointerLock();
-		ensureFlyLoop();
+		ensureFlightLoop();
 	}
 
 	function exitFreeFly() {
@@ -538,20 +602,83 @@
 	}
 
 	function toggleFreeFly() {
+		if (spaceflightActive) return;
 		if (cameraMode === 'freeFly') exitFreeFly();
 		else enterFreeFly();
 	}
 
 	function handlePointerLockChange() {
-		if (document.pointerLockElement === canvas || cameraMode !== 'freeFly') return;
-		const animated = evaluateScene(scene, time);
-		camera = freeFlyToOrbit(freeFly, targetOf(animated));
-		cameraMode = 'orbit';
-		keysPressed = { ...EMPTY_FREE_FLY_KEYS };
-		requestRender();
+		if (document.pointerLockElement === canvas) return;
+		if (cameraMode === 'freeFly') {
+			const animated = evaluateScene(scene, time);
+			camera = freeFlyToOrbit(freeFly, targetOf(animated));
+			cameraMode = 'orbit';
+			keysPressed = { ...EMPTY_FREE_FLY_KEYS };
+			requestRender();
+		}
+	}
+
+	function syncFlightKeysToInput() {
+		flightInputState = {
+			...flightInputState,
+			keyboard: { ...flightKeys }
+		};
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
+		if (cameraMode === 'spaceflight') {
+			const key = e.key.toLowerCase();
+			if (e.key === 'Escape') {
+				spaceflightActive = false;
+				return;
+			}
+			if (key === 'r') {
+				flightInputState = { ...flightInputState, toggleRcsModePressed: true };
+				requestRender();
+				ensureFlightLoop();
+				return;
+			}
+			let changed = false;
+			if (key === 'w' && !flightKeys.w) {
+				flightKeys.w = true;
+				changed = true;
+			}
+			if (key === 'a' && !flightKeys.a) {
+				flightKeys.a = true;
+				changed = true;
+			}
+			if (key === 's' && !flightKeys.s) {
+				flightKeys.s = true;
+				changed = true;
+			}
+			if (key === 'd' && !flightKeys.d) {
+				flightKeys.d = true;
+				changed = true;
+			}
+			if (key === 'q' && !flightKeys.q) {
+				flightKeys.q = true;
+				changed = true;
+			}
+			if (key === 'e' && !flightKeys.e) {
+				flightKeys.e = true;
+				changed = true;
+			}
+			if (e.code === 'Space' && !flightKeys.space) {
+				flightKeys.space = true;
+				changed = true;
+			}
+			if (e.key === 'Control' && !flightKeys.control) {
+				flightKeys.control = true;
+				changed = true;
+			}
+			if (e.shiftKey) flightKeys.shift = true;
+			if (changed) {
+				syncFlightKeysToInput();
+				requestRender();
+				ensureFlightLoop();
+			}
+			return;
+		}
 		if (cameraMode !== 'freeFly') return;
 		const key = e.key.toLowerCase();
 		if (e.key === 'Escape') {
@@ -586,11 +713,25 @@
 		if (e.shiftKey) keysPressed.shift = true;
 		if (changed) {
 			requestRender();
-			ensureFlyLoop();
+			ensureFlightLoop();
 		}
 	}
 
 	function handleKeyUp(e: KeyboardEvent) {
+		if (cameraMode === 'spaceflight') {
+			const key = e.key.toLowerCase();
+			if (key === 'w') flightKeys.w = false;
+			if (key === 'a') flightKeys.a = false;
+			if (key === 's') flightKeys.s = false;
+			if (key === 'd') flightKeys.d = false;
+			if (key === 'q') flightKeys.q = false;
+			if (key === 'e') flightKeys.e = false;
+			if (e.code === 'Space') flightKeys.space = false;
+			if (e.key === 'Control') flightKeys.control = false;
+			if (!e.shiftKey) flightKeys.shift = false;
+			syncFlightKeysToInput();
+			return;
+		}
 		if (cameraMode !== 'freeFly') return;
 		const key = e.key.toLowerCase();
 		if (key === 'w') keysPressed.w = false;
@@ -605,32 +746,152 @@
 	let flyRaf = 0;
 	let lastFlyTime = 0;
 
-	function ensureFlyLoop() {
-		if (flyRaf || cameraMode !== 'freeFly') return;
+	function flightKeysMoving(): boolean {
+		return (
+			flightKeys.w ||
+			flightKeys.a ||
+			flightKeys.s ||
+			flightKeys.d ||
+			flightKeys.q ||
+			flightKeys.e ||
+			flightKeys.space ||
+			flightKeys.control
+		);
+	}
+
+	function stepSpaceflight(dt: number) {
+		if (dt <= 0) return;
+		const animated = evaluateScene(scene, time);
+		const body = pickDominantBody(
+			animated,
+			shipState.position,
+			spaceflightSettings.targetBodyId,
+			spaceflightSettings.gravityG
+		);
+		if (!body) return;
+
+		const bodyNode = animated.nodes.get(body.bodyId);
+		const atmosphere =
+			bodyNode?.kind === 'body' ? resolveBodyAtmosphere(bodyNode) : undefined;
+
+		flightInputState = { ...flightInputState, pointerLook: undefined };
+		const input = pollFlightInput(flightInputState);
+		flightInputState.rcsMode = input.rcsMode;
+
+		const gp = readGamepad(flightInputState.gamepad);
+		gamepadConnected = gp.connected;
+		gamepadId = gp.id;
+
+		const result = propagateShip(shipState, input, spaceflightSettings, {
+			body,
+			atmosphere,
+			wasInAtmosphere
+		}, dt);
+
+		shipState = result.ship;
+		spaceflightSettings = {
+			...spaceflightSettings,
+			mouseOffsetRot: result.mouseOffsetRot,
+			orientationMode: result.orientationMode
+		};
+		wasInAtmosphere = result.inAtmosphere;
+		atmoBlend = result.atmoBlend;
+		flightRegime = flightRegimeFromBlend(result.atmoBlend);
+		time += dt;
+	}
+
+	function ensureFlightLoop() {
+		const active =
+			cameraMode === 'freeFly' ||
+			(cameraMode === 'spaceflight' && spaceflightActive);
+		if (flyRaf || !active) return;
 		lastFlyTime = performance.now();
 		const tick = (now: number) => {
-			if (cameraMode !== 'freeFly') {
+			const stillActive =
+				cameraMode === 'freeFly' ||
+				(cameraMode === 'spaceflight' && spaceflightActive);
+			if (!stillActive) {
 				flyRaf = 0;
 				return;
 			}
-			const dt = lastFlyTime > 0 ? (now - lastFlyTime) / 1000 : 0;
+			const dt = lastFlyTime > 0 ? Math.min((now - lastFlyTime) / 1000, 0.05) : 0;
 			lastFlyTime = now;
-			if (dt > 0 && freeFlyKeysMoving(keysPressed)) {
+
+			if (cameraMode === 'freeFly' && dt > 0 && freeFlyKeysMoving(keysPressed)) {
 				const animated = evaluateScene(scene, time);
 				const speed = sceneFreeFlySpeed(freeFly.position, freeFlyRefRadius(animated));
 				freeFly = stepFreeFly(freeFly, keysPressed, dt, speed);
 				requestRender();
 			}
-			if (
-				freeFlyKeysMoving(keysPressed) ||
-				document.pointerLockElement === canvas
-			) {
+
+			if (cameraMode === 'spaceflight' && spaceflightActive && dt > 0) {
+				stepSpaceflight(dt);
+				requestRender();
+			}
+
+			const keepGoing =
+				cameraMode === 'freeFly'
+					? freeFlyKeysMoving(keysPressed) || document.pointerLockElement === canvas
+					: spaceflightActive;
+			if (keepGoing) {
 				flyRaf = requestAnimationFrame(tick);
 			} else {
 				flyRaf = 0;
 			}
 		};
 		flyRaf = requestAnimationFrame(tick);
+	}
+
+	$effect(() => {
+		if (spaceflightActive && !prevSpaceflightActive) {
+			const animated = evaluateScene(scene, time);
+			const orbitCam = { ...camera, target: targetOf(animated) };
+			const fly = orbitEyeToFreeFly(orbitCam);
+			const body = pickDominantBody(
+				animated,
+				fly.position,
+				spaceflightSettings.targetBodyId,
+				spaceflightSettings.gravityG
+			);
+			if (body) {
+				shipState = initCircularOrbit(
+					fly.position,
+					body.center,
+					fly.rotation,
+					body.gravityG,
+					body.radiusMeters
+				);
+				if (!spaceflightSettings.targetBodyId) {
+					spaceflightSettings = { ...spaceflightSettings, targetBodyId: body.bodyId };
+				}
+			} else {
+				shipState = { ...fly, velocity: [0, 0, 0], angularVelocity: [0, 0, 0] };
+			}
+			cameraMode = 'spaceflight';
+			flightKeys = { ...EMPTY_FLIGHT_KEYBOARD };
+			flightInputState = createFlightInputState(spaceflightSettings.rcsMode);
+			wasInAtmosphere = false;
+			canvas?.requestPointerLock();
+			ensureFlightLoop();
+		}
+		if (!spaceflightActive && prevSpaceflightActive) {
+			if (document.pointerLockElement === canvas) document.exitPointerLock();
+			const animated = evaluateScene(scene, time);
+			camera = freeFlyToOrbit(
+				{ position: shipState.position, rotation: shipState.rotation },
+				targetOf(animated)
+			);
+			cameraMode = 'orbit';
+			flightKeys = { ...EMPTY_FLIGHT_KEYBOARD };
+			atmoBlend = 0;
+			flightRegime = 'vacuum';
+		}
+		prevSpaceflightActive = spaceflightActive;
+	});
+
+	// Legacy alias used by free-fly key handlers
+	function ensureFlyLoop() {
+		ensureFlightLoop();
 	}
 
 	// Render on demand: re-render only when an input actually changes. When the clock is
@@ -659,8 +920,12 @@
 		void camera;
 		void cameraMode;
 		void freeFly;
+		void shipState;
+		void spaceflightActive;
+		void spaceflightSettings;
+		void flightInputState;
 		void keysPressed;
-		void w;
+		void atmoBlend;
 		void h;
 		requestRender();
 	});
@@ -742,7 +1007,7 @@
 			style="left:{marker.x}px; top:{marker.y}px; width:{marker.r * 2}px; height:{marker.r * 2}px;"
 		></div>
 	{/if}
-	{#if !atmosphereDebugActive}
+	{#if !atmosphereDebugActive && !spaceflightActive}
 		<button type="button" class="frame-btn" onclick={() => (selectedId = null)}>Frame all</button>
 		<button
 			type="button"
@@ -752,6 +1017,8 @@
 		>
 			{cameraMode === 'freeFly' ? 'Fly Mode: Active (Esc)' : 'Enter WASD Fly Mode'}
 		</button>
+	{:else if spaceflightActive}
+		<div class="frame-hint">Pointer lock · Esc exits flight</div>
 	{/if}
 	{#if failed}
 		<div class="overlay">3D unavailable: {failed} — use the 2D map.</div>
@@ -810,6 +1077,19 @@
 	.fly-btn.active {
 		border-color: rgba(158, 192, 255, 0.55);
 		background: rgba(60, 90, 140, 0.9);
+	}
+
+	.frame-hint {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		font: 11px/1.2 system-ui, sans-serif;
+		padding: 3px 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(0, 240, 255, 0.25);
+		background: rgba(26, 31, 48, 0.85);
+		color: #9ec0ff;
+		pointer-events: none;
 	}
 
 	.overlay {

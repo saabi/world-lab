@@ -19,14 +19,12 @@ export function loadSceneLayout(): LayoutDocument {
 		const raw = localStorage.getItem(SCENE_LAYOUT_KEY);
 		if (!raw) return defaultSceneEditorLayout();
 		const parsed = JSON.parse(raw) as unknown;
-		if (
-			typeof parsed === 'object' &&
-			parsed !== null &&
-			'version' in parsed &&
-			(parsed as StoredSceneLayout).version === LAYOUT_DOCUMENT_VERSION &&
-			'layout' in parsed
-		) {
-			return parseLayoutDocument((parsed as StoredSceneLayout).layout, 'viewport');
+		if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'layout' in parsed) {
+			const stored = parsed as StoredSceneLayout;
+			if (stored.version === LAYOUT_DOCUMENT_VERSION) {
+				return parseLayoutDocument(stored.layout, 'viewport');
+			}
+			// v1 layouts lack the flight deck — fall through to the v2 default.
 		}
 	} catch {
 		/* private mode / corrupt — fall through */
