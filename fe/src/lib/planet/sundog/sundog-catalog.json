@@ -1,0 +1,1421 @@
+{
+	"schemaVersion": 1,
+	"source": {
+		"kind": "extracted",
+		"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+		"extractedAt": "2026-06-24T02:14:05.635Z",
+		"notes": "Real SunDog: Frozen Legacy data, used with Bruce Webster (original author) approval. Derived data only; the Resurrection distribution is not redistributed."
+	},
+	"systems": [
+		{
+			"id": "jondd",
+			"code": "JD",
+			"name": "Jondd",
+			"position": {
+				"x": -13.3,
+				"y": -47.5,
+				"z": -2
+			},
+			"star": {
+				"starClass": "G2",
+				"temperatureK": 5860,
+				"radiusSolar": 1.02,
+				"luminositySolar": 1.1,
+				"massSolar": 0.998
+			},
+			"bodies": [
+				{
+					"id": "jondd",
+					"name": "Jondd",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.89,
+							"orbitPeriodDays": 306,
+							"dayRotationHours": 20
+						},
+						"gravityG": 1.1,
+						"planetSizeRel": 1.1,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 6,
+						"temperature": 5,
+						"moisture": 5,
+						"fertility": 6,
+						"naturalIndustry": 6,
+						"techIndustry": 5,
+						"population": 7,
+						"settlementAge": 7,
+						"trade": 5,
+						"instability": 3,
+						"gunShop": 2,
+						"costOfLiving": 5,
+						"blackMarket": 5,
+						"notes": "The political center of the Drahew Region and the Drahew Alliance, Jondd is a comfortably habitable planet with a good balance of agricultural development and technological advancement. Rugged mountains dominate the land's interior and grassy coastal plains offer unmatched agricultural opportunities.",
+						"cities": [
+							{
+								"id": "drahew",
+								"name": "Drahew",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "darvilton",
+								"name": "Darvilton",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "dramming",
+								"name": "Dramming",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "esposito",
+								"name": "Esposito",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "obburg",
+								"name": "Obburg",
+								"starport": false,
+								"crime": 3
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "heavy",
+					"name": "Heavy",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 1.1,
+							"orbitPeriodDays": 422,
+							"dayRotationHours": 26
+						},
+						"gravityG": 1.3,
+						"planetSizeRel": 1.3,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 2,
+						"temperature": 4,
+						"moisture": 6,
+						"fertility": 6,
+						"naturalIndustry": 9,
+						"techIndustry": 3,
+						"population": 4,
+						"settlementAge": 5,
+						"trade": 8,
+						"instability": 4,
+						"gunShop": 2,
+						"costOfLiving": 5,
+						"blackMarket": 4,
+						"notes": "Heavy's main continent is a massive, sprawling landmass that holds some impressive mountain ranges in its interior. Heavy is not as affluent as its famous neighbor Jondd, but it does have a robust agricultural sector that supplies other more technologically advanced systems.",
+						"cities": [
+							{
+								"id": "lightning",
+								"name": "Lightning",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "ft-lyon",
+								"name": "Ft Lyon",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "ft-savon",
+								"name": "Ft Savon",
+								"starport": false,
+								"crime": 3
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.4,
+				"pirateActivity": 2,
+				"planetCount": 2
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "woremed",
+			"code": "WM",
+			"name": "Woremed",
+			"position": {
+				"x": -11,
+				"y": -44.4,
+				"z": -1
+			},
+			"star": {
+				"starClass": "G0",
+				"temperatureK": 6030,
+				"radiusSolar": 1.13,
+				"luminositySolar": 1.5,
+				"massSolar": 1.05
+			},
+			"bodies": [
+				{
+					"id": "worrad",
+					"name": "W'orrad",
+					"kind": "planet",
+					"render": {
+						"terrain": "Jungle",
+						"orbit": {
+							"distanceToStarAu": 1.1,
+							"orbitPeriodDays": 522,
+							"dayRotationHours": 26
+						},
+						"gravityG": 1.18,
+						"planetSizeRel": 1.7,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 3,
+						"temperature": 7,
+						"moisture": 8,
+						"fertility": 9,
+						"naturalIndustry": 4,
+						"techIndustry": 3,
+						"population": 4,
+						"settlementAge": 4,
+						"trade": 9,
+						"instability": 8,
+						"gunShop": 5,
+						"costOfLiving": 4,
+						"blackMarket": 9,
+						"notes": "This controversial planet is the origin of the infamous W'orrad swamp squid, which is a delicacy of disputable taste in some parts of the Drahew Region. It is also one of the two places where the Interstellar Gurgle Smasher is legal to purchase and consume, though the first-time consumer should be wary of its effects. The planet is wild and untamed; its streets harbor dangerous criminals and scammers while its interplanetary space is teeming with pirates. The surface itself is an unruly expanse of tangled jungles, humid swamps, and suffocating marshes.",
+						"cities": [
+							{
+								"id": "sheshco",
+								"name": "Sheshco",
+								"starport": true,
+								"crime": 6
+							},
+							{
+								"id": "alram",
+								"name": "Alram",
+								"starport": false,
+								"crime": 7
+							},
+							{
+								"id": "aylika",
+								"name": "Aylika",
+								"starport": false,
+								"crime": 7
+							},
+							{
+								"id": "zadansa",
+								"name": "Zadansa",
+								"starport": false,
+								"crime": 7
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.4,
+				"pirateActivity": 8,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "new-shoot",
+			"code": "NS",
+			"name": "New Shoot",
+			"position": {
+				"x": -13,
+				"y": -42.8,
+				"z": 4.1
+			},
+			"star": {
+				"starClass": "G0",
+				"temperatureK": 6060,
+				"radiusSolar": 1.17,
+				"luminositySolar": 1.5,
+				"massSolar": 1.11
+			},
+			"bodies": [
+				{
+					"id": "hell",
+					"name": "Hell",
+					"kind": "planet",
+					"render": {
+						"terrain": "Desert",
+						"orbit": {
+							"distanceToStarAu": 0.85,
+							"orbitPeriodDays": 160,
+							"dayRotationHours": 16
+						},
+						"gravityG": 0.7,
+						"planetSizeRel": 0.63,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 2,
+						"temperature": 10,
+						"moisture": 2,
+						"fertility": 2,
+						"naturalIndustry": 1,
+						"techIndustry": 7,
+						"population": 2,
+						"settlementAge": 3,
+						"trade": 1,
+						"instability": 5,
+						"gunShop": 3,
+						"costOfLiving": 3,
+						"blackMarket": 3,
+						"notes": "Blisteringly hot and oppressive, the few inhabitants of Hell are forced to encapsulate their cities in massive translucent bubbles to protect them from the heat and wind-driven dust storms. It is reported that Hell is the hottest inhabited planet. Serpentine dunes speckle the shifting landscape and hide the precious few oases where water reaches the arid surface.",
+						"cities": [
+							{
+								"id": "sheol",
+								"name": "Sheol",
+								"starport": true,
+								"crime": 8
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "new-shoot",
+					"name": "New Shoot",
+					"kind": "planet",
+					"render": {
+						"terrain": "Jungle",
+						"orbit": {
+							"distanceToStarAu": 1.2,
+							"orbitPeriodDays": 545,
+							"dayRotationHours": 28
+						},
+						"gravityG": 1.2,
+						"planetSizeRel": 1.5,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 4,
+						"temperature": 7,
+						"moisture": 8,
+						"fertility": 8,
+						"naturalIndustry": 3,
+						"techIndustry": 8,
+						"population": 7,
+						"settlementAge": 7,
+						"trade": 6,
+						"instability": 2,
+						"gunShop": 2,
+						"costOfLiving": 2,
+						"blackMarket": 3,
+						"notes": "Overrun with steaming jungles and unique wildlife, New Shoot inhabitants stay mostly indoors and focus on technology production.  A massive lake in the center of the primary continent is a remnant of a more active volcanic past, where a catastrophic eruption spread volcanic ash across the planet. While this event was sure to have killed a majority of indigenous animal and plant species, the planet's frequent rainstorms converted the thick layer of ash into lushly fertile soil that now supports a robust rainforest ecosystem.",
+						"cities": [
+							{
+								"id": "calidac",
+								"name": "Calidac",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "feriolah",
+								"name": "Feriolah",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "new-temol",
+								"name": "New Temol",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "poelter",
+								"name": "Poelter",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "tramel",
+								"name": "Tram'el",
+								"starport": false,
+								"crime": 4
+							},
+							{
+								"id": "wildera",
+								"name": "Wildera",
+								"starport": false,
+								"crime": 5
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1,
+				"pirateActivity": 2,
+				"planetCount": 2
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "lafser",
+			"code": "LA",
+			"name": "Lafser",
+			"position": {
+				"x": -11.6,
+				"y": -47.5,
+				"z": -1
+			},
+			"star": {
+				"starClass": "G2",
+				"temperatureK": 5845,
+				"radiusSolar": 1.08,
+				"luminositySolar": 1.1,
+				"massSolar": 0.996
+			},
+			"bodies": [
+				{
+					"id": "tcana",
+					"name": "Tcana",
+					"kind": "planet",
+					"render": {
+						"terrain": "Desert",
+						"orbit": {
+							"distanceToStarAu": 0.9,
+							"orbitPeriodDays": 312,
+							"dayRotationHours": 17
+						},
+						"gravityG": 1.06,
+						"planetSizeRel": 1.45,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 3,
+						"temperature": 8,
+						"moisture": 10,
+						"fertility": 9,
+						"naturalIndustry": 3,
+						"techIndustry": 5,
+						"population": 3,
+						"settlementAge": 3,
+						"trade": 4,
+						"instability": 4,
+						"gunShop": 4,
+						"costOfLiving": 2,
+						"blackMarket": 6,
+						"notes": "Tcana is a wasteland of dust and sand, where water is as highly prized as precious metals. The planet is not as technologically advanced as most other systems in the Drahew Region, and has one of the most strict weapons control laws in the Drahew Region.  The planet's small population engages in mineral extraction and some moderate industry.",
+						"cities": [
+							{
+								"id": "haiapolis",
+								"name": "Haiapolis",
+								"starport": true,
+								"crime": 7
+							},
+							{
+								"id": "einkolt",
+								"name": "Einkolt",
+								"starport": false,
+								"crime": 7
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.2,
+				"pirateActivity": 5,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "shoot",
+			"code": "ST",
+			"name": "Shoot",
+			"position": {
+				"x": -14.7,
+				"y": -48.5,
+				"z": -1
+			},
+			"star": {
+				"starClass": "G5",
+				"temperatureK": 5770,
+				"radiusSolar": 0.893,
+				"luminositySolar": 0.79,
+				"massSolar": 0.92
+			},
+			"bodies": [
+				{
+					"id": "shoot",
+					"name": "Shoot",
+					"kind": "planet",
+					"render": {
+						"terrain": "Jungle",
+						"orbit": {
+							"distanceToStarAu": 0.81,
+							"orbitPeriodDays": 353,
+							"dayRotationHours": 29
+						},
+						"gravityG": 0.95,
+						"planetSizeRel": 1.17,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 6,
+						"temperature": 6,
+						"moisture": 8,
+						"fertility": 9,
+						"naturalIndustry": 4,
+						"techIndustry": 5,
+						"population": 7,
+						"settlementAge": 8,
+						"trade": 6,
+						"instability": 3,
+						"gunShop": 3,
+						"costOfLiving": 5,
+						"blackMarket": 4,
+						"notes": "Monsoons and untamed jungles make this planet one of the lushest planets in the Drahew Region. The inhabitants have cleared some jungles out to convert the former marshes into usable farmland, allowing them to have a balanced industry of both agricultural and technological production.",
+						"cities": [
+							{
+								"id": "shoothan",
+								"name": "Shoothan",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "knuth",
+								"name": "Knuth",
+								"starport": false,
+								"crime": 4
+							},
+							{
+								"id": "temlonton",
+								"name": "Temlonton",
+								"starport": false,
+								"crime": 4
+							},
+							{
+								"id": "waslat",
+								"name": "Waslat",
+								"starport": false,
+								"crime": 3
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.2,
+				"pirateActivity": 3,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "glory",
+			"code": "GL",
+			"name": "Glory",
+			"position": {
+				"x": -13.8,
+				"y": -44.2,
+				"z": 1
+			},
+			"star": {
+				"starClass": "G8",
+				"temperatureK": 5580,
+				"radiusSolar": 0.879,
+				"luminositySolar": 0.67,
+				"massSolar": 0.84
+			},
+			"bodies": [
+				{
+					"id": "glory-i",
+					"name": "Glory I",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.72,
+							"orbitPeriodDays": 247,
+							"dayRotationHours": 31
+						},
+						"gravityG": 0.89,
+						"planetSizeRel": 0.83,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 9,
+						"temperature": 5,
+						"moisture": 5,
+						"fertility": 6,
+						"naturalIndustry": 4,
+						"techIndustry": 6,
+						"population": 9,
+						"settlementAge": 9,
+						"trade": 8,
+						"instability": 1,
+						"gunShop": 2,
+						"costOfLiving": 7,
+						"blackMarket": 1,
+						"notes": "One of the jewels of the Drahew Region, Glory I is a beautiful, luxurious haven from the harsh universe. Its continents form a rough band around the equator, but Glory's inhabitants and visitors enjoy comfortable seasonal temperatures year round. Pristine lakes dot the plains and lower mountain ranges, making this a prime vacation destination for many in the Drahew Region.",
+						"cities": [
+							{
+								"id": "lagosal",
+								"name": "Lagosal",
+								"starport": true,
+								"crime": 2
+							},
+							{
+								"id": "abran",
+								"name": "Abran",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "abundan",
+								"name": "Abundan",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "corian",
+								"name": "Corian",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "paran",
+								"name": "Paran",
+								"starport": false,
+								"crime": 1
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "glory-ii",
+					"name": "Glory II",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.96,
+							"orbitPeriodDays": 498,
+							"dayRotationHours": 32
+						},
+						"gravityG": 0.81,
+						"planetSizeRel": 0.78,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 6,
+						"temperature": 4,
+						"moisture": 5,
+						"fertility": 5,
+						"naturalIndustry": 6,
+						"techIndustry": 5,
+						"population": 4,
+						"settlementAge": 4,
+						"trade": 4,
+						"instability": 2,
+						"gunShop": 2,
+						"costOfLiving": 7,
+						"blackMarket": 2,
+						"notes": "The twin continents of Glory II stand on either side of a narrow sea channel. Like the other planets in the Glory system, the environment is pristine, comfortable, and green, and is known to generate agricultural produce in addition to technology.",
+						"cities": [
+							{
+								"id": "llorrac",
+								"name": "Llorrac",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "dreider",
+								"name": "Dreider",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "jemba",
+								"name": "Jemba",
+								"starport": false,
+								"crime": 2
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "glory-iii",
+					"name": "Glory III",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 1.2,
+							"orbitPeriodDays": 603,
+							"dayRotationHours": 36
+						},
+						"gravityG": 0.67,
+						"planetSizeRel": 0.66,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 2,
+						"temperature": 3,
+						"moisture": 9,
+						"fertility": 3,
+						"naturalIndustry": 3,
+						"techIndustry": 1,
+						"population": 1,
+						"settlementAge": 1,
+						"trade": 2,
+						"instability": 2,
+						"gunShop": 2,
+						"costOfLiving": 8,
+						"blackMarket": 1,
+						"notes": "Glory III is more rugged and does not enjoy the same degree of wealth or technological advances as its other two neighbors, Glory I and Glory II. Furthermore, it is sparsely populated and has very limited agricultural or industrial capabilities. However, it has the same lower crime rates of its fellow planets.",
+						"cities": [
+							{
+								"id": "surrell",
+								"name": "Surrell",
+								"starport": true,
+								"crime": 4
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 2.2,
+				"pirateActivity": 1,
+				"planetCount": 3
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "ferr",
+			"code": "FR",
+			"name": "Ferr",
+			"position": {
+				"x": -6.7,
+				"y": -42.5,
+				"z": -6.5
+			},
+			"star": {
+				"starClass": "K0",
+				"temperatureK": 5210,
+				"radiusSolar": 0.786,
+				"luminositySolar": 0.41,
+				"massSolar": 0.77
+			},
+			"bodies": [
+				{
+					"id": "ferr",
+					"name": "Ferr",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.66,
+							"orbitPeriodDays": 201,
+							"dayRotationHours": 27
+						},
+						"gravityG": 1.1,
+						"planetSizeRel": 1,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 4,
+						"temperature": 5,
+						"moisture": 5,
+						"fertility": 5,
+						"naturalIndustry": 2,
+						"techIndustry": 9,
+						"population": 6,
+						"settlementAge": 4,
+						"trade": 6,
+						"instability": 3,
+						"gunShop": 3,
+						"costOfLiving": 4,
+						"blackMarket": 5,
+						"notes": "Ferr's continents are heavily covered in forbidding mountains, but the coastal edges are green and pleasant. While Ferr does not have a strong natural industry, it does have a very successful aerospace industry and enjoys one of the most diverse selections of legal and black-market technology in the Drahew Region.",
+						"cities": [
+							{
+								"id": "ferring",
+								"name": "Ferring",
+								"starport": true,
+								"crime": 2
+							},
+							{
+								"id": "bantin",
+								"name": "Bantin",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "barnum",
+								"name": "Barnum",
+								"starport": false,
+								"crime": 3
+							},
+							{
+								"id": "lonax",
+								"name": "Lonax",
+								"starport": false,
+								"crime": 2
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "ferrwerk",
+					"name": "Ferrwerk",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.72,
+							"orbitPeriodDays": 247,
+							"dayRotationHours": 31
+						},
+						"gravityG": 0.82,
+						"planetSizeRel": 0.61,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 3,
+						"temperature": 4,
+						"moisture": 6,
+						"fertility": 5,
+						"naturalIndustry": 3,
+						"techIndustry": 8,
+						"population": 3,
+						"settlementAge": 4,
+						"trade": 3,
+						"instability": 5,
+						"gunShop": 3,
+						"costOfLiving": 4,
+						"blackMarket": 5,
+						"notes": "Something of an astronomical marvel, Ferrwerk bears striking visual evidence of a cataclysmic asteroid strike at some point in the planet's ancient history. The gigantic continent in the center of a circular ocean is the remnant of this devastating impact. The planet survived the impact and like its companion planet, Ferr, it has abundant supplies of water and verdant coastal plains. Ferrwerk currently has a strong science and industrial industry.",
+						"cities": [
+							{
+								"id": "industron",
+								"name": "Industron",
+								"starport": true,
+								"crime": 4
+							},
+							{
+								"id": "the-mines",
+								"name": "The Mines",
+								"starport": false,
+								"crime": 5
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				},
+				{
+					"id": "snowball",
+					"name": "Snowball",
+					"kind": "planet",
+					"render": {
+						"terrain": "Ice",
+						"orbit": {
+							"distanceToStarAu": 2.53,
+							"orbitPeriodDays": 1563,
+							"dayRotationHours": 19
+						},
+						"gravityG": 0.65,
+						"planetSizeRel": 1.4,
+						"moons": 0,
+						"habitable": false
+					},
+					"game": {
+						"wealth": 2,
+						"temperature": 1,
+						"moisture": 10,
+						"fertility": 1,
+						"naturalIndustry": 5,
+						"techIndustry": 4,
+						"population": 1,
+						"settlementAge": 2,
+						"trade": 2,
+						"instability": 7,
+						"gunShop": 4,
+						"costOfLiving": 7,
+						"blackMarket": 5,
+						"notes": "The coldest inhabited planet in the Drahew Region, Snowball is a harsh arctic world covered in shifting plates of ice. The thick ice floats on a planet-wide ocean of liquid water, heated from underneath by the planet's geothermal energy. Snowball's stubborn inhabitants live in thermally-isolated cities rooted to the ice, and they extract minerals and exotic fish from the cold ocean depths underneath the cities.",
+						"cities": [
+							{
+								"id": "icebox",
+								"name": "Icebox",
+								"starport": true,
+								"crime": 6
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.6,
+				"pirateActivity": 4,
+				"planetCount": 3
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "kalmandaa",
+			"code": "KA",
+			"name": "KalManDaa",
+			"position": {
+				"x": -14.5,
+				"y": -43,
+				"z": 3.1
+			},
+			"star": {
+				"starClass": "F8",
+				"temperatureK": 6220,
+				"radiusSolar": 1.28,
+				"luminositySolar": 2.1,
+				"massSolar": 1.2
+			},
+			"bodies": [
+				{
+					"id": "kala",
+					"name": "Kala",
+					"kind": "planet",
+					"render": {
+						"terrain": "Jungle",
+						"orbit": {
+							"distanceToStarAu": 1.51,
+							"orbitPeriodDays": 647,
+							"dayRotationHours": 18
+						},
+						"gravityG": 0.94,
+						"planetSizeRel": 0.93,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 4,
+						"temperature": 6,
+						"moisture": 8,
+						"fertility": 8,
+						"naturalIndustry": 3,
+						"techIndustry": 7,
+						"population": 7,
+						"settlementAge": 7,
+						"trade": 6,
+						"instability": 6,
+						"gunShop": 4,
+						"costOfLiving": 6,
+						"blackMarket": 2,
+						"notes": "Often regarded as oppressively hot by offworlders, Kala's humid jungles dominate the landmass. Mountains attempt to rise from the rainforest canopy in several locations, but the planet is generally flat. Animal and plant lifeforms are concentrated both on and under the marshy soil, and the seas teem with large creatures. Rain frequently falls for weeks at a time, discouraging agricultural endeavors, though technology manufacturers have found the endless supply of water convenient for renewable power production.",
+						"cities": [
+							{
+								"id": "kolbe",
+								"name": "Kolbe",
+								"starport": true,
+								"crime": 2
+							},
+							{
+								"id": "bedollug",
+								"name": "Bedollug",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "dajasyron",
+								"name": "Dajasyron",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "notweneki",
+								"name": "Notweneki",
+								"starport": false,
+								"crime": 2
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.6,
+				"pirateActivity": 7,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "sosai",
+			"code": "SS",
+			"name": "Sosai",
+			"position": {
+				"x": -10.7,
+				"y": -42,
+				"z": -3.5
+			},
+			"star": {
+				"starClass": "F5",
+				"temperatureK": 6445,
+				"radiusSolar": 1.29,
+				"luminositySolar": 3.1,
+				"massSolar": 1.23
+			},
+			"bodies": [
+				{
+					"id": "vahevela",
+					"name": "Vahevela",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 1.88,
+							"orbitPeriodDays": 994,
+							"dayRotationHours": 17
+						},
+						"gravityG": 0.85,
+						"planetSizeRel": 0.86,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 5,
+						"temperature": 3,
+						"moisture": 4,
+						"fertility": 5,
+						"naturalIndustry": 1,
+						"techIndustry": 10,
+						"population": 4,
+						"settlementAge": 7,
+						"trade": 7,
+						"instability": 7,
+						"gunShop": 3,
+						"costOfLiving": 6,
+						"blackMarket": 5,
+						"notes": "A technological powerhouse, Vahevela is home to some of the most advanced aerospace technology and also harbors a thriving black market where nearly anything is available for the right price.",
+						"cities": [
+							{
+								"id": "nljones",
+								"name": "N'ljones",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "helord",
+								"name": "Helord",
+								"starport": false,
+								"crime": 5
+							},
+							{
+								"id": "mortown",
+								"name": "Mortown",
+								"starport": false,
+								"crime": 3
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 2.6,
+				"pirateActivity": 6,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "jadul",
+			"code": "JA",
+			"name": "Jadul",
+			"position": {
+				"x": -9.4,
+				"y": -42.9,
+				"z": 3.3
+			},
+			"star": {
+				"starClass": "K1",
+				"temperatureK": 5070,
+				"radiusSolar": 0.788,
+				"luminositySolar": 0.39,
+				"massSolar": 0.772
+			},
+			"bodies": [
+				{
+					"id": "krakorum",
+					"name": "Krakorum",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.69,
+							"orbitPeriodDays": 221,
+							"dayRotationHours": 36
+						},
+						"gravityG": 0.84,
+						"planetSizeRel": 0.86,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 4,
+						"temperature": 4,
+						"moisture": 6,
+						"fertility": 5,
+						"naturalIndustry": 2,
+						"techIndustry": 10,
+						"population": 5,
+						"settlementAge": 4,
+						"trade": 7,
+						"instability": 2,
+						"gunShop": 2,
+						"costOfLiving": 7,
+						"blackMarket": 2,
+						"notes": "One of the technology capitals of the Drahew Region, Krakorum is a sprawling landmass with broad mountain ranges and small oceans. Temperatures are generally well tolerated though very little agricultural activity takes place on this planet.",
+						"cities": [
+							{
+								"id": "malesti",
+								"name": "Malesti",
+								"starport": true,
+								"crime": 2
+							},
+							{
+								"id": "desgid",
+								"name": "D'esgid",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "illdono",
+								"name": "Illdono",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "paleko",
+								"name": "Paleko",
+								"starport": false,
+								"crime": 2
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 3,
+				"pirateActivity": 1,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "enlie",
+			"code": "EN",
+			"name": "Enlie",
+			"position": {
+				"x": -5.9,
+				"y": -49,
+				"z": -12.7
+			},
+			"star": {
+				"starClass": "K3",
+				"temperatureK": 4735,
+				"radiusSolar": 0.769,
+				"luminositySolar": 0.26,
+				"massSolar": 0.72
+			},
+			"bodies": [
+				{
+					"id": "enliah",
+					"name": "Enliah",
+					"kind": "planet",
+					"render": {
+						"terrain": "Regolith",
+						"orbit": {
+							"distanceToStarAu": 0.55,
+							"orbitPeriodDays": 168,
+							"dayRotationHours": 34
+						},
+						"gravityG": 0.71,
+						"planetSizeRel": 0.72,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 2,
+						"temperature": 2,
+						"moisture": 1,
+						"fertility": 1,
+						"naturalIndustry": 3,
+						"techIndustry": 4,
+						"population": 3,
+						"settlementAge": 3,
+						"trade": 1,
+						"instability": 10,
+						"gunShop": 6,
+						"costOfLiving": 1,
+						"blackMarket": 4,
+						"notes": "Little is known about Enliah, which is an atmosphereless planet that navigates a tight orbit around its small star. What little surviving data still exists about this enigmatic planet dates to early unmanned survey expeditions. Soon after the unmanned probes reached Enlie, it was colonized by exiled rebels of the Great Rebellion, and is suspected to currently harbor pirates and wanted criminals. All manned or unmanned attempts to investigate the system have resulted in loss of telemetry not long after the ships exited warp in the Enlie system. The lifeless terrain is known to be waterless regolith of volcanic origin, and is practically unnavigable to ground vehicles.",
+						"cities": [
+							{
+								"id": "plepa",
+								"name": "Plepa",
+								"starport": true,
+								"crime": 10
+							},
+							{
+								"id": "tuie",
+								"name": "Tuie",
+								"starport": false,
+								"crime": 10
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 0.8,
+				"pirateActivity": 10,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		},
+		{
+			"id": "hepa",
+			"code": "HP",
+			"name": "Hepa",
+			"position": {
+				"x": -6.4,
+				"y": -41.2,
+				"z": -3
+			},
+			"star": {
+				"starClass": "K1",
+				"temperatureK": 5085,
+				"radiusSolar": 0.775,
+				"luminositySolar": 0.36,
+				"massSolar": 0.768
+			},
+			"bodies": [
+				{
+					"id": "hepa",
+					"name": "Hepa",
+					"kind": "planet",
+					"render": {
+						"terrain": "Terran",
+						"orbit": {
+							"distanceToStarAu": 0.66,
+							"orbitPeriodDays": 273,
+							"dayRotationHours": 32
+						},
+						"gravityG": 0.84,
+						"planetSizeRel": 0.84,
+						"moons": 0,
+						"habitable": true
+					},
+					"game": {
+						"wealth": 4,
+						"temperature": 5,
+						"moisture": 4,
+						"fertility": 4,
+						"naturalIndustry": 4,
+						"techIndustry": 7,
+						"population": 3,
+						"settlementAge": 4,
+						"trade": 4,
+						"instability": 4,
+						"gunShop": 3,
+						"costOfLiving": 4,
+						"blackMarket": 4,
+						"notes": "One of the many green, habitable planets of the Drahew Region, Hepa is generally unremarkable except for the large size of its primary continent, which allows for easy ground transportation to its scattered cities.",
+						"cities": [
+							{
+								"id": "arlenair",
+								"name": "Arlenair",
+								"starport": true,
+								"crime": 3
+							},
+							{
+								"id": "essoit",
+								"name": "Essoit",
+								"starport": false,
+								"crime": 2
+							},
+							{
+								"id": "velamie",
+								"name": "Velamie",
+								"starport": false,
+								"crime": 4
+							}
+						]
+					},
+					"provenance": {
+						"kind": "extracted",
+						"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+						"extractedAt": "2026-06-24T02:14:05.635Z"
+					}
+				}
+			],
+			"game": {
+				"priceModifier": 1.4,
+				"pirateActivity": 4,
+				"planetCount": 1
+			},
+			"provenance": {
+				"kind": "extracted",
+				"source": "SunDog: Resurrection (Beta 3.6, 14 Dec 2018) sundog.db",
+				"extractedAt": "2026-06-24T02:14:05.635Z"
+			}
+		}
+	]
+}

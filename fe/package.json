@@ -13,6 +13,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"build:wasm": "asc assembly/scheduler.ts --outFile src/lib/planet/patches/wasm/scheduler.wasm --runtime stub --optimize",
+		"sundog:export": "node --experimental-strip-types --no-warnings scripts/sundog/export-catalog.ts",
 		"test": "vitest run"
 	},
 	"dependencies": {
