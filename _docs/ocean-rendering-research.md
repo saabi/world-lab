@@ -169,3 +169,6 @@ scatterStrength` adds volume scatter. **Water Scatter** slider in Render → Sha
 
 **Slice C (sky reflection):** Fresnel-weighted analytic sky/atmosphere color at grazing
 angles; `skyTint` from the focused body's atmosphere design. **Water Sky Reflect** slider.
+
+**Slice D (shore turbidity):** shallow shore band tints transmitted color toward
+sediment/murk. **Water Turbidity** slider in Render → Shading.

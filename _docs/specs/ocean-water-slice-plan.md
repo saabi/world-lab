@@ -48,7 +48,7 @@ tint uniform from viewport.
 
 In shore band, tint transmitted color toward sediment/murk (`waterTurbidityStrength`).
 
-**Status:** pending
+**Status:** done
 
 ## Deferred
 

@@ -371,6 +371,15 @@
 								bind:value={viewportPrefs.materialOverrides.waterSkyReflectionStrength}
 							/>
 							<Range
+								id="water-turbidity-strength"
+								label="Water Turbidity"
+								min={0}
+								max={2}
+								step={0.05}
+								variant="scene"
+								bind:value={viewportPrefs.materialOverrides.waterTurbidityStrength}
+							/>
+							<Range
 								id="water-foam-strength"
 								label="Water Foam"
 								min={0}

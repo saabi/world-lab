@@ -481,6 +481,8 @@
 						skyReflectionStrength:
 							viewportPrefs?.materialOverrides.waterSkyReflectionStrength ?? 0.65,
 						skyTint,
+						turbidityStrength:
+							viewportPrefs?.materialOverrides.waterTurbidityStrength ?? 0.45,
 						foamStrength: viewportPrefs?.materialOverrides.waterFoamStrength ?? 0.35,
 						shoreWidth: viewportPrefs?.materialOverrides.waterShoreWidth ?? 0.25,
 						waterDebug: sceneWaterDebugToGpu(materialDebug)

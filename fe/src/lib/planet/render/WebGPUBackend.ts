@@ -163,6 +163,7 @@ export class WebGPUBackend implements RenderBackend {
 				refractionStrength: frame.materialOverrides.waterRefractionStrength ?? 0.35,
 				skyReflectionStrength: frame.materialOverrides.waterSkyReflectionStrength ?? 0.65,
 				skyTint: [0.4, 0.58, 0.85],
+				turbidityStrength: frame.materialOverrides.waterTurbidityStrength ?? 0.45,
 				foamStrength: frame.materialOverrides.waterFoamStrength ?? 0.35,
 				shoreWidth: frame.materialOverrides.waterShoreWidth ?? 0.25
 			}

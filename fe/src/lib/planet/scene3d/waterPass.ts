@@ -30,6 +30,7 @@ export interface WaterRecordOptions {
 	refractionStrength?: number;
 	skyReflectionStrength?: number;
 	skyTint?: [number, number, number];
+	turbidityStrength?: number;
 	foamStrength?: number;
 	shoreWidth?: number;
 	meshLod?: WaterLodLevel;
@@ -293,6 +294,7 @@ export class WaterPass {
 		f32[44] = skyTint[0];
 		f32[45] = skyTint[1];
 		f32[46] = skyTint[2];
+		f32[47] = options.turbidityStrength ?? 0.45;
 		f32.set(invert4(viewProj), 48);
 		this.device.queue.writeBuffer(this.ubuf, 0, staging);
 

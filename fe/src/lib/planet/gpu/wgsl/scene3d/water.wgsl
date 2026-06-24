@@ -22,6 +22,7 @@ struct Uniforms {
 	skyReflectionStrength : f32,
 	_padSkyTint : f32,
 	skyTint : vec3f,
+	turbidityStrength : f32,
 	invViewProj : mat4x4<f32>,
 };
 
@@ -39,6 +40,7 @@ const SCATTER_RGB : vec3f = vec3f(0.04, 0.14, 0.22);
 const SHALLOW_WATER : vec3f = vec3f(0.12, 0.35, 0.55);
 const DEEP_WATER : vec3f = vec3f(0.01, 0.04, 0.12);
 const FOAM_TINT : vec3f = vec3f(0.72, 0.9, 1.0);
+const SHORE_TURBIDITY : vec3f = vec3f(0.36, 0.28, 0.16);
 
 struct VSIn {
 	@location(0) pos : vec3f,
@@ -238,6 +240,8 @@ fn shade_water(in : VSOut, column_meters : f32, background : vec3f) -> vec3<f32>
 	let scatter_amt = (vec3f(1.0) - transmittance) * max(u.scatterStrength, 0.0);
 	let inscatter = SCATTER_RGB * scatter_amt * (0.5 + 0.5 * (1.0 - fresnel * 0.65));
 	transmitted += inscatter;
+	let turbidity_mix = shore * max(u.turbidityStrength, 0.0);
+	transmitted = mix(transmitted, SHORE_TURBIDITY + transmitted * 0.12, turbidity_mix);
 	let base = mix(SHALLOW_WATER, DEEP_WATER, thickness);
 	let lit = u.ambient.rgb * 0.45 + u.lightColor.rgb * u.lightColor.w * ndl * eclipse_vis;
 	let diffuse = base * lit * (0.12 + thickness * 0.45);
