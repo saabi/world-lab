@@ -23,7 +23,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
 | M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
-| M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `8eae495` |
+| M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `5d891ea` |
 | Docs — param form addendum | ✅ | cross-links | `9897d3b` |
 
 ## Current front (single serialized task)
