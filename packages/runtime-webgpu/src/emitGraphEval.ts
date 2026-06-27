@@ -25,6 +25,10 @@ export interface EmittedGraphEval {
 	resultExpr: string;
 }
 
+export interface EmitGraphEvalOptions {
+	positionExpr?: string;
+}
+
 function sanitizeId(id: string): string {
 	return id.replace(/[^a-zA-Z0-9_]/g, '_');
 }
@@ -156,7 +160,29 @@ function collectParamFields(doc: GraphDocument, nodeIds: string[]): GraphParamFi
 	return fields;
 }
 
-export function emitGraphScalarEval(doc: GraphDocument, output: PortRef): EmittedGraphEval {
+export function emitGraphScalarEval(
+	doc: GraphDocument,
+	output: PortRef,
+	opts?: EmitGraphEvalOptions
+): EmittedGraphEval {
+	return emitGraphEval(doc, output, 'f32', 'emitGraphScalarEval requires scalar f32 output', opts);
+}
+
+export function emitGraphVec3Eval(
+	doc: GraphDocument,
+	output: PortRef,
+	opts?: EmitGraphEvalOptions
+): EmittedGraphEval {
+	return emitGraphEval(doc, output, 'vec3f', 'emitGraphVec3Eval requires vec3f output', opts);
+}
+
+function emitGraphEval(
+	doc: GraphDocument,
+	output: PortRef,
+	expectedOutputType: DataType,
+	outputTypeError: string,
+	opts?: EmitGraphEvalOptions
+): EmittedGraphEval {
 	const outputNode = doc.nodes.find((node) => node.id === output.node);
 	if (!outputNode) {
 		throw new Error(`Unknown output node: ${output.node}`);
@@ -165,8 +191,8 @@ export function emitGraphScalarEval(doc: GraphDocument, output: PortRef): Emitte
 	if (!outputPort || outputPort.direction !== 'out') {
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
-	if (outputPort.dataType !== 'f32') {
-		throw new Error(`emitGraphScalarEval requires scalar f32 output; got ${outputPort.dataType}`);
+	if (outputPort.dataType !== expectedOutputType) {
+		throw new Error(`${outputTypeError}; got ${outputPort.dataType}`);
 	}
 
 	const nodeIds = topologicalSort(doc, output.node);
@@ -188,6 +214,16 @@ export function emitGraphScalarEval(doc: GraphDocument, output: PortRef): Emitte
 				throw new Error('procedural.uv missing output port');
 			}
 			body.push(`let ${portVar(node.id, uvPort.id)} = vec2<f32>(u, v);`);
+			continue;
+		}
+
+		if (node.primitive === 'procedural.metricPosition') {
+			const posPort = node.outputs[0];
+			if (!posPort) {
+				throw new Error('procedural.metricPosition missing output port');
+			}
+			const expr = opts?.positionExpr ?? 'vec3<f32>(u, v, 0.0)';
+			body.push(`let ${portVar(node.id, posPort.id)}: vec3<f32> = ${expr};`);
 			continue;
 		}
 
