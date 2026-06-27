@@ -495,20 +495,21 @@
 				};
 			}
 
+			const waterInput =
+				water && !waterDepthDiagnostic && !atmosphereOnWhite ? waterDrawInput() : null;
+
 			const waterRecorder: SceneWaterFn | undefined =
-				water && !waterDepthDiagnostic
+				waterInput
 					? (ctx) => {
-							const input = waterDrawInput();
-							if (!input) return;
 							water!.record(
 								ctx.pass,
 								ctx.depthView,
 								ctx.sceneColorView,
-								input.waterInstances,
+								waterInput.waterInstances,
 								vpRel,
 								lightRel,
 								globalEclipse,
-								input.waterOptions
+								waterInput.waterOptions
 							);
 						}
 					: undefined;
