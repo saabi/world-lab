@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import type { GraphDocument } from '@virtual-planet/graph';
 	import { MarkupParseError } from './markup/parseGraphMarkup.js';
+	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
 	export interface MarkupViewActions {
 		resyncFromGraph: () => void;
@@ -52,9 +53,8 @@
 		}, 300);
 	}
 
-	function onInput(event: Event) {
-		const target = event.currentTarget as HTMLTextAreaElement;
-		draft = target.value;
+	function onDraftChange(next: string) {
+		draft = next;
 		editing = true;
 		scheduleParse();
 	}
@@ -80,7 +80,12 @@
 
 <div class="markup">
 	<h2 class="title">Markup</h2>
-	<textarea class="code" value={draft} spellcheck="false" oninput={onInput}></textarea>
+	<CodeMirrorEditor
+		class="code"
+		language="planet-markup"
+		bind:value={draft}
+		onchange={onDraftChange}
+	/>
 </div>
 
 <style>
@@ -100,20 +105,6 @@
 	}
 
 	.code {
-		box-sizing: border-box;
-		min-height: 0;
-		height: auto;
-		width: 100%;
-		margin: 0;
-		padding: 8px;
-		overflow: auto;
-		resize: none;
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: 4px;
-		background: #0d1018;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-size: 10px;
-		line-height: 1.45;
-		color: #dbe4ff;
+		/* grid row host for CodeMirrorEditor */
 	}
 </style>

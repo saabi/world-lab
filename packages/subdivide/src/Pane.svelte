@@ -116,6 +116,7 @@
 
 	function isEditableTarget(target: EventTarget | null): boolean {
 		if (!(target instanceof HTMLElement)) return false;
+		if (target.closest('.cm-editor, .cm-content')) return true;
 		const tag = target.tagName;
 		return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
 	}

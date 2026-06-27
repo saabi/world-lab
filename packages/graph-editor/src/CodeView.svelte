@@ -2,6 +2,7 @@
 	import { listPrimitives, type GraphDocument } from '@virtual-planet/graph';
 	import { applyPrimitiveSource, type PrimitiveSaveResult } from './primitiveEditor.js';
 	import { getPrimitiveSource, setPrimitiveSource } from './primitiveSources.js';
+	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
 	export interface CodeViewActions {
 		save: () => void;
@@ -44,8 +45,8 @@
 		status = null;
 	});
 
-	function onInput(event: Event) {
-		draft = (event.currentTarget as HTMLTextAreaElement).value;
+	function onDraftChange(next: string) {
+		draft = next;
 		dirty = true;
 		status = null;
 	}
@@ -101,7 +102,12 @@
 			<span class="status">{status}</span>
 		{/if}
 	</div>
-	<textarea class="editor" value={draft} spellcheck="false" oninput={onInput}></textarea>
+	<CodeMirrorEditor
+		class="editor"
+		language="primitive-source"
+		bind:value={draft}
+		onchange={onDraftChange}
+	/>
 </div>
 
 <style>
@@ -158,20 +164,6 @@
 	}
 
 	.editor {
-		box-sizing: border-box;
-		min-height: 0;
-		height: auto;
-		width: 100%;
-		margin: 0;
-		padding: 8px;
-		resize: none;
-		overflow: auto;
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		border-radius: 4px;
-		background: #0d1018;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-size: 10px;
-		line-height: 1.45;
-		color: #dbe4ff;
+		/* grid row host for CodeMirrorEditor */
 	}
 </style>
