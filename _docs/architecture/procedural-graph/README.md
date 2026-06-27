@@ -32,6 +32,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
 | [design-vs-implementation-audit.md](./design-vs-implementation-audit.md) | **Audit (2026-06-27):** built vs designed; multi-output gap + remediation | `graph`, `compiler` |
+| [planet-pipeline-poc-feasibility.md](./planet-pipeline-poc-feasibility.md) | **Design review:** reproduce the single-planet pipeline (tess→vertex→fragment) as one graph; PoC plan | `graph`, `compiler`, `runtime-*`, `fe/` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
 | [briefs/](./briefs/README.md) | Routable per-milestone contract briefs (serialized; M1 ready) | per-milestone |
 

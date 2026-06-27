@@ -10,6 +10,14 @@
 [inputs-cpu-and-resources.md](../inputs-cpu-and-resources.md) · **Contract author:**
 Opus · **Recommended executor:** Cursor (⚠ has a visual gate).
 
+> **Scope note (added 2026-06-27):** this brief is **Mode B** (compute mesh-generation →
+> stored vertex/index buffers), for the editor cube-sphere/plane *preview* and for
+> collision/export. The **planet render path is Mode A** (vertex-shader procedural
+> tessellation of an instanced patch grid — no stored mesh), covered by
+> [planet-pipeline-poc-feasibility.md](../planet-pipeline-poc-feasibility.md). Do **not**
+> route this brief for the planet PoC; both modes share the same surface-mapping nodes but
+> are different consumers.
+
 ## Objective
 
 Make tessellation **graph-driven**, not hardcoded. A mesh is generated from *any*
