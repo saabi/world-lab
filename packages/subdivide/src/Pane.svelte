@@ -181,14 +181,23 @@
 	}
 
 	.zone-content {
-		/* Grid constrains the (single) child panel to the pane box so it can't grow past
-		   it; the pane itself only clips. Child panels own their own scrolling. */
-		display: grid;
-		grid-template-rows: minmax(0, 1fr);
+		/* Flex column bounds the (single) child panel to the pane box; the pane only
+		   clips. Child panels own their scrolling (they set overflow:auto). */
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
 		width: 100%;
 		height: 100%;
 		min-height: 0;
 		min-width: 0;
 		overflow: hidden;
+	}
+
+	/* The panel root must fill the pane AND be shrinkable, so its own overflow:auto
+	   scrolls internally instead of growing past the pane (the flex min-height:0 gotcha). */
+	.zone-content > :global(*) {
+		flex: 1;
+		min-height: 0;
+		min-width: 0;
 	}
 </style>
