@@ -41,11 +41,16 @@ active brief in [briefs/](./briefs/README.md). Then
 | Procedural-WGSL library + runtime resolver (stream C) | ✅ | procedural-wgsl 5/5; runtime-webgpu 12/12 (2 skip) | `3536b81`, `7e82082` |
 | Graph editor app-shell sizing | ✅ | workspace check/test; fe build | `0e36836` |
 | M12.1 — deterministic CPU vegetation candidates | ✅ | runtime-cpu 23/23; workspace green | `bf999aa` |
+| M12.2 contract — GPU vegetation candidate compute | 📌 pinned | contract reviewed | `2055094` |
+| M9d.3 contract — syntax highlighting | 📌 pinned | optional parallel | `d66e045` |
 
 ## Current front (single serialized task)
 
-- **Active:** pin the **M12.2 GPU vegetation candidate compute** contract per the
-  handoff in [briefs/M12-vegetation.md](./briefs/M12-vegetation.md).
+- **Active:** implement **M12.2 GPU vegetation candidate compute** per the
+  pinned contract at [briefs/M12.2-vegetation-gpu.md](./briefs/M12.2-vegetation-gpu.md).
+  Contract pinned at commit `2055094`.
+- **Parallel (optional):** implement **M9d.3 syntax highlighting** per the pinned
+  contract at [briefs/M9d3-code-highlighting.md](./briefs/M9d3-code-highlighting.md).
 - M11 (tessellation primitives) is complete.
 - Parallel standard-library agents A, B, and C are all landed and integrated.
 
