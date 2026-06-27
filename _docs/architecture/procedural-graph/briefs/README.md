@@ -39,9 +39,12 @@ runs what.
 | [M10-runtime-webgpu.md](./M10-runtime-webgpu.md) | M10 — runtime-webgpu (phased) | ✅ landed (`ae7a4cb`; runtime-webgpu 6/6, graph-editor 37/37) | Sonnet (M10.1–2); Composer (M10.3) |
 | [M9c-editor-ux-polish.md](./M9c-editor-ux-polish.md) | M9c — delete + duplicate (optional parallel) | ✅ landed (`ca493a4`) | Composer |
 | [M11-tessellation.md](./M11-tessellation.md) | M11 — Tessellation primitives (phased) | ✅ landed (`7c4d8b5`) | Cursor (done) |
-| [M12-vegetation.md](./M12-vegetation.md) | M12 — vegetation consumer (phased) | ✅ M12.1 landed (`bf999aa`); M12.2 needs contract | Codex |
+| [M12-vegetation.md](./M12-vegetation.md) | M12 — vegetation consumer (phased) | ✅ M12.1 landed (`bf999aa`) | Codex (done) |
+| [M12.2-vegetation-gpu.md](./M12.2-vegetation-gpu.md) | M12.2 — GPU vegetation compute | ✅ landed (`2c75d96`) | Sonnet (done) |
+| [M12.3-vegetation-preview.md](./M12.3-vegetation-preview.md) | M12.3 — editor vegetation preview | 📌 pinned | Composer |
+| [M9d3-code-highlighting.md](./M9d3-code-highlighting.md) | M9d.3 — syntax highlighting (CodeMirror) | ✅ landed (`ac77b2d`) | Composer (done) |
 | [M9d-editor-shell-polish-proposal.md](./M9d-editor-shell-polish-proposal.md) | M9d — editor shell polish (proposal) | ✅ approved → split | Opus (signed off) |
-| [M9d1-layout-persistence.md](./M9d1-layout-persistence.md) | M9d.1 — editor layout persistence | ✅ landed (`4d8da96`, Opus-reviewed) | Composer |
+| [M9d1-layout-persistence.md](./M9d1-layout-persistence.md) | M9d.1 — editor layout persistence | ✅ landed (`4d8da96`, Opus-reviewed) | Composer (done) |
 | [M9d2-pane-context-menus.md](./M9d2-pane-context-menus.md) | M9d.2 — zone-aware pane menus (subdivide API) | ✅ landed (`7ae1929`) | Composer (done) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
