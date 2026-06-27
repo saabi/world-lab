@@ -171,12 +171,67 @@ dependency order:
    the shaping pipeline needs (body_dir vs world_dir vs world_pos; the inverse
    planetRotation). Reuse, no new work.
 
+## 5b. Two generality requirements (not redesign — already in scope)
+
+These were always part of the purpose (README §4 WebGPUToy); stating them so the PoC
+sequencing serves them, not just the planet.
+
+### ShaderToy-equivalence — and why it is the *simpler* PoC #0
+
+> "we must also be able to implement anything that can be done in ShaderToy or similar."
+
+A ShaderToy effect is **the simplest possible consumer**: one **fragment** consumer over
+a fullscreen triangle, with a fixed set of host/resource inputs and no tessellation, no
+vertex displacement, no instancing, no multi-stage sharing. It is a strict *subset* of the
+planet pipeline's machinery — so it should be **PoC #0, done before the planet**, because
+it de-risks every new piece (fragment consumer + stage entry point + host inputs + the
+uniform form + resource binds) on a trivial target where parity is "does it look like the
+reference effect," not "match a double-precision terrain kernel."
+
+ShaderToy's input set maps onto already-designed concepts (host/runtime + resource input
+classes — [parameter-and-form-schema.md](./parameter-and-form-schema.md) class 2,
+[inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md)):
+
+| ShaderToy | Virtual Planet concept | Status |
+|-----------|------------------------|--------|
+| `iResolution` | viewport host input | ✅ exists (`ViewUniforms.viewport`) |
+| `iTime`, `iTimeDelta`, `iFrame` | `time` host input (+ frame counter) | ✅ time designed; frame counter trivial |
+| `iMouse` | pointer host input — **raw pixel xy + click**, alongside M7's world ray | ⚠ M7 gives world ray; add raw `vec4` mouse |
+| `iChannel0–3` (texture/cubemap) | image **resource** input, GPU-bound | ⚠ M8 = CPU views; **GPU bind is the audit gap** |
+| `iChannel` (audio / video) | audio (FFT) / video resource input | ◻ designed (inputs-cpu-and-resources); not built |
+| `iDate`, `iSampleRate` | host inputs | ◻ trivial when needed |
+| raw `mainImage()` GLSL/WGSL body | a **self-describing fragment primitive** (M3 loader: signature + frontmatter) whose output feeds the fullscreen-fragment consumer | ✅ M3 mechanism exists; needs a fullscreen-fragment consumer + raw-body authoring affordance |
+
+**The only genuinely missing piece beyond the audit's multi-output/stage-entry work is the
+fullscreen-fragment consumer + the ShaderToy host-input bundle + resource GPU binds.** All
+small, and all reused by the planet PoC.
+
+### The schema-driven uniform form generalizes to *any* shader
+
+> "the scene editor's schema-based property panel generator … duplicated as a form for
+> sending data to the shaders … the same purpose as in the scene editor but more generally
+> for any type of shader code."
+
+This is exactly the
+[parameter-and-form-schema ADR](./parameter-and-form-schema.md)'s "one shared form
+generator" + "consumer uniform packing" pipeline — but the PoC must demonstrate it for an
+**arbitrary shader's uniforms**, not only graph-primitive params. The chain is:
+`shader/consumer declares params (schema/frontmatter) → shared SchemaForm renders controls
+→ validated value bag → uniform packer → GPU uniform block bound to that shader`. A
+ShaderToy-style raw shader exposes its tunables the same way a scene body exposes
+appearance fields — same generator, different schema source. This is the unifying claim:
+**the scene editor's property panel and a shader's uniform form are one mechanism over
+different schemas.** (ADR updated to state this generality explicitly.)
+
 ## 6. Proposed PoC milestones (after the audit gaps land)
 
-A vertical that ends in a **route-parity** demonstration:
+A two-stage plan: **PoC #0 (ShaderToy)** proves the machinery cheaply; **PoC #1 (planet)**
+adds tessellation/vertex/multi-stage and ends in route parity.
 
 | Step | Deliverable | Gate |
 |------|-------------|------|
+| **S0** | Fullscreen-fragment consumer + ShaderToy host inputs (`iResolution`/`iTime`/`iMouse`) + a self-describing fragment primitive; schema-driven uniform form feeding it | a hand-written WGSL `mainImage`-style effect runs in the editor, tunable via the generated form |
+| **S1** | One `iChannel` image resource **GPU-bound** (closes the audit's resource-bind gap on the easy target) | a texture-sampling effect renders |
 | **P0** | Instance-input model in IR + runtime (bind a per-instance buffer; `instance_index`/`vertex_index` inputs) | headless: a graph reads instance/vertex indices; unit test |
 | **P1** | Tessellator composition nodes: `surface.plane` grid + `patchTransform` + `cubeToSphere` + `displace`; reproduce one patch's `body_dir`/`world_pos` | vitest parity vs `cube_face_uv_to_unit_dir` + `vs_main` math (CPU) |
 | **P2** | Shaping/shading nodes → `procedural-wgsl` (the planet-shaping node set), validated against the existing WGSL numerically | per-node CPU parity vs current kernel (within tolerance) |
@@ -210,10 +265,22 @@ defines for the eventual real migration — so the PoC doubles as the M13 spike.
 
 ## 8. Recommendation
 
-**Proceed — but build the enabling capabilities first, in this order:** (1) multi-output
-compile driver + consumer-stage model, (2) stage entry points, (3) the instance-input
-model (P0), then (4) the planet-graph PoC (P1–P5). The architecture is sound and the GPU
-pipeline already validates the model; the work is re-expression + the orchestration tier,
-not redesign. Keep the existing scheduler/culling as the runtime service that feeds the
-graph. Decompose the cube-sphere tessellator into editable nodes so the "plane → instanced
-cube → inflated sphere → displaced" structure is visible and editable, as intended.
+**Proceed — build enablers first, then prove on the easy target before the planet:**
+
+1. **Multi-output compile driver + consumer-stage model**, then **stage entry points**
+   (the orchestration tier — needed by both PoCs).
+2. **PoC #0 — ShaderToy (S0–S1):** fullscreen-fragment consumer + ShaderToy host inputs +
+   schema-driven uniform form + one GPU-bound image resource. This de-risks the fragment
+   consumer, host inputs, the uniform form, and resource binds on a trivial target, and
+   directly delivers the WebGPUToy generality requirement.
+3. **PoC #1 — planet (P0–P5):** instance-input model, tessellator composition nodes,
+   shaping-kernel codegen, vertex+fragment shared compile, runtime wiring, **route
+   parity** with `/scene`.
+
+The architecture is sound and the GPU pipeline already validates the planet model; the
+work is re-expression + the orchestration tier, not redesign. Keep the existing
+scheduler/culling as the runtime service that feeds the graph. Decompose the cube-sphere
+tessellator into editable nodes so the "plane → instanced cube → inflated sphere →
+displaced" structure is visible and editable. Doing the planet *and* matching ShaderToy
+are the same engine proving two ends of its range — a single fragment effect and a full
+displaced-terrain multi-stage pipeline — over one IR, compiler, and uniform-form mechanism.

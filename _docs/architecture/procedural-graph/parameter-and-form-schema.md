@@ -114,6 +114,13 @@ introspection (`fields()`, `fieldKind()`, `annotationsOf()`), shared across:
 - `/scene` node editor (already: `SchemaForm.svelte`)
 - Graph editor inspector (M9)
 - Planet/body appearance where schema-driven (migration target)
+- **Any shader's tunable uniforms** — a graph primitive, a self-describing WGSL
+  fragment, or a raw ShaderToy-style effect. The scene editor's property panel and a
+  shader's uniform form are **one mechanism over different schemas**: the shader/consumer
+  declares params (primitive schema / WGSL frontmatter), the *same* generator renders the
+  controls, and the validated value bag flows through the uniform packer (class 3 below)
+  to the GPU block bound to that shader. This generality is the point — sending data to
+  arbitrary shaders is the same job as editing a scene node, not a separate UI.
 
 ### Placement (pinned default)
 
