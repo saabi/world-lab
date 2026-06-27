@@ -10,3 +10,8 @@ export * from './types.js';
 export * from './irAdapter.js';
 export * from './portBindings.js';
 export * from './defaultGraph.js';
+export * from './documentStorage.js';
+export * from './markup/printGraph.js';
+export * from './markup/parseGraphMarkup.js';
+export * from './primitiveEditor.js';
+export * from './primitiveSources.js';

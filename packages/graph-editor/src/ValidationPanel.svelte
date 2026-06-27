@@ -3,15 +3,19 @@
 
 	interface Props {
 		graph: GraphDocument;
+		markupError?: string | null;
 	}
 
-	let { graph }: Props = $props();
+	let { graph, markupError = null }: Props = $props();
 
 	const result = $derived(validateGraph(graph));
 </script>
 
 <div class="validation">
 	<h2 class="title">Validation</h2>
+	{#if markupError}
+		<p class="error">Markup: {markupError}</p>
+	{/if}
 	{#if result.ok}
 		<p class="ok">Graph is valid.</p>
 	{:else}
@@ -40,6 +44,12 @@
 		margin: 0;
 		font-size: 11px;
 		color: #7dcea0;
+	}
+
+	.error {
+		margin: 0 0 6px;
+		font-size: 11px;
+		color: #f1948a;
 	}
 
 	.issues {

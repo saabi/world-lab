@@ -25,15 +25,17 @@ active brief in [briefs/](./briefs/README.md). Then
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
 | M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `5d891ea` |
 | Vite graph-editor route fix | ✅ | fe check; dev/build | `cb1d789` |
+| M9b.1 — IR-native persistence | ✅ | graph-editor 15/15; fe check | *(uncommitted)* |
+| M9b.2 — markup printer + MarkupView | ✅ | graph-editor 17/17; fe check | *(uncommitted)* |
+| M9b.3 — markup parser + editable sync | ✅ | graph-editor 23/23; fe check | *(uncommitted)* |
+| M9b.4 — CodeView + primitive ripple | ✅ | graph 14/14; graph-editor 29/29; fe check | *(uncommitted)* |
 | Docs — param form addendum | ✅ | cross-links | `9897d3b` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M9b.1 — IR-native persistence** per
-  [briefs/M9b-multi-level-editing.md](./briefs/M9b-multi-level-editing.md).
-- Full M9b is phased: M9b.1 save/load → M9b.2 markup printer → M9b.3 parser →
-  M9b.4 CodeView ripple.
-- Do not start M9b.2 until M9b.1 gate is green.
+- **Active:** **M10 — runtime-webgpu** per
+  [implementation-plan.md](./implementation-plan.md).
+- M9b complete (all four sub-phases ✅). Do not start M14 until M10 consumer path is underway.
 
 ## Resume protocol (any agent)
 

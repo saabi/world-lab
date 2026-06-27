@@ -5,6 +5,7 @@
 	"description": "Reusable Svelte graph-editor components over the Typed Graph IR (no renderer logic).",
 	"type": "module",
 	"dependencies": {
+		"@virtual-planet/compiler": "*",
 		"@virtual-planet/graph": "*",
 		"@virtual-planet/runtime-cpu": "*",
 		"@virtual-planet/schema": "*",
@@ -18,6 +19,8 @@
 		"./InspectorPanel.svelte": "./src/InspectorPanel.svelte",
 		"./NodePalette.svelte": "./src/NodePalette.svelte",
 		"./ValidationPanel.svelte": "./src/ValidationPanel.svelte",
+		"./MarkupView.svelte": "./src/MarkupView.svelte",
+		"./CodeView.svelte": "./src/CodeView.svelte",
 		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte"
 	},
 	"scripts": {
