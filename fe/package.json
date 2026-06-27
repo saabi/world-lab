@@ -19,7 +19,6 @@
 	"dependencies": {
 		"@virtual-planet/editor-ui": "^0.0.0",
 		"@virtual-planet/graph": "^0.0.0",
-		"@virtual-planet/graph-editor": "^0.0.0",
 		"@virtual-planet/runtime-cpu": "^0.0.0",
 		"@virtual-planet/schema": "^0.0.0",
 		"@virtual-planet/subdivide": "^0.0.0",

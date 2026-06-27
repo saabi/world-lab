@@ -18,7 +18,7 @@ PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`. Tabs; verbati
 - **Status:** ✅ DONE — `assembleStageEntry` wraps ConsumerShader → @vertex/@fragment/@compute
   entry + binding decls (text only, no AST). compiler 36/36. (committed below)
 
-## R2-T1 — Use.GPU primitive harvest  ·  Claimed by: UNCLAIMED
+## R2-T1 — Use.GPU primitive harvest  ·  Claimed by: cursor-agent
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-usegpu-primitive-harvest.md`
 - **Owns:** `packages/procedural-wgsl/src/modules/{sdf,color,noise}/**` (new subdirs),
@@ -30,7 +30,7 @@ PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`. Tabs; verbati
   brief BEFORE copying; skip + reauthor anything unclear. Add `category` + `group` frontmatter.
 - **Status:** UNCLAIMED
 
-## R2-T2 — Extract standalone editor → `apps/graph-editor`  ·  Claimed by: UNCLAIMED
+## R2-T2 — Extract standalone editor → `apps/graph-editor`  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-app-extraction.md`
 - **Owns:** new `apps/graph-editor/**`; root `package.json` (add `apps/*` to workspaces);

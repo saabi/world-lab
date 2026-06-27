@@ -15,6 +15,8 @@
 	:global(html, body) {
 		height: 100%;
 		margin: 0;
+		background: #04060d;
+		color: #e8ecf8;
 	}
 
 	.page {
