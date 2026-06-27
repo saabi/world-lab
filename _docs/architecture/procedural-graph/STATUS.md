@@ -34,7 +34,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | M10.3 — editor GPU preview pane | ✅ | graph-editor 37/37; fe check; manual `/graph-editor` GPU tab | `ae7a4cb` |
 | M11.1 — surface-mapping primitives | ✅ | graph 20/20 | `e8300a9` |
 | M9d.1 — editor layout persistence | ✅ | graph-editor 42/42 | `4d8da96` |
-| M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `372366f` |
+| M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `cfa2c29` |
 
 ## Current front (single serialized task)
 
