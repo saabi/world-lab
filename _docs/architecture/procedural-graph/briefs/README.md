@@ -55,7 +55,7 @@ runs what.
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Render-target / frame-graph executor (per-target res, feedback, ordering) | 📌 contract ready · after multi-output | Cursor |
 | [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Port planet-shader functions → primitives (feeds planet PoC P2; parity by reference) | 📌 contract ready | Cursor |
 | [M-usegpu-primitive-harvest.md](./M-usegpu-primitive-harvest.md) | Port Use.GPU WGSL fns (SDF/noise/colour) → primitives (license-verify first) | 📌 contract ready | Cursor |
-| [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract section/tab chrome → `@virtual-planet/editor-ui` (decouples fe/, enables palette categories) | 📌 contract ready · prereq for palette categorization | Cursor |
+| [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract section/tab chrome **+ controls** (slider+readout, range, log, checkbox) → `@virtual-planet/editor-ui` | 📌 contract ready · prereq for palette categories + schema form | Cursor |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed

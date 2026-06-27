@@ -1,4 +1,4 @@
-# Brief — Extract shared editor chrome to `@virtual-planet/editor-ui`
+# Brief — Extract shared editor chrome + controls to `@virtual-planet/editor-ui`
 
 **Type:** decoupling / shared package · **Packages:** new `@virtual-planet/editor-ui`;
 `fe/` (re-point imports); `@virtual-planet/graph-editor` (consume) · **Depends on:** —
@@ -18,15 +18,32 @@ ADR left open ("graph-editor *or* schema-ui").
 
 ## What extracts (already generic — verified)
 
-These have no planet/scene coupling (only `Snippet` children / labels):
+All have no planet/scene coupling (only labels / value+callback props):
 
+**Section chrome:**
 - `EditorSuperSection.svelte`, `EditorSubsection.svelte` — collapsible section chrome
 - `EditorVerticalTabs.svelte`, `EditorTabIcon.svelte` + `editorTabIcons.ts` — vertical tabs
 
+**Input controls** (`fe/src/lib/planet/components/controls/`) — the reusable editing
+widgets the standalone graph editor needs, all generic (`{ label, min, max, value, onvalue }`):
+- `ParamSliderRow.svelte` — **slider with numeric readout to the right** (+ `step`,
+  `disabled`); neutralize its `variant = 'planet'` default to `'default'`
+- `Range.svelte` — linear slider · `LogRange.svelte` — log-scale slider (wide dynamic
+  range, e.g. radius; maps to the param ADR's `x-widget: log`)
+- `CheckBox.svelte` — boolean
+- `sliderList.css` — shared control styles
+
+These four widgets are exactly the building blocks the schema-driven `SchemaForm` / `ParamForm`
+composes (param ADR widget map: number→slider, log→LogRange, boolean→checkbox, …). Putting
+them in `editor-ui` makes it the shared **editing-UI primitives** package the form generator
+sits on top of. Add any further generic widgets discovered (number input, select/dropdown,
+color, vector row) the same way — anything with a `value`/`onvalue` shape and no domain
+coupling.
+
 **Does NOT extract:** `EditorParamSection.svelte` — it imports `PlanetParameters` /
-`paramEditorSchema` / `ParamSliderRow` (the **legacy** planet param sliders the param ADR
-retires). The graph editor uses the generic sections + the schema-driven `SchemaForm`
-(param ADR), **not** `EditorParamSection`.
+`paramEditorSchema` (the **legacy** planet param sliders the param ADR retires). The graph
+editor uses the generic sections + controls + the schema-driven `SchemaForm` (param ADR),
+**not** `EditorParamSection`.
 
 ## Package
 
@@ -37,8 +54,12 @@ packages/editor-ui/   @virtual-planet/editor-ui
     Subsection.svelte      (← EditorSubsection)
     VerticalTabs.svelte    (← EditorVerticalTabs)
     TabIcon.svelte, tabIcons.ts
+    controls/
+      SliderRow.svelte     (← ParamSliderRow; slider + numeric readout)
+      Range.svelte, LogRange.svelte, CheckBox.svelte
+      sliderList.css
     index.ts
-  package.json (peerDep svelte ^5; NO @virtual-planet/{graph,schema} — pure chrome)
+  package.json (peerDep svelte ^5; NO @virtual-planet/{graph,schema} — pure chrome + controls)
   tsconfig.json
 ```
 
@@ -48,19 +69,21 @@ shape.
 
 ## Migration
 
-- Move the four generic components into `editor-ui` (rename to the neutral names above; keep
-  a thin re-export in `fe/` or update `fe/` imports — prefer updating imports).
-- `fe/` scene editor imports the components from `@virtual-planet/editor-ui` (behaviour
-  unchanged).
+- Move the section chrome + the four control widgets into `editor-ui` (neutral names;
+  prefer updating `fe/` imports over leaving re-export shims). Neutralize control styling
+  variants (`variant='planet'` → `'default'`).
+- `fe/` (scene editor **and** its appearance/control usages) imports from
+  `@virtual-planet/editor-ui` — behaviour unchanged. Note `EditorParamSection` still
+  imports the slider widget; point it at `editor-ui`'s control while it remains in `fe/`.
 - `graph-editor` adds the dep (the `sceneFree` guard already allow-lists
   `@virtual-planet/*`; add `editor-ui` to its allow-list pattern).
 
 ## Gate
 
-1. `editor-ui` builds: `npm run check`/`test` green (a render/smoke test of `Section`
-   collapse).
-2. `fe` check green; the scene editor renders unchanged (manual: `/scene` sections still
-   collapse).
+1. `editor-ui` builds: `npm run check`/`test` green (smoke tests: `Section` collapse;
+   `SliderRow` emits `onvalue` and shows the numeric readout; `CheckBox` toggles).
+2. `fe` check green; the scene editor renders unchanged (manual: `/scene` sections collapse
+   **and** sliders/checkboxes still work).
 3. `graph-editor` check/test green; `sceneFree.test.ts` updated to allow `editor-ui` and
    still green.
 4. Root `npm install` links the new workspace.

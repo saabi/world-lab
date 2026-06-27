@@ -159,8 +159,10 @@ working reference for shell + panel chrome and may be ported as needed:
 `EditorParamSection` / `EditorSubsection` sections, `EditorVerticalTabs`, and
 `layoutStorage.ts` for persisting the pane layout.
 
-**Shared chrome lives in `@virtual-planet/editor-ui`.** The collapsible `Section` /
-`Subsection` and `VerticalTabs` are extracted from `fe/` into a shared, scene-free package
+**Shared chrome + controls live in `@virtual-planet/editor-ui`.** The collapsible
+`Section` / `Subsection`, `VerticalTabs`, **and the input controls** (slider-with-numeric-
+readout, linear/log range, checkbox — the building blocks `SchemaForm` composes) are
+extracted from `fe/` into a shared, scene-free package
 ([briefs/M-editor-ui-extraction.md](./briefs/M-editor-ui-extraction.md)) so the graph
 editor (and `fe/`) both consume them — they can't be imported from `fe/`. Used across the
 graph editor wherever grouping helps:
