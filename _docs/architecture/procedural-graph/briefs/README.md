@@ -36,8 +36,12 @@ runs what.
 | [M8-resource-inputs.md](./M8-resource-inputs.md) | M8 — resource inputs + CPU views | ✅ landed (`790a898`; graph 13/13, runtime-cpu 11/11) | Codex (done) |
 | [M9-standalone-editor.md](./M9-standalone-editor.md) | M9 — standalone graph editor | ✅ landed (`5d891ea`; graph 13/13, runtime-cpu 14/14, graph-editor 7/7) | Opus/Cursor (done) |
 | [M9b-multi-level-editing.md](./M9b-multi-level-editing.md) | M9b — multi-level editing (phased) | ✅ landed (`6f8a3ff`) | Composer (M9b.1–2); Sonnet (M9b.3–4) |
-| [M10-runtime-webgpu.md](./M10-runtime-webgpu.md) | M10 — runtime-webgpu (phased) | 📌 contract pinned | Sonnet (M10.1–2); Composer (M10.3) |
-| [M9c-editor-ux-polish.md](./M9c-editor-ux-polish.md) | M9c — delete + duplicate (optional parallel) | 📌 contract pinned | Composer |
+| [M10-runtime-webgpu.md](./M10-runtime-webgpu.md) | M10 — runtime-webgpu (phased) | ✅ landed (`ae7a4cb`; runtime-webgpu 6/6, graph-editor 37/37) | Sonnet (M10.1–2); Composer (M10.3) |
+| [M9c-editor-ux-polish.md](./M9c-editor-ux-polish.md) | M9c — delete + duplicate (optional parallel) | ✅ landed (`ca493a4`) | Composer |
+| [M11-tessellation.md](./M11-tessellation.md) | M11 — Tessellation primitives (phased) | 📌 contract ready | Cursor (Opus pinned coordinate-space + cull) |
+| [M9d-editor-shell-polish-proposal.md](./M9d-editor-shell-polish-proposal.md) | M9d — layout, pane menus, syntax highlight | 📋 architect review | Opus → Composer |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
-**M9c** may run in parallel with M10 (does not block GPU). Live status + resume entry point: [../STATUS.md](../STATUS.md).
+**M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
+parallel polish while M11 is active — see proposal for architect sign-off.
+Live status + resume entry point: [../STATUS.md](../STATUS.md).

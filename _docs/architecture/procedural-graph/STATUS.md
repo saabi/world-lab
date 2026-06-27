@@ -45,6 +45,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | Item | Severity | State | Resolve by |
 |------|----------|-------|-----------|
 | Standalone editor is a scene-free **route** in `fe/` (`fe/src/routes/graph-editor`), not the `apps/graph-editor` workspace the editor ADR requires | low | Accepted interim — package + route verified scene-free, **guarded** by `packages/graph-editor/src/sceneFree.test.ts` | Extract `fe/src/routes/graph-editor` → `apps/graph-editor` **before M14/M16** (embedded editor / collaboration), ahead of M17 WebGPUToy |
+| M9d editor shell polish (layout persist, pane context menus, code highlighting) | — | Proposal for review — [briefs/M9d-editor-shell-polish-proposal.md](./briefs/M9d-editor-shell-polish-proposal.md) | Opus review → M9d.1+ implementation parallel to M11 |
 
 Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green
 (schema 18, graph 17, compiler 26, runtime-cpu 14, runtime-webgpu 5+1-skip,
