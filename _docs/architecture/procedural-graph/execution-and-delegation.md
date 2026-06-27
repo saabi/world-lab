@@ -66,7 +66,7 @@ does not move to cheaper or external agents.
 
 | Agent | Good fit | Notes |
 |-------|----------|-------|
-| **Cursor (auto)** | In-IDE interactive implementation, refactors, SvelteKit UI | Believed Sonnet-class; human-in-the-loop in the editor |
+| **Cursor (auto)** | In-IDE implementation against a pinned contract; refactors; SvelteKit UI | ~Sonnet-class; **unlimited monthly credits → default home for bulk implementer work**; human-in-the-loop in the editor |
 | **Codex** | Headless autonomous multi-file implementation; algorithmic/codegen milestones that run to green | Strong at "iterate until tests pass" |
 | **Gemini Antigravity** | Milestones needing **browser/visual verification** (the ⚠ rows) and multi-surface work | Agent-first IDE with browser control |
 | **Sonnet 4.6** | Bulk implementation against a pinned contract + green gate | Claude subagent I can spawn directly |
@@ -88,7 +88,7 @@ boilerplate → Haiku or the cheapest available.
 |---|-----------|-----------|--------------------------------|
 | M0 ✅ | Scaffold packages | Haiku | done — pure boilerplate |
 | **M1** ✅ | Graph IR types | **Opus** | The schema is the SSOT (`Port` data+space, `Node`, `Edge`, `GraphDocument`); shape errors propagate everywhere |
-| M2 | Primitives + evalCPU | Sonnet (+ Haiku per-primitive) | Opus pins `NodePrimitive`/`registerPrimitive`; each noise/math op is then repetitive |
+| M2 ✅ | Primitives + evalCPU | Cursor | Opus pins `NodePrimitive`/`registerPrimitive`; each noise/math op is then repetitive |
 | M3 | Self-describing WGSL loader | Sonnet | Opus pins the merged-schema shape + YAML grammar |
 | **M4** | Dependency slicing | **Opus** | Algorithmic core of the compiler; correctness-critical |
 | M5 | WGSL gen + module resolver | Sonnet | Mechanical once the slice/resolver interfaces are pinned |

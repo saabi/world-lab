@@ -24,6 +24,7 @@ runs what.
 | Brief | Milestone | Status | Recommended executor |
 |-------|-----------|--------|----------------------|
 | [M1-graph-ir.md](./M1-graph-ir.md) | M1 — Graph IR | ✅ landed (5/5 green) | Sonnet (done) |
-| [M2-primitives.md](./M2-primitives.md) | M2 — Primitive registration | ✅ contract ready | Sonnet (registry) + Haiku (primitives) |
+| [M2-primitives.md](./M2-primitives.md) | M2 — Primitive registration | ✅ landed (10/10 green) | Cursor (done) |
+| [M4-slicing.md](./M4-slicing.md) | M4 — Dependency slicing | ✅ contract ready | Cursor (contract by Opus) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
