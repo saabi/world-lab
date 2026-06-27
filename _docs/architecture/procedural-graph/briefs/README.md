@@ -23,6 +23,7 @@ runs what.
 
 | Brief | Milestone | Status | Recommended executor |
 |-------|-----------|--------|----------------------|
-| [M1-graph-ir.md](./M1-graph-ir.md) | M1 — Graph IR | ✅ contract ready | Sonnet / Codex (contract by Opus) |
+| [M1-graph-ir.md](./M1-graph-ir.md) | M1 — Graph IR | ✅ landed (5/5 green) | Sonnet (done) |
+| [M2-primitives.md](./M2-primitives.md) | M2 — Primitive registration | ✅ contract ready | Sonnet (registry) + Haiku (primitives) |
 
 Further briefs are written as each milestone's predecessor lands (serialized).

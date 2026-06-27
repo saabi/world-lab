@@ -45,7 +45,7 @@ apps/
 | # | Goal | Key deliverables | Test gate |
 |---|------|------------------|-----------|
 | **M0** ✅ | Scaffold packages | `graph`, `compiler`, `procedural-wgsl`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `mcp-server` as workspaces with `check`/`test` stubs | `npm install` (root) links all; `npm run check -w …` green on stubs |
-| **M1** | Graph IR on TypeBox | `GraphDocument`/`GraphNode`/`GraphEdge`/`Port` (data type **+ coordinate-space tag**), field types, validation + serialization in `packages/graph` | vitest: build a 2-node graph, round-trip serialize; **reject** a type-mismatched edge and a space-mismatched edge |
+| **M1** ✅ | Graph IR on TypeBox | `GraphDocument`/`GraphNode`/`GraphEdge`/`Port` (data type **+ coordinate-space tag**), field types, validation + serialization in `packages/graph` | vitest: build a 2-node graph, round-trip serialize; **reject** a type-mismatched edge and a space-mismatched edge — **5/5 green** |
 | **M2** | Primitives + CPU eval | `registerPrimitive`, `NodePrimitive` (schema, `evalCPU?`, `WgslSourceRef`); noise + math primitives with CPU evaluators | vitest: `evalCPU` determinism (perlin), `remap`/`clamp`/`smoothstep` numerics |
 | **M3** | Self-describing WGSL | YAML-frontmatter + WGSL signature parse → merged primitive schema (loader in `compiler`) | vitest: load a `.wgsl` with frontmatter; assert merged schema == hand-written `definePrimitive` |
 

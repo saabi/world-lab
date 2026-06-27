@@ -87,7 +87,7 @@ boilerplate → Haiku or the cheapest available.
 | # | Milestone | Lead tier | Why / what Opus must pin first |
 |---|-----------|-----------|--------------------------------|
 | M0 ✅ | Scaffold packages | Haiku | done — pure boilerplate |
-| **M1** | Graph IR types | **Opus** | The schema is the SSOT (`Port` data+space, `Node`, `Edge`, `GraphDocument`); shape errors propagate everywhere |
+| **M1** ✅ | Graph IR types | **Opus** | The schema is the SSOT (`Port` data+space, `Node`, `Edge`, `GraphDocument`); shape errors propagate everywhere |
 | M2 | Primitives + evalCPU | Sonnet (+ Haiku per-primitive) | Opus pins `NodePrimitive`/`registerPrimitive`; each noise/math op is then repetitive |
 | M3 | Self-describing WGSL loader | Sonnet | Opus pins the merged-schema shape + YAML grammar |
 | **M4** | Dependency slicing | **Opus** | Algorithmic core of the compiler; correctness-critical |
