@@ -14,8 +14,9 @@ where a design ADR like
 [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md),
 [editor-and-scene-integration.md](./editor-and-scene-integration.md), or
 [parameter-and-form-schema.md](./parameter-and-form-schema.md) already locks
-policy). A
-delegate handed a milestone cold would re-invent those and drift.
+policy; resource/host-input inspector boundaries are in
+[parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md)).
+A delegate handed a milestone cold would re-invent those and drift.
 
 So milestones are not "hand off and walk away" yet — they are **one thin contract
 pass away**. The cheaper the agent, the more the contract must be pinned first.

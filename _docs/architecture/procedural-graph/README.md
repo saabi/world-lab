@@ -28,6 +28,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
 | [editor-and-scene-integration.md](./editor-and-scene-integration.md) | **ADR:** graph editor vs scene tree; host composition, no package fusion | `graph-editor`, `fe/` scene |
 | [parameter-and-form-schema.md](./parameter-and-form-schema.md) | **ADR:** param SSOT, shared form generator, GPU packing vs authoring | `schema`, `graph`, `graph-editor`, `fe/` |
+| [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) | Resource/host inputs vs param form; inspector boundaries (M9+) | `graph-editor`, M10, M14 |
 | [collaboration-and-mcp.md](./collaboration-and-mcp.md) | Document/session model, multiuser, MCP/AI access | `mcp-server`, backend |
 | [implementation-plan.md](./implementation-plan.md) | Concrete milestones (M0–M17), packages, test gates, critical path | all |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |

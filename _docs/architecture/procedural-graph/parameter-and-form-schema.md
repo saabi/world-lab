@@ -10,6 +10,10 @@ CPU/GPU consumers. Part of the [Procedural Graph System](./README.md).
 > before adding a second slider list, a parallel param type, or a bespoke uniform
 > editor. Touches M3 (YAML widgets on primitives), M9 (graph inspector), M9b,
 > scene/planet forms, and planet-shaping migration.
+>
+> **Resource / asset / pointer inputs:** also read
+> [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md)
+> before M9, M10, or M14 — those are **not** param-form concerns.
 
 ---
 
@@ -258,6 +262,7 @@ Briefs for M9/M3/M13 must reference this ADR when defining public surfaces.
 | [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | M3 YAML + signatures (not form layout) |
 | [briefs/M3-self-describing-wgsl.md](./briefs/M3-self-describing-wgsl.md) | Exact TypeBox convergence and YAML merge contract |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Host/runtime input class |
+| [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) | Resource ports, host inputs, inspector vs `SchemaForm` (M9+) |
 | [planet-shaping-pipeline-graph.md](../../planet-shaping-pipeline-graph.md) | Scale tags, uniform contract |
 | [driven-fields-editor.md](../../specs/driven-fields-editor.md) | Scene field bindings (separate from scalar params) |
 | `fe/.../SchemaForm.svelte`, `nodeSchemas.ts` | Current scene prior art |
@@ -271,3 +276,4 @@ Briefs for M9/M3/M13 must reference this ADR when defining public surfaces.
 |------|--------|
 | 2026-06-24 | Initial record: one schema SSOT, shared form generator, three param classes, ParamSpec→TypeBox convergence, no raw uniform UI |
 | 2026-06-27 | Pin convergence to M3: remove `ParamSpec[]`; TypeBox object schema is the graph-param SSOT before M9 |
+| 2026-06-27 | Addendum: resource/host input boundaries and inspector two-panel model ([parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md)) |

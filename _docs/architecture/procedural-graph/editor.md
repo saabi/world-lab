@@ -5,8 +5,11 @@ components), `apps/graph-editor` (standalone app). Part of the
 [Procedural Graph System](./README.md).
 
 > **Scope ADR:** Parameter inspectors use the shared form schema policy in
-> [parameter-and-form-schema.md](./parameter-and-form-schema.md). Scene-tree
-> scope: [editor-and-scene-integration.md](./editor-and-scene-integration.md).
+> [parameter-and-form-schema.md](./parameter-and-form-schema.md). Resource and
+> host input ports use the
+> [addendum](./parameter-and-form-schema-addendum.md) (port panel, not
+> `SchemaForm`). Scene-tree scope:
+> [editor-and-scene-integration.md](./editor-and-scene-integration.md).
 
 A first-class but **separate** package (`graph-editor`) that edits the Typed
 Graph IR — it is *not* a planet editor and does **not** own the graph model. Two
