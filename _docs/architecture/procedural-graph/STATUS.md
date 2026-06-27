@@ -27,7 +27,7 @@ active brief in [briefs/](./briefs/README.md). Then
 
 ## Current front (single serialized task)
 
-- **Active:** pin the M3 self-describing WGSL loader contract before implementation.
+- **Active:** implement the pinned M3 self-describing WGSL loader contract.
 - M7/M8 complete the generic CPU/runtime prerequisites for M9; M3 is the remaining
   compiler-side prerequisite before editor integration.
 - Execution stays serialized until the synchronization workflow is documented.
