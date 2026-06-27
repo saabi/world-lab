@@ -36,7 +36,7 @@ active brief in [briefs/](./briefs/README.md). Then
 | M9d.1 — editor layout persistence | ✅ | graph-editor 42/42 | `4d8da96` |
 | M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `cfa2c29` |
 | M9d.2 — zone-aware pane menus | ✅ | graph-editor 42/42 | `7ae1929` |
-| M11.3 — cube-sphere mesh preview | ✅ | runtime-webgpu 10/10 (2 skip); graph-editor 42/42; fe check | *(this commit)* |
+| M11.3 — cube-sphere mesh preview | ✅ | runtime-webgpu 10/10 (2 skip); graph-editor 42/42; fe check | `7c4d8b5` |
 
 ## Current front (single serialized task)
 
