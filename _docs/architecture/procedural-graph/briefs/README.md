@@ -52,6 +52,9 @@ runs what.
 | [M-params-as-inputs.md](./M-params-as-inputs.md) | Params promotable to input ports (remap bounds wireable) | 📌 contract ready | Cursor |
 | [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source in CodeView; built-ins read-only; clone-to-edit | 📌 contract ready · fixes stub-source bug | Cursor |
 | [M-shadertoy-poc.md](./M-shadertoy-poc.md) | ShaderToy PoC effects: cosine palette (S0) + Game of Life multibuffer (S0.5) | 📌 contract ready · after multi-output + render-target | Cursor |
+| [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Render-target / frame-graph executor (per-target res, feedback, ordering) | 📌 contract ready · after multi-output | Cursor |
+| [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Port planet-shader functions → primitives (feeds planet PoC P2; parity by reference) | 📌 contract ready | Cursor |
+| [M-usegpu-primitive-harvest.md](./M-usegpu-primitive-harvest.md) | Port Use.GPU WGSL fns (SDF/noise/colour) → primitives (license-verify first) | 📌 contract ready | Cursor |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
