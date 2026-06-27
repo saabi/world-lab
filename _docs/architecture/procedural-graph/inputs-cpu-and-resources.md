@@ -147,10 +147,86 @@ carry an optional **write-target ref** and **channel→target reads**, so the ho
 resolve per-target/per-channel resolution and the pass order. The pass-graph *executor*
 itself is a follow-on runtime milestone, separate from the compile driver.
 
+## Host-input binding contexts (the ShaderToy uniform set, generalized)
+
+`iResolution` is not special — it just exposed that host inputs bind from **different
+contexts**. Cataloguing ShaderToy's full uniform set by context gives the generic model
+(and shows which ones, like resolution, must be resolved per-target/per-channel rather
+than as one global):
+
+| ShaderToy | Binding context | Generic equivalent |
+|-----------|-----------------|--------------------|
+| `iResolution` | **per write-target** | size of the target this consumer writes |
+| `iChannelResolution[i]` | **per read-channel** | size of each input target/resource |
+| `iChannelTime[i]` | **per read-channel** | playback time of each video/buffer channel |
+| `iMouse` | **per interaction surface** (see below) | normalized pointer from the display panel, mapped into the consumer's target space |
+| `iTime`, `iTimeDelta`, `iFrame`, `iFrameRate` | **playback context** | one clock/transport per *preview/session*, not global to the app (a multi-preview editor may run independent clocks) |
+| `iDate` | **session/global** | wall-clock host input |
+| `iSampleRate` | **audio context** | audio device/clock |
+| `iChannel0–3` (tex/cube/buffer/video/audio/keyboard) | **per read-channel** | resource or another target, GPU-bound (see resources) |
+
+So the contexts are: **per-target**, **per-channel**, **playback (per preview)**,
+**interaction-surface**, and **session/global**. Each host input declares which context it
+resolves from; the runtime supplies it at bind time. This is the generic frame the
+`iResolution` discussion implied.
+
+## Interaction surface — normalized, display-decoupled
+
+Pointer/mouse (and touch, drag, hover, pen) do **not** belong to any rendered buffer. They
+originate at the **preview panel's display surface** and must be:
+
+1. **Sourced from the panel**, not a target — interaction comes from wherever the user is
+   pointing, **irrespective of which output buffer is currently displayed**.
+2. **Normalized** (e.g. `[0,1]²` or NDC over the displayed area) so it is independent of
+   any buffer's resolution — a consumer at half-res and one at full-res receive the *same*
+   normalized pointer.
+3. **Transformed per-target on demand**: a consumer that wants pixel coords multiplies the
+   normalized pointer by *its own* `iResolution`; the runtime does the mapping from the
+   panel's space (accounting for the panel's **aspect ratio** and any **zoom/pan view
+   transform**) into each target's space.
+
+This decouples three things ShaderToy conflates: *where the user points* (panel),
+*which buffer is shown* (a view choice), and *which buffer a consumer renders* (its
+target). Generalize beyond mouse to a small **interaction-input set** — `pointer`
+(normalized xy + buttons), `pointerDelta`, `wheel`, `keys` (input-device state, ShaderToy's
+keyboard texture) — all in normalized surface space, all per the focused preview.
+
+**Preview panel = viewer + transport + interaction surface.** The panel therefore:
+- **selects which output target to display** (the pass graph produces many; Buffer A–D /
+  Image-style selection), with a per-target **visualization mode** for non-color data
+  buffers (the existing scalar-field RGBA8 view is one such mode);
+- owns the **playback transport** (play/pause/scrub/reset → the playback context above);
+- provides the **normalized interaction surface** that feeds the whole pass graph,
+  regardless of which target is on screen. See
+  [editor.md](./editor.md).
+
+## Further considerations (beyond mouse/resolution)
+
+Surfaced while generalizing the ShaderToy model — note now, design when reached:
+
+- **Non-2D / non-color targets.** Targets may be cubemap, 1D, or **audio output** (a
+  ShaderToy "Sound" shader writes samples to a 1D buffer indexed by the audio clock — an
+  *output* counterpart to the audio-FFT *input*). The render-target model and the panel's
+  display selection must admit non-image targets.
+- **Input devices as resources.** Keyboard/gamepad state as a bindable resource (ShaderToy
+  keyboard texture), alongside image/mesh/audio. Fits the resource-input model.
+- **Playback transport is per-preview, not global.** Multiple preview panels may run
+  independent clocks (one paused, one scrubbing) → `iTime`/`iFrame` resolve from the
+  *preview's* playback context, and which preview is the **interaction source** is the
+  focused/hovered one.
+- **Aspect & view transform.** Normalized pointer mapping must carry pixel **aspect**
+  (ShaderToy's `iResolution.z`) and any panel **zoom/pan**, so picking stays correct when
+  the displayed buffer is letterboxed or zoomed.
+- **Data-buffer visualization.** Selecting a non-color target for display needs a
+  visualization mode (false-color, channel pick, remap) — the existing scalar-field RGBA8
+  readback is the first such mode.
+
 ## Open design questions
 
 - **Pass-graph executor:** target lifetime/aliasing, ping-pong feedback, and whether the
   pass order is authored, declared on consumers, or inferred from channel reads.
+- **Interaction-space transform:** exact normalization convention (`[0,1]²` vs NDC), aspect
+  handling, and how panel zoom/pan composes into the per-target mapping.
 - Exact type system for resource ports (formats, channel layouts, sampling modes)
   and how CPU/GPU views stay in sync.
 - Whether frustum/pointer are *graph inputs* a primitive reads, or *services* a

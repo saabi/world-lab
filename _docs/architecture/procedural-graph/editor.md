@@ -159,6 +159,15 @@ working reference for shell + panel chrome and may be ported as needed:
 `EditorParamSection` / `EditorSubsection` sections, `EditorVerticalTabs`, and
 `layoutStorage.ts` for persisting the pane layout.
 
+**Preview panel = viewer + transport + interaction surface.** Once the graph drives
+multiple render targets (a pass graph), the preview is not "the output" but a *viewer*
+over the targets: it **selects which output buffer to display** (with a per-buffer
+visualization mode for non-color data), owns the **playback transport**
+(play/pause/scrub/reset → the per-preview playback context), and is the **normalized
+interaction surface** — pointer/keys originate here, in normalized display space,
+**independent of which buffer is shown**, and feed the whole pass graph. See
+[inputs-cpu-and-resources.md → host-input binding contexts / interaction surface](./inputs-cpu-and-resources.md#interaction-surface--normalized-display-decoupled).
+
 **Graph canvas — adopt a library behind a thin adapter; don't roll the canvas
 from scratch.** Pan/zoom, edge routing, handles, hit-testing, and a minimap are a
 lot of undifferentiated work. Default candidate: **Svelte Flow (`@xyflow/svelte`)**
