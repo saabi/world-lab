@@ -38,8 +38,10 @@ runs what.
 | [M9b-multi-level-editing.md](./M9b-multi-level-editing.md) | M9b — multi-level editing (phased) | ✅ landed (`6f8a3ff`) | Composer (M9b.1–2); Sonnet (M9b.3–4) |
 | [M10-runtime-webgpu.md](./M10-runtime-webgpu.md) | M10 — runtime-webgpu (phased) | ✅ landed (`ae7a4cb`; runtime-webgpu 6/6, graph-editor 37/37) | Sonnet (M10.1–2); Composer (M10.3) |
 | [M9c-editor-ux-polish.md](./M9c-editor-ux-polish.md) | M9c — delete + duplicate (optional parallel) | ✅ landed (`ca493a4`) | Composer |
-| [M11-tessellation.md](./M11-tessellation.md) | M11 — Tessellation primitives (phased) | 📌 contract ready | Cursor (Opus pinned coordinate-space + cull) |
-| [M9d-editor-shell-polish-proposal.md](./M9d-editor-shell-polish-proposal.md) | M9d — layout, pane menus, syntax highlight | 📋 architect review | Opus → Composer |
+| [M11-tessellation.md](./M11-tessellation.md) | M11 — Tessellation primitives (phased) | 🔄 M11.1 ✅ (`e8300a9`, Opus-reviewed); .2/.3 pending | Cursor (Opus pinned coordinate-space + cull) |
+| [M9d-editor-shell-polish-proposal.md](./M9d-editor-shell-polish-proposal.md) | M9d — editor shell polish (proposal) | ✅ approved → split | Opus (signed off) |
+| [M9d1-layout-persistence.md](./M9d1-layout-persistence.md) | M9d.1 — editor layout persistence | ✅ landed (`4d8da96`, Opus-reviewed) | Composer |
+| [M9d2-pane-context-menus.md](./M9d2-pane-context-menus.md) | M9d.2 — zone-aware pane menus (subdivide API) | 📌 contract ready | Composer + Opus-reviewed subdivide change |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
