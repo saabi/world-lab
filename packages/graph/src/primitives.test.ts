@@ -81,4 +81,42 @@ describe('@virtual-planet/graph primitives', () => {
 		expect(pow({ inputs: { x: 3 }, params: { exponent: 2 } }).value).toBe(9);
 		expect(pow({ inputs: { x: 8 }, params: { exponent: 1 / 3 } }).value).toBeCloseTo(2);
 	});
+
+	it('simplex evalCPU is deterministic and bounded', () => {
+		const simplex = getPrimitive('noise.simplex')!.evalCPU!;
+		const ctx = { inputs: { position: [0.75, -1.25, 2.0] }, params: {} };
+		const a = simplex(ctx).value as number;
+		const b = simplex(ctx).value as number;
+		expect(a).toBe(b);
+		expect(Math.abs(a)).toBeLessThanOrEqual(1.0001);
+	});
+
+	it('ridgedFbm evalCPU is deterministic and non-negative', () => {
+		const ridged = getPrimitive('noise.ridgedFbm')!.evalCPU!;
+		const ctx = {
+			inputs: { position: [1.0, 2.0, 3.0] },
+			params: { octaves: 4, persistence: 0.5, lacunarity: 2.0, offset: 1.0 }
+		};
+		const a = ridged(ctx).value as number;
+		const b = ridged(ctx).value as number;
+		expect(a).toBe(b);
+		expect(a).toBeGreaterThanOrEqual(0);
+	});
+
+	it('bias is identity at 0.5 and pulls toward zero below 0.5', () => {
+		const bias = getPrimitive('math.bias')!.evalCPU!;
+		expect(bias({ inputs: { x: 0.5 }, params: { bias: 0.5 } }).value).toBeCloseTo(0.5);
+		expect(bias({ inputs: { x: 0.5 }, params: { bias: 0.25 } }).value).toBeCloseTo(0.25);
+	});
+
+	it('gain is identity at 0.5', () => {
+		const gain = getPrimitive('math.gain')!.evalCPU!;
+		expect(gain({ inputs: { x: 0.25 }, params: { gain: 0.5 } }).value).toBeCloseTo(0.25);
+		expect(gain({ inputs: { x: 0.75 }, params: { gain: 0.5 } }).value).toBeCloseTo(0.75);
+	});
+
+	it('abs returns the magnitude of x', () => {
+		const abs = getPrimitive('math.abs')!.evalCPU!;
+		expect(abs({ inputs: { x: -3.5 }, params: {} }).value).toBe(3.5);
+	});
 });

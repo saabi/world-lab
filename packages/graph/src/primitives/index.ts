@@ -1,6 +1,8 @@
 import './perlin3d.js';
+import './simplex.js';
 import './worley.js';
 import './fbm.js';
+import './ridgedFbm.js';
 import './remap.js';
 import './add.js';
 import './multiply.js';
@@ -8,5 +10,8 @@ import './mix.js';
 import './pow.js';
 import './clamp.js';
 import './smoothstep.js';
+import './bias.js';
+import './gain.js';
+import './abs.js';
 import './uv.js';
 import './surfaces/index.js';
