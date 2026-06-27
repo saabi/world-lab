@@ -35,7 +35,19 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'math.bias': 'bias',
 	'math.gain': 'gain',
 	'surface.plane': 'plane',
-	'surface.cubeSphere': 'cubeSphere'
+	'surface.cubeSphere': 'cubeSphere',
+	'surface.cubeFaceDir': 'cubeFaceDir',
+	'terrain.domainWarp': 'domainWarp',
+	'terrain.voronoi': 'voronoi',
+	'terrain.detailFbm': 'detailFbm',
+	'terrain.heightRemap': 'heightRemap',
+	'terrain.fineTextureNoise': 'fineTextureNoise',
+	'terrain.polarTerm': 'polarTerm',
+	'terrain.biomeMaterial': 'biomeMaterial',
+	'terrain.normalEstimator': 'normalEstimator',
+	'terrain.worldNormal': 'worldNormal',
+	'terrain.selfShadow': 'selfShadow',
+	'material.pbrLighting': 'pbrLighting'
 };
 
 function registeredWgslModuleIds(): string[] {

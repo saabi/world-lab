@@ -1,0 +1,23 @@
+import { Type } from '@virtual-planet/schema';
+
+import type { NodePrimitive } from '../../primitive.js';
+import { registerPrimitive } from '../../registry.js';
+import { freqParam, planetRadiusParam, scaleMppInput } from './_params.js';
+
+const detailFbm: NodePrimitive = {
+	id: 'terrain.detailFbm',
+	category: 'terrain',
+	inputs: [
+		{ name: 'unit_dir', dataType: 'vec3f', space: 'body_dir' },
+		scaleMppInput
+	],
+	outputs: [{ name: 'detail', dataType: 'f32' }],
+	params: Type.Object({
+		detail_scale: freqParam(1),
+		radius: planetRadiusParam
+	}),
+	wgsl: { moduleId: 'terrain.detailFbm', entry: 'detailFbm' },
+	metadata: { keywords: ['Domain', 'Terrain'] }
+};
+
+registerPrimitive(detailFbm);

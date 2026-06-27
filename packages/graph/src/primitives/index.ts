@@ -16,3 +16,4 @@ import './abs.js';
 import './uv.js';
 import './metricPosition.js';
 import './surfaces/index.js';
+import './terrain/index.js';
