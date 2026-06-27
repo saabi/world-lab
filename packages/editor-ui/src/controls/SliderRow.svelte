@@ -15,11 +15,11 @@
 		slider: SliderDef;
 		value: number;
 		onvalue: (v: number) => void;
-		variant?: 'planet' | 'scene';
+		variant?: 'default' | 'scene';
 		disabled?: boolean;
 	}
 
-	let { id, slider, value, onvalue, variant = 'planet', disabled = false }: Props = $props();
+	let { id, slider, value, onvalue, variant = 'default', disabled = false }: Props = $props();
 </script>
 
 {#if slider.log}

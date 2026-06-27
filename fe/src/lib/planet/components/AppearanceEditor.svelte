@@ -4,9 +4,8 @@
 	import { resolveBodyParams } from '../scene/bodyParams.js';
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { BodyAppearance, BodyNode } from '../scene/types.js';
-	import ParamSliderRow from './controls/ParamSliderRow.svelte';
-	import EditorSubsection from './scene-editor/EditorSubsection.svelte';
-	import './controls/sliderList.css';
+	import { SliderRow, Subsection } from '@virtual-planet/editor-ui';
+	import '@virtual-planet/editor-ui/controls/sliderList.css';
 
 	interface Props {
 		body: BodyNode;
@@ -51,10 +50,10 @@
 	</div>
 
 	{#each shapeSections as section (section.title)}
-		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
+		<Subsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
 			<ul class="slider-list">
 				{#each section.sliders as sl (sl.key)}
-					<ParamSliderRow
+					<SliderRow
 						id={String(sl.key)}
 						slider={sl}
 						value={resolved[sl.key]}
@@ -73,14 +72,14 @@
 					/>
 				</label>
 			{/each}
-		</EditorSubsection>
+		</Subsection>
 	{/each}
 
 	{#each materialSections as section (section.title)}
-		<EditorSubsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
+		<Subsection title={section.title} defaultOpen={section.defaultOpen ?? false}>
 			<ul class="slider-list">
 				{#each section.sliders as sl (sl.key)}
-					<ParamSliderRow
+					<SliderRow
 						id={String(sl.key)}
 						slider={sl}
 						value={resolved[sl.key]}
@@ -89,7 +88,7 @@
 					/>
 				{/each}
 			</ul>
-		</EditorSubsection>
+		</Subsection>
 	{/each}
 
 </div>

@@ -1,13 +1,14 @@
 <script lang="ts">
+	import { mapLogSlider, unmapLogSlider } from './logSlider.js';
+
 	interface Props {
 		id?: string;
 		label: string;
 		value: number;
-		min: number | string;
-		max: number | string;
-		step: number | string;
+		min: number;
+		max: number;
 		disabled?: boolean;
-		variant?: 'planet' | 'scene';
+		variant?: 'default' | 'scene';
 		onvalue?: (v: number) => void;
 	}
 
@@ -17,27 +18,37 @@
 		value = $bindable(),
 		min,
 		max,
-		step,
 		disabled = false,
-		variant = 'planet',
+		variant = 'default',
 		onvalue
 	}: Props = $props();
 	let inputId = $derived(id ?? label);
 
-	/** Round to 3 significant figures for display (drops float noise like 3.82000003). */
-	function format(n: number): number {
-		if (!Number.isFinite(n)) return 0;
-		if (n === 0) return 0;
-		return Number(n.toPrecision(3));
-	}
+	let sliderT = $state(0);
 
-	let formattedValue = $derived(format(value));
+	$effect(() => {
+		sliderT = unmapLogSlider(value, min, max);
+	});
 
-	function onInput(e: Event) {
-		const v = Number((e.currentTarget as HTMLInputElement).value);
+	function onSliderInput(e: Event) {
+		const t = Number((e.currentTarget as HTMLInputElement).value);
+		const v = mapLogSlider(t, min, max);
 		value = v;
 		onvalue?.(v);
 	}
+
+	/** 3 significant figures with adaptive units (m → km → Mm → Gm). */
+	function formatMeters(n: number): string {
+		if (!Number.isFinite(n)) return '—';
+		const sig = (x: number) => Number(x.toPrecision(3));
+		const abs = Math.abs(n);
+		if (abs >= 1e9) return `${sig(n / 1e9)} Gm`;
+		if (abs >= 1e6) return `${sig(n / 1e6)} Mm`;
+		if (abs >= 1e3) return `${sig(n / 1e3)} km`;
+		return `${sig(n)} m`;
+	}
+
+	let formattedValue = $derived(formatMeters(value));
 </script>
 
 <li class="range-row" class:scene={variant === 'scene'}>
@@ -46,12 +57,12 @@
 		class="range-input"
 		id={inputId}
 		type="range"
-		{min}
-		{max}
-		{step}
+		min={0}
+		max={1}
+		step={0.001}
 		{disabled}
-		{value}
-		oninput={onInput}
+		value={sliderT}
+		oninput={onSliderInput}
 	/>
 	<data class="range-value" class:scene={variant === 'scene'}>{formattedValue}</data>
 </li>
@@ -72,7 +83,7 @@
 	}
 
 	.range-value {
-		flex: 0 0 3.5em;
+		flex: 0 0 4.5em;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 		font-size: 12px;

@@ -1,0 +1,35 @@
+{
+	"name": "@virtual-planet/editor-ui",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Shared Svelte editor chrome and parameter controls (sections, tabs, sliders, checkboxes).",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./Section.svelte": "./src/Section.svelte",
+		"./Subsection.svelte": "./src/Subsection.svelte",
+		"./VerticalTabs.svelte": "./src/VerticalTabs.svelte",
+		"./TabIcon.svelte": "./src/TabIcon.svelte",
+		"./controls/SliderRow.svelte": "./src/controls/SliderRow.svelte",
+		"./controls/Range.svelte": "./src/controls/Range.svelte",
+		"./controls/LogRange.svelte": "./src/controls/LogRange.svelte",
+		"./controls/CheckBox.svelte": "./src/controls/CheckBox.svelte",
+		"./controls/sliderList.css": "./src/controls/sliderList.css"
+	},
+	"scripts": {
+		"check": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"@testing-library/svelte": "^5.2.8",
+		"@testing-library/user-event": "^14.6.1",
+		"happy-dom": "^17.4.4",
+		"svelte": "^5.56.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9"
+	}
+}

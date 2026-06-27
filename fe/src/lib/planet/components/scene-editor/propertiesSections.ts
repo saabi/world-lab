@@ -1,6 +1,6 @@
 import type { NodeEditor } from '$lib/planet/scene/nodeSchemas.js';
 import type { SceneNode } from '$lib/planet/scene/types.js';
-import type { EditorTabIconId } from './editorTabIcons.js';
+import type { TabIconId } from '@virtual-planet/editor-ui';
 
 export type PropsSuperSectionId =
 	| 'transform'
@@ -14,7 +14,7 @@ export type PropsSuperSectionId =
 export interface PropsSectionDef {
 	id: PropsSuperSectionId;
 	title: string;
-	icon: EditorTabIconId;
+	icon: TabIconId;
 	defaultOpen?: boolean;
 }
 

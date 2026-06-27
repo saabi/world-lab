@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PlanetParameters } from '../params/planetParams.js';
 	import type { ParamEditorSection } from '../params/paramEditorSchema.js';
-	import ParamSliderRow from './controls/ParamSliderRow.svelte';
+	import { SliderRow } from '@virtual-planet/editor-ui';
 
 	let {
 		section,
@@ -16,7 +16,7 @@
 	<summary>{section.title}</summary>
 	<ul class="subsection-body">
 		{#each section.sliders as slider (slider.key)}
-			<ParamSliderRow
+			<SliderRow
 				id={String(slider.key)}
 				{slider}
 				value={params[slider.key]}

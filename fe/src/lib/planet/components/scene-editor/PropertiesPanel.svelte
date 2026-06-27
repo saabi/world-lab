@@ -48,8 +48,7 @@
 	import ConstraintsEditor from '$lib/planet/components/ConstraintsEditor.svelte';
 	import AppearanceEditor from '$lib/planet/components/AppearanceEditor.svelte';
 	import AtmosphereEditor from '$lib/planet/components/AtmosphereEditor.svelte';
-	import EditorVerticalTabs from './EditorVerticalTabs.svelte';
-	import EditorSubsection from './EditorSubsection.svelte';
+	import { Subsection, VerticalTabs } from '@virtual-planet/editor-ui';
 	import {
 		PROPS_SUPER_SECTIONS,
 		defaultOpenPropsSection,
@@ -128,48 +127,48 @@
 		<span class="edit-name">{selectedNode.name}</span>
 
 		<div class="tabbed-sections">
-			<EditorVerticalTabs
+			<VerticalTabs
 				tabs={tabList}
 				activeId={openSuperSection}
 				onSelect={(id) => onSuperToggle(id as PropsSuperSectionId)}
 			>
 				{#snippet content(sectionId)}
 					{#if sectionId === 'transform'}
-						<EditorSubsection title="Position" defaultOpen>
+						<Subsection title="Position" defaultOpen>
 							<TransformEditor
 								node={selectedNode}
 								evaluated={evaluatedNode ?? selectedNode}
 								channels="position"
 								onchange={onTransformChange}
 							/>
-						</EditorSubsection>
-						<EditorSubsection title="Rotation">
+						</Subsection>
+						<Subsection title="Rotation">
 							<TransformEditor
 								node={selectedNode}
 								evaluated={evaluatedNode ?? selectedNode}
 								channels="rotation"
 								onchange={onTransformChange}
 							/>
-						</EditorSubsection>
-						<EditorSubsection title="Scale">
+						</Subsection>
+						<Subsection title="Scale">
 							<TransformEditor
 								node={selectedNode}
 								evaluated={evaluatedNode ?? selectedNode}
 								channels="scale"
 								onchange={onTransformChange}
 							/>
-						</EditorSubsection>
+						</Subsection>
 					{:else if sectionId === 'node' && editor?.mode === 'schema'}
-						<EditorSubsection title="Fields" defaultOpen>
+						<Subsection title="Fields" defaultOpen>
 							<SchemaForm
 								schema={editor.schema}
 								value={schemaValue}
 								onchange={onFieldChange}
 							/>
-						</EditorSubsection>
+						</Subsection>
 					{:else if sectionId === 'motion'}
 						{#if selectedNode.driver}
-							<EditorSubsection title="Driver · {selectedNode.driver.type}" defaultOpen>
+							<Subsection title="Driver · {selectedNode.driver.type}" defaultOpen>
 								<SchemaForm
 									schema={driverSchemaFor(selectedNode.driver)}
 									value={driverValue}
@@ -178,17 +177,17 @@
 								<span class="driver-outputs">
 									outputs: {driverOutputs(selectedNode.driver).join(', ')}
 								</span>
-							</EditorSubsection>
+							</Subsection>
 						{/if}
-						<EditorSubsection title="Bindings" defaultOpen={!selectedNode.driver}>
+						<Subsection title="Bindings" defaultOpen={!selectedNode.driver}>
 							<BindingsEditor node={selectedNode} onchange={onBindingsChange} />
-						</EditorSubsection>
-						<EditorSubsection title="Constraints">
+						</Subsection>
+						<Subsection title="Constraints">
 							<ConstraintsEditor node={selectedNode} onchange={onConstraintsChange} />
-						</EditorSubsection>
+						</Subsection>
 					{:else if sectionId === 'display'}
 						{#if selectedNode.driver?.type === 'kepler' || selectedNode.orbit}
-							<EditorSubsection title="Overlays" defaultOpen>
+							<Subsection title="Overlays" defaultOpen>
 								<label class="display-row">
 									<input
 										type="checkbox"
@@ -203,26 +202,26 @@
 								<p class="display-hint">
 									Respects the global orbit-path mode in Render → View → Overlays.
 								</p>
-							</EditorSubsection>
+							</Subsection>
 						{/if}
 					{:else if sectionId === 'appearance' && bodyNode && hasAppearance}
 						<AppearanceEditor body={bodyNode} onappearance={onAppearanceChange} />
 					{:else if sectionId === 'atmosphere' && bodyNode && hasAppearance}
-						<EditorSubsection title="Design" defaultOpen>
+						<Subsection title="Design" defaultOpen>
 							<AtmosphereEditor
 								body={bodyNode}
 								onatmosphere={(a) => onAtmosphereChange?.(a)}
 							/>
-						</EditorSubsection>
+						</Subsection>
 					{:else if sectionId === 'actions' && bodyNode && hasAppearance}
-						<EditorSubsection title="Procedural" defaultOpen>
+						<Subsection title="Procedural" defaultOpen>
 							<button type="button" class="render-btn" onclick={onRenderProcedural}>
 								Render procedurally →
 							</button>
-						</EditorSubsection>
+						</Subsection>
 					{/if}
 				{/snippet}
-			</EditorVerticalTabs>
+			</VerticalTabs>
 		</div>
 	{:else}
 		<p class="empty-state">Select a node in the outliner or viewport to edit its properties.</p>

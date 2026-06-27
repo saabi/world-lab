@@ -18,11 +18,8 @@
 </script>
 
 <script lang="ts">
-	import Range from '../controls/Range.svelte';
-	import '../controls/sliderList.css';
-	import EditorVerticalTabs from './EditorVerticalTabs.svelte';
-	import EditorSubsection from './EditorSubsection.svelte';
-	import type { EditorTabIconId } from './editorTabIcons.js';
+	import { Range, Subsection, VerticalTabs, type TabIconId } from '@virtual-planet/editor-ui';
+	import '@virtual-planet/editor-ui/controls/sliderList.css';
 
 	let {
 		materialDebug = $bindable(),
@@ -38,7 +35,7 @@
 	const RENDER_SECTIONS: {
 		id: RenderSuperSectionId;
 		title: string;
-		icon: EditorTabIconId;
+		icon: TabIconId;
 		defaultOpen?: boolean;
 	}[] = [
 		{ id: 'view', title: 'View', icon: 'eye', defaultOpen: true },
@@ -55,14 +52,14 @@
 </script>
 
 <div class="render-settings-panel">
-	<EditorVerticalTabs
+	<VerticalTabs
 		tabs={RENDER_SECTIONS}
 		activeId={openSuperSection}
 		onSelect={(id) => onSuperToggle(id as RenderSuperSectionId)}
 	>
 		{#snippet content(sectionId)}
 			{#if sectionId === 'view'}
-					<EditorSubsection title="Look" defaultOpen>
+					<Subsection title="Look" defaultOpen>
 						<label class="atmo-head">
 							<input
 								type="checkbox"
@@ -72,8 +69,8 @@
 							/>
 							Horizon look
 						</label>
-					</EditorSubsection>
-					<EditorSubsection title="Overlays" defaultOpen>
+					</Subsection>
+					<Subsection title="Overlays" defaultOpen>
 						{#each overlayBulk as field (field.globalKey)}
 							{#if field.globalKey === 'showAtmospheres'}
 								<label class="atmo-head">
@@ -104,8 +101,8 @@
 							<input type="checkbox" bind:checked={viewportPrefs.overlays.showEditorAids} />
 							Editor aids
 						</label>
-					</EditorSubsection>
-					<EditorSubsection title="Material view" defaultOpen>
+					</Subsection>
+					<Subsection title="Material view" defaultOpen>
 						<label class="atmo-row">
 							<span>debug view</span>
 							<select bind:value={materialDebug}>
@@ -126,9 +123,9 @@
 								<option value="hardware-alpha">Hardware alpha</option>
 							</select>
 						</label>
-					</EditorSubsection>
+					</Subsection>
 			{:else if sectionId === 'quality'}
-					<EditorSubsection title="Level of detail" defaultOpen>
+					<Subsection title="Level of detail" defaultOpen>
 						<ul class="slider-list">
 							<Range
 								id="lod-sphere"
@@ -181,8 +178,8 @@
 								</select>
 							</label>
 						</ul>
-					</EditorSubsection>
-					<EditorSubsection title="Tessellation" defaultOpen>
+					</Subsection>
+					<Subsection title="Tessellation" defaultOpen>
 						<ul class="slider-list">
 							<Range
 								id="tess-detail"
@@ -236,8 +233,8 @@
 								<option value={6}>6</option>
 							</select>
 						</label>
-					</EditorSubsection>
-					<EditorSubsection title="Atmosphere" defaultOpen>
+					</Subsection>
+					<Subsection title="Atmosphere" defaultOpen>
 						<ul class="slider-list">
 							<Range
 								id="atmo-integrate-steps"
@@ -249,9 +246,9 @@
 								bind:value={viewportPrefs.atmosphereIntegrateSteps}
 							/>
 						</ul>
-					</EditorSubsection>
+					</Subsection>
 			{:else if sectionId === 'debug'}
-					<EditorSubsection title="Overlays" defaultOpen>
+					<Subsection title="Overlays" defaultOpen>
 						<label class="atmo-head">
 							<input type="checkbox" bind:checked={viewportPrefs.debug.wireframe} />
 							Wireframe
@@ -268,9 +265,9 @@
 							<input type="checkbox" bind:checked={viewportPrefs.debug.showRingColors} />
 							Ring colors
 						</label>
-					</EditorSubsection>
+					</Subsection>
 			{:else if sectionId === 'shading'}
-					<EditorSubsection title="Scene shading" defaultOpen>
+					<Subsection title="Scene shading" defaultOpen>
 						<label class="atmo-head">
 							<input type="checkbox" bind:checked={viewportPrefs.materialOverrides.shadows} />
 							Shadows
@@ -457,10 +454,10 @@
 								bind:value={viewportPrefs.materialOverrides.fogDensity}
 							/>
 						</ul>
-					</EditorSubsection>
+					</Subsection>
 			{/if}
 		{/snippet}
-	</EditorVerticalTabs>
+	</VerticalTabs>
 </div>
 
 <style>

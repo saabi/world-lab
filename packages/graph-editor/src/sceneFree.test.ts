@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 // may depend only on the generic @virtual-planet graph stack + UI libs.
 // See _docs/architecture/procedural-graph/editor-and-scene-integration.md.
 
-const ALLOWED_VP = /^@virtual-planet\/(graph|schema|compiler|runtime-cpu|runtime-webgpu|subdivide)(\/|$)/;
+const ALLOWED_VP = /^@virtual-planet\/(graph|schema|compiler|runtime-cpu|runtime-webgpu|subdivide|editor-ui)(\/|$)/;
 const FORBIDDEN = /\$(lib|app)|(^|\/)fe\/|(^|\/)(planet|scene)(\/|$)/;
 const IMPORT_RE = /(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]/g;
 

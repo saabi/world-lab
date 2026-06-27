@@ -12,6 +12,7 @@
 		"@codemirror/view": "^6.38.0",
 		"@lezer/highlight": "^1.2.0",
 		"@virtual-planet/compiler": "*",
+		"@virtual-planet/editor-ui": "*",
 		"@virtual-planet/graph": "*",
 		"@virtual-planet/runtime-cpu": "*",
 		"@virtual-planet/runtime-webgpu": "*",

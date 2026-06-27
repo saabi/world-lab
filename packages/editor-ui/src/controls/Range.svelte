@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { mapLogSlider, unmapLogSlider } from '../../camera/seaLevel.js';
-
 	interface Props {
 		id?: string;
 		label: string;
 		value: number;
-		min: number;
-		max: number;
+		min: number | string;
+		max: number | string;
+		step: number | string;
 		disabled?: boolean;
-		variant?: 'planet' | 'scene';
+		variant?: 'default' | 'scene';
 		onvalue?: (v: number) => void;
 	}
 
@@ -18,37 +17,27 @@
 		value = $bindable(),
 		min,
 		max,
+		step,
 		disabled = false,
-		variant = 'planet',
+		variant = 'default',
 		onvalue
 	}: Props = $props();
 	let inputId = $derived(id ?? label);
 
-	let sliderT = $state(0);
+	/** Round to 3 significant figures for display (drops float noise like 3.82000003). */
+	function format(n: number): number {
+		if (!Number.isFinite(n)) return 0;
+		if (n === 0) return 0;
+		return Number(n.toPrecision(3));
+	}
 
-	$effect(() => {
-		sliderT = unmapLogSlider(value, min, max);
-	});
+	let formattedValue = $derived(format(value));
 
-	function onSliderInput(e: Event) {
-		const t = Number((e.currentTarget as HTMLInputElement).value);
-		const v = mapLogSlider(t, min, max);
+	function onInput(e: Event) {
+		const v = Number((e.currentTarget as HTMLInputElement).value);
 		value = v;
 		onvalue?.(v);
 	}
-
-	/** 3 significant figures with adaptive units (m → km → Mm → Gm). */
-	function formatMeters(n: number): string {
-		if (!Number.isFinite(n)) return '—';
-		const sig = (x: number) => Number(x.toPrecision(3));
-		const abs = Math.abs(n);
-		if (abs >= 1e9) return `${sig(n / 1e9)} Gm`;
-		if (abs >= 1e6) return `${sig(n / 1e6)} Mm`;
-		if (abs >= 1e3) return `${sig(n / 1e3)} km`;
-		return `${sig(n)} m`;
-	}
-
-	let formattedValue = $derived(formatMeters(value));
 </script>
 
 <li class="range-row" class:scene={variant === 'scene'}>
@@ -57,12 +46,12 @@
 		class="range-input"
 		id={inputId}
 		type="range"
-		min={0}
-		max={1}
-		step={0.001}
+		{min}
+		{max}
+		{step}
 		{disabled}
-		value={sliderT}
-		oninput={onSliderInput}
+		{value}
+		oninput={onInput}
 	/>
 	<data class="range-value" class:scene={variant === 'scene'}>{formattedValue}</data>
 </li>
@@ -83,7 +72,7 @@
 	}
 
 	.range-value {
-		flex: 0 0 4.5em;
+		flex: 0 0 3.5em;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 		font-size: 12px;
