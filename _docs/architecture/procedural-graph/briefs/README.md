@@ -49,6 +49,9 @@ runs what.
 | [M-multi-output-compile.md](./M-multi-output-compile.md) | Multi-output compile driver + consumer-stage model (**audit gap**) | 📌 contract ready | Cursor (Opus-pinned) |
 | [M-mesh-gen-consumer.md](./M-mesh-gen-consumer.md) | Graph-driven mesh-gen consumer (tessellation via graph, not hardcoded) | 📌 contract ready · after multi-output + stage-entrypoints | Cursor (Opus-pinned) |
 | [M-app-extraction.md](./M-app-extraction.md) | Extract standalone editor → `apps/graph-editor` (tech-debt) | 📌 contract ready | Cursor |
+| [M-params-as-inputs.md](./M-params-as-inputs.md) | Params promotable to input ports (remap bounds wireable) | 📌 contract ready | Cursor |
+| [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source in CodeView; built-ins read-only; clone-to-edit | 📌 contract ready · fixes stub-source bug | Cursor |
+| [M-shadertoy-poc.md](./M-shadertoy-poc.md) | ShaderToy PoC effects: cosine palette (S0) + Game of Life multibuffer (S0.5) | 📌 contract ready · after multi-output + render-target | Cursor |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed

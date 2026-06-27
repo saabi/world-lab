@@ -59,6 +59,31 @@ component, validation rule, serialization format, doc page, compiler description
 and WGSL pipeline is derived. Parameter UI and GPU packing policy:
 [parameter-and-form-schema.md](./parameter-and-form-schema.md).
 
+## Params are promotable to inputs
+
+A primitive's **params and its input ports are the same kind of thing** — a value the
+function consumes. The split is only "authored as a form control" vs "wired from another
+node." So **every param is promotable to an input port by default**: an unconnected
+promoted param uses its form value (the schema default/range drives the control); a
+connected one is driven by the upstream node and the form control shows a "connected"
+state. (`math.remap`'s `inMin/inMax/outMin/outMax` should therefore each be wireable, not
+form-only.)
+
+- **IR:** a node's param slot is either a **literal** (form value) or **edge-driven**
+  (an input port with an incoming edge). Codegen and `evalCPU` use the upstream expression
+  when connected, the literal otherwise.
+- **Form:** renders a control for unconnected promoted params; connected ones show their
+  source instead of an editable control.
+- **Special cases — form-only / `constExpr`.** A param the schema marks **not promotable**
+  must stay a literal: compile-time constants that change the *shape* of the WGSL (loop
+  counts / octaves, array sizes, workgroup dimensions, a selector that switches code
+  paths). These can't be a runtime input without dynamic loops/specialization. The schema
+  flags them (`x-const`/`promotable: false`); everything else is promotable.
+
+See [briefs/M-params-as-inputs.md](./briefs/M-params-as-inputs.md). This keeps the "defined
+once" principle: promotability is schema metadata, so the form, ports, codegen, and
+inspector all agree.
+
 ## Primitive library
 
 The graph is built from reusable, schema-described primitives. Initial vocabulary

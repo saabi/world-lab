@@ -210,6 +210,49 @@ targets, lifetimes, barriers) rather than reinventing it. The **pass-graph execu
 its own runtime milestone; the planet's terrain→atmosphere chain is a ready-made,
 already-working test case for it.
 
+## Frame-graph executor (design)
+
+The executor is the runtime that, each frame, takes the set of consumers + their targets +
+read/write edges and runs the passes. Design decisions:
+
+**Pass ordering — inferred, with explicit feedback edges.** Order is **inferred** from the
+read/write edges (topological sort of the target DAG), *not* hand-authored — authoring an
+order duplicates information already in the edges and rots. The one thing that *is*
+explicit is a **feedback edge**: a read marked `previousFrame` is excluded from the
+ordering DAG (it reads last frame's content) and tells the executor to allocate ping-pong.
+So: build the DAG from same-frame reads → topo-sort (error on cycle) → feedback reads are
+satisfied from the prior frame's buffer. Iterative passes (run K times) are expanded inline
+in the order with K instances sharing two ping-pong buffers.
+
+**Transient-resource pool.** Targets are **transient** by default and **persistent** only
+if (a) read as `previousFrame` (feedback/history), or (b) currently selected for display.
+The executor:
+1. computes each transient target's **lifetime** = [first write index, last read index] in
+   the ordered pass list (the display pass counts as a reader);
+2. allocates from a **pool keyed by (resolution, format, usage)**; a freed target's
+   allocation is reused by a later non-overlapping target of the same key (aliasing);
+3. on viewport **resize**, recomputes screen-relative resolutions and reallocates the pool;
+4. keeps persistent targets out of the pool (stable identity across frames).
+
+For the PoC the pool can be a trivial "one allocation per target" (no aliasing) — the
+*model* admits pooling; the optimization is deferrable. Persistent/feedback handling is
+**not** deferrable (correctness).
+
+**Skip/caching.** A pass is re-run if any input changed or it is impure (time / feedback /
+live resource / interaction). Pure passes with unchanged inputs are skipped (their target
+retains last value — so a skipped pass's target is implicitly persistent that frame). The
+executor needs a per-pass dirty bit fed by the editor's downstream-invalidation scope.
+
+**Validation (authoring time).** Before execution: topo-sort detects **intra-frame
+cycles** (reject; only `previousFrame` reads may close a loop); check every channel read
+resolves to an existing target/resource; check format/usage/sample-type compatibility and
+no read-write-same-pass. Surface in `ValidationPanel`. This is the pass graph's own
+validation, separate from the field-graph's type/space checks.
+
+The terrain→atmosphere→composite chain is the first real test: terrain writes (color,
+depth) → atmosphere reads both + writes color → composite/display reads color. No
+feedback, three passes, two read-edges — a minimal but real frame graph.
+
 ## Host-input binding contexts (the ShaderToy uniform set, generalized)
 
 `iResolution` is not special — it just exposed that host inputs bind from **different
