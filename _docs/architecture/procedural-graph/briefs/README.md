@@ -31,6 +31,7 @@ runs what.
 | [M5-codegen.md](./M5-codegen.md) | M5 — WGSL gen + module resolver | ✅ landed (`1c8a486`) | Cursor (done) |
 | [M6-linker.md](./M6-linker.md) | M6 — ShaderLinker + tree-shake | ✅ landed (`8b19ece`) | Cursor (done) |
 | [M7-cpu-runtime.md](./M7-cpu-runtime.md) | M7 — CPU runtime services | ✅ landed (`a579686`, 4/4 green) | Codex (done) |
+| [M8-resource-inputs.md](./M8-resource-inputs.md) | M8 — resource inputs + CPU views | 🟡 contract ready | Codex |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 Live status + resume entry point: [../STATUS.md](../STATUS.md).

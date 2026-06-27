@@ -26,7 +26,7 @@ active brief in [briefs/](./briefs/README.md). Then
 
 ## Current front (single serialized task)
 
-- **Active:** pin M8 resource-input contracts before implementation.
+- **Active:** implement the pinned M8 resource-input contract.
 - **Parallel-ready:** M3 (self-describing WGSL loader) remains unblocked, but execution
   stays serialized until the synchronization workflow is documented.
 - Stage B (compiler core) and M7 (camera frustum + pointer ray) are complete.
