@@ -166,6 +166,23 @@ renderer, or solar-system preset — for:
 Scene integration is a **host concern** (`fe/` embed mode, `/scene` route), not a
 dependency of the graph-editor package.
 
+## Implementation status (interim — as of M9–M10)
+
+The standalone editor is currently hosted as a **scene-free route in the planet
+app** (`fe/src/routes/graph-editor`), **not yet** a separate `apps/graph-editor`
+workspace. This satisfies the ADR's *functional* requirement — the route and
+`packages/graph-editor` import **only** `@virtual-planet/{graph, schema, compiler,
+runtime-cpu, runtime-webgpu}` (verified; **enforced** by
+`packages/graph-editor/src/sceneFree.test.ts`) — but defers the
+**standalone-deployable** goal (independent build, headless CI, WebGPUToy without
+the planet app).
+
+**Tracked extraction:** move `fe/src/routes/graph-editor` → `apps/graph-editor`
+**before the embedded-editor / collaboration work (M14/M16)** and ahead of WebGPUToy
+(M17), when an independently deployable app actually pays off. Until then the
+`sceneFree` guard keeps the deferral safe. See [STATUS.md](./STATUS.md) → "Known
+deviations".
+
 ---
 
 ## When to revisit this decision

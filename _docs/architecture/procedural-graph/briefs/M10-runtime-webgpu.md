@@ -4,7 +4,7 @@
 **Packages:** `@virtual-planet/runtime-webgpu`, `@virtual-planet/graph-editor` (preview pane) ·
 **Depends on:** M9b ✅ ·
 **Design authority:** [runtime-and-tessellation.md](../runtime-and-tessellation.md),
-[inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) ·
+[inputs-cpu-and-resources.md](../inputs-cpu-and-resources.md) ·
 **Contract author:** Opus · **Recommended executor:** Sonnet (GPU + editor wiring).
 
 ## Objective

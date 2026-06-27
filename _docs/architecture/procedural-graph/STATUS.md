@@ -39,6 +39,17 @@ active brief in [briefs/](./briefs/README.md). Then
 - M10.2 plane scalar GPU consumer is landed (`executePlaneScalarPreview`).
 - Do not start M11 until M10.3 gate is green.
 
+## Known deviations / tracked tech-debt
+
+| Item | Severity | State | Resolve by |
+|------|----------|-------|-----------|
+| Standalone editor is a scene-free **route** in `fe/` (`fe/src/routes/graph-editor`), not the `apps/graph-editor` workspace the editor ADR requires | low | Accepted interim — package + route verified scene-free, **guarded** by `packages/graph-editor/src/sceneFree.test.ts` | Extract `fe/src/routes/graph-editor` → `apps/graph-editor` **before M14/M16** (embedded editor / collaboration), ahead of M17 WebGPUToy |
+
+Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green
+(schema 18, graph 17, compiler 26, runtime-cpu 14, runtime-webgpu 5+1-skip,
+graph-editor 37); parameter-and-form-schema ADR is sound; `runtime-webgpu` is generic
+and scene-free. No correctness drift found — only the packaging deviation above.
+
 ## Resume protocol (any agent)
 
 1. The **brief is the spec**, the **gate (its tests) is the definition of done**, the
