@@ -5,3 +5,7 @@
 
 /** Package identity marker. */
 export const GRAPH_PACKAGE = '@virtual-planet/graph' as const;
+
+export * from './types.js';
+export * from './validate.js';
+export * from './serialize.js';
