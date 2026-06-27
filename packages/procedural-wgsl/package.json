@@ -4,6 +4,9 @@
 	"private": true,
 	"description": "Standard library of reusable WGSL function modules (noise, terrain, vegetation, math).",
 	"type": "module",
+	"dependencies": {
+		"@virtual-planet/compiler": "*"
+	},
 	"exports": {
 		".": "./src/index.ts"
 	},
