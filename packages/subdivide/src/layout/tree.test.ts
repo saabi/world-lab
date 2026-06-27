@@ -16,7 +16,7 @@ function roundTrip(doc: LayoutDocument): LayoutDocument {
 }
 
 describe('bounds', () => {
-	it('maps a single pane to the full container', () => {
+	it('maps the viewport within the main row above the flight deck', () => {
 		const doc = defaultSceneEditorLayout();
 		const { panes } = buildRuntimeTree(doc);
 		const viewport = panes.find((pane) => pane.zone === 'viewport');
@@ -26,7 +26,7 @@ describe('bounds', () => {
 		expect(bounds.left).toBeCloseTo(220);
 		expect(bounds.top).toBeCloseTo(0);
 		expect(bounds.width).toBeCloseTo(780);
-		expect(bounds.height).toBeCloseTo(800);
+		expect(bounds.height).toBeCloseTo(624);
 	});
 
 	it('computes nested group bounds for the left stack', () => {
@@ -39,7 +39,20 @@ describe('bounds', () => {
 		expect(bounds.left).toBeCloseTo(0);
 		expect(bounds.top).toBeCloseTo(0);
 		expect(bounds.width).toBeCloseTo(220);
-		expect(bounds.height).toBeCloseTo(360);
+		expect(bounds.height).toBeCloseTo(280.8);
+	});
+
+	it('maps the flight pane across the bottom of the container', () => {
+		const doc = defaultSceneEditorLayout();
+		const { panes } = buildRuntimeTree(doc);
+		const flight = panes.find((pane) => pane.zone === 'flight');
+		expect(flight).toBeDefined();
+
+		const bounds = flight!.bounds(CONTAINER);
+		expect(bounds.left).toBeCloseTo(0);
+		expect(bounds.top).toBeCloseTo(624);
+		expect(bounds.width).toBeCloseTo(1000);
+		expect(bounds.height).toBeCloseTo(176);
 	});
 });
 
@@ -49,20 +62,29 @@ describe('serialize round-trip', () => {
 		const serialized = roundTrip(doc);
 
 		expect(serialized.root.type).toBe('group');
-		expect(serialized.root.row).toBe(true);
+		expect(serialized.root.row).toBe(false);
 		expect(serialized.root.children).toHaveLength(2);
 
-		const left = serialized.root.children[0];
+		const main = serialized.root.children[0];
+		expect(main.type).toBe('group');
+		if (main.type !== 'group') throw new Error('expected group');
+		expect(main.row).toBe(true);
+
+		const left = main.children[0];
 		expect(left.type).toBe('group');
 		if (left.type !== 'group') throw new Error('expected group');
-
 		const zones = left.children.map((child) => (child.type === 'pane' ? child.zone : null));
 		expect(zones).toEqual(['outliner', 'properties', 'renderSettings']);
 
-		const viewport = serialized.root.children[1];
+		const viewport = main.children[1];
 		expect(viewport.type).toBe('pane');
 		if (viewport.type !== 'pane') throw new Error('expected pane');
 		expect(viewport.zone).toBe('viewport');
+
+		const flight = serialized.root.children[1];
+		expect(flight.type).toBe('pane');
+		if (flight.type !== 'pane') throw new Error('expected pane');
+		expect(flight.zone).toBe('flight');
 	});
 
 	it('round-trips nested groups with stable fractional positions', () => {
@@ -182,9 +204,9 @@ describe('collectPanes', () => {
 	it('returns all panes in nested layout', () => {
 		const { root } = buildRuntimeTree(defaultSceneEditorLayout());
 		const collected = collectPanes(root);
-		expect(collected).toHaveLength(4);
+		expect(collected).toHaveLength(5);
 		expect(collected.map((p) => p.zone).sort()).toEqual(
-			['outliner', 'properties', 'renderSettings', 'viewport'].sort()
+			['flight', 'outliner', 'properties', 'renderSettings', 'viewport'].sort()
 		);
 	});
 });
