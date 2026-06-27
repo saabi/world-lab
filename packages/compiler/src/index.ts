@@ -5,3 +5,5 @@
 
 /** Package identity marker. */
 export const COMPILER_PACKAGE = '@virtual-planet/compiler' as const;
+
+export * from './slice.js';

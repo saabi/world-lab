@@ -11,6 +11,9 @@
 		"check": "tsc --noEmit",
 		"test": "vitest run"
 	},
+	"dependencies": {
+		"@virtual-planet/graph": "*"
+	},
 	"devDependencies": {
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
