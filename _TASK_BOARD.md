@@ -74,7 +74,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **Do NOT touch:** `fe/src/routes/graph-editor/` structure (leave the route in place),
   graph-editor source files other than package.json + sceneFree.
 - **⚠ visual gate** — `/scene` sections + sliders still work; report.
-- **Status:** UNCLAIMED
+- **Status:** DONE 3b54458 — `@virtual-planet/editor-ui` ships Section/Subsection/VerticalTabs + SliderRow/Range/LogRange/CheckBox; fe re-pointed; sceneFree allow-lists editor-ui.
 
 ## T4 — Pass-graph executor: PURE CORE ONLY  ·  Claimed by: cursor-agent
 
