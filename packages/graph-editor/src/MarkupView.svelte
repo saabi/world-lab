@@ -89,7 +89,6 @@
 		display: grid;
 		grid-template-rows: auto 1fr;
 		min-height: 0;
-		height: 100%;
 		padding: 8px;
 		gap: 6px;
 	}
@@ -103,7 +102,7 @@
 	.code {
 		box-sizing: border-box;
 		min-height: 0;
-		height: 100%;
+		height: auto;
 		width: 100%;
 		margin: 0;
 		padding: 8px;
