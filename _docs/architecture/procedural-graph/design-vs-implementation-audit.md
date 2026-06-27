@@ -58,6 +58,27 @@ hand-writable. The slicing primitive (M4) and the previews (M10–M12) both land
 *tier between them* — "compile this graph's declared consumers into a shader bundle" —
 looked covered but never was. No milestone named it.
 
+### Corollary gap: tessellation/mesh-gen is hardcoded, not graph-driven
+
+The clearest instance of #4, and the **canonical reason compute outputs exist** (turn
+37–38: *"Mesh Generation Pipeline — teselación por compute… puede consumir exactamente
+los mismos campos"*). Today:
+
+- `surface.plane` / `surface.cubeSphere` are graph **nodes** (the *mapping*) — ✅ (M11.1).
+- But the **mesh generation** is `runtime-webgpu/surfaceMesh.ts::buildSurfaceMesh`, a
+  hand-written CPU loop that **hardcodes** `SurfacePrimitiveId = 'surface.plane' |
+  'surface.cubeSphere'`, special-cases face counts, and runs `evalCPU` over a uv grid —
+  **not** a graph-driven mesh-gen consumer, and **not** a GPU compute pass. The preview
+  panels consume *that*, not the graph.
+
+Per [runtime-and-tessellation.md](./runtime-and-tessellation.md) /
+[inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md), a tessellator is supposed
+to be a *surface-mapping primitive* **+ a mesh-generation consumer primitive (compute
+emitting vertex/index buffers)*. The second half is the hardcoded TS — so an arbitrary
+surface-mapping **node composition** cannot yet produce a mesh; only the two baked ids
+can. The preview panels (plane, cube-sphere) were meant to be *thin consumers of a
+mesh-gen graph consumer*, not bespoke builders.
+
 ## Other capabilities checked
 
 | Capability (from conversation/docs) | Status |
@@ -84,9 +105,16 @@ looked covered but never was. No milestone named it.
    vs. specialized functions. Existing previews become *thin callers* of this driver over
    time, not parallel hand-written passes. See
    [briefs/M-multi-output-compile.md](./briefs/M-multi-output-compile.md).
-2. **Backfill resource GPU binding** (smaller) when a consumer needs an image/mesh/audio
+2. **New milestone — Graph-driven mesh-generation consumer** (depends on #1 + stage
+   entrypoints). Replace the hardcoded `buildSurfaceMesh` with a **mesh-gen compute
+   consumer** that takes *any* surface-mapping node (or composition) — `uv (+faceId) →
+   position, normal` — and emits vertex/index buffers via a compute pass. The plane and
+   cube-sphere previews become thin consumers of it; new surfaces need **no** TS. See
+   [briefs/M-mesh-gen-consumer.md](./briefs/M-mesh-gen-consumer.md).
+3. **Backfill resource GPU binding** (smaller) when a consumer needs an image/mesh/audio
    input on the GPU — promote M8's stubbed `ResourceDependency` to real bind groups.
-3. Keep the previews; refactor them onto the driver opportunistically (not a big-bang).
+4. Keep the previews; refactor them onto the driver/mesh-gen consumer opportunistically
+   (not a big-bang).
 
 ## Process note
 
