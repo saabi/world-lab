@@ -61,7 +61,8 @@ runs what.
 | [M-editor-ui-extraction.md](./M-editor-ui-extraction.md) | Extract chrome + controls → `@virtual-planet/editor-ui` (T3) | ✅ landed (`3b54458`) | Cursor (done) |
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Frame-graph: pure core landed (T4 `3fc520a`); **GPU executor = round 2** | 🔄 core done; GPU executor pending | Cursor |
 | [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (R2-T0) | ✅ landed (`52334eb`) | Opus (done) |
-| [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette (first graph→pixels) | 📌 contract ready · browser-capable agent | Antigravity/Cursor |
+| [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette | ✅ landed (`7917bfc`) — but see fix below | Cursor (done) |
+| [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas, not a hardcoded internal graph) | 📌 contract ready · ⚠ visual | browser-capable agent |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
