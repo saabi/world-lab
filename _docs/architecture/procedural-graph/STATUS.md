@@ -32,20 +32,23 @@ active brief in [briefs/](./briefs/README.md). Then
 | M9c — delete + duplicate UX | ✅ | graph-editor 36/36 | `ca493a4` |
 | M10.2 — plane scalar GPU consumer | ✅ | runtime-webgpu 6/6 (1 skipped without GPU) | `ceae0eb` |
 | M10.3 — editor GPU preview pane | ✅ | graph-editor 37/37; fe check; manual `/graph-editor` GPU tab | `ae7a4cb` |
+| M11.1 — surface-mapping primitives | ✅ | graph 20/20 | `e8300a9` |
+| M9d.1 — editor layout persistence | ✅ | graph-editor 42/42 | `4d8da96` |
+| M11.2 — frustum cull | ✅ | runtime-cpu 16/16 | `372366f` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M11 — Tessellation primitives** per
-  [implementation-plan.md](./implementation-plan.md).
-- M10 (runtime-webgpu + editor GPU preview) is complete.
-- Opus pins scheduler + mapping contract before implementation begins.
+- **Active:** **M11.3 — Cube-sphere mesh preview** per
+  [briefs/M11-tessellation.md](./briefs/M11-tessellation.md) § M11.3.
+- M11.1 (surface primitives) and M11.2 (frustum cull) are complete.
+- **Coordination:** land M9d.1 before M11.3 if the same agent owns both (M9d.1 ✅).
 
 ## Known deviations / tracked tech-debt
 
 | Item | Severity | State | Resolve by |
 |------|----------|-------|-----------|
 | Standalone editor is a scene-free **route** in `fe/` (`fe/src/routes/graph-editor`), not the `apps/graph-editor` workspace the editor ADR requires | low | Accepted interim — package + route verified scene-free, **guarded** by `packages/graph-editor/src/sceneFree.test.ts` | Extract `fe/src/routes/graph-editor` → `apps/graph-editor` **before M14/M16** (embedded editor / collaboration), ahead of M17 WebGPUToy |
-| M9d editor shell polish (layout persist, pane context menus, code highlighting) | — | Proposal for review — [briefs/M9d-editor-shell-polish-proposal.md](./briefs/M9d-editor-shell-polish-proposal.md) | Opus review → M9d.1+ implementation parallel to M11 |
+| M9d editor shell polish (pane context menus, code highlighting) | — | M9d.1 ✅; M9d.2 contract ready — [briefs/M9d2-pane-context-menus.md](./briefs/M9d2-pane-context-menus.md) | M9d.2 parallel to M11.3 |
 
 Reviewed 2026-06-27 (Opus) after the multi-agent handoff: M3–M10.2 all green
 (schema 18, graph 17, compiler 26, runtime-cpu 14, runtime-webgpu 5+1-skip,
