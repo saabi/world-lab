@@ -107,10 +107,10 @@
 <style>
 	.code-view {
 		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
-		height: 100%;
+		display: grid;
+		grid-template-rows: auto 1fr;
 		min-height: 0;
+		height: 100%;
 		padding: 8px;
 		gap: 6px;
 	}
@@ -119,7 +119,6 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		flex: 0 0 auto;
 	}
 
 	.title {
@@ -161,8 +160,8 @@
 
 	.editor {
 		box-sizing: border-box;
-		flex: 1;
 		min-height: 0;
+		height: 100%;
 		width: 100%;
 		margin: 0;
 		padding: 8px;

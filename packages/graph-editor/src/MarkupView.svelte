@@ -86,24 +86,24 @@
 <style>
 	.markup {
 		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
-		height: 100%;
+		display: grid;
+		grid-template-rows: auto 1fr;
 		min-height: 0;
+		height: 100%;
 		padding: 8px;
+		gap: 6px;
 	}
 
 	.title {
-		margin: 0 0 6px;
+		margin: 0;
 		font-size: 12px;
 		font-weight: 600;
-		flex: 0 0 auto;
 	}
 
 	.code {
 		box-sizing: border-box;
-		flex: 1;
 		min-height: 0;
+		height: 100%;
 		width: 100%;
 		margin: 0;
 		padding: 8px;
