@@ -8,3 +8,4 @@ export const RUNTIME_CPU_PACKAGE = '@virtual-planet/runtime-cpu' as const;
 
 export * from './camera.js';
 export * from './resources.js';
+export * from './evalGraph.js';

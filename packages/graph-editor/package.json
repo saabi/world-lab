@@ -4,8 +4,21 @@
 	"private": true,
 	"description": "Reusable Svelte graph-editor components over the Typed Graph IR (no renderer logic).",
 	"type": "module",
+	"dependencies": {
+		"@virtual-planet/graph": "*",
+		"@virtual-planet/runtime-cpu": "*",
+		"@virtual-planet/schema": "*",
+		"@virtual-planet/subdivide": "*",
+		"@xyflow/svelte": "^1.0.0"
+	},
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./GraphEditor.svelte": "./src/GraphEditor.svelte",
+		"./GraphCanvas.svelte": "./src/GraphCanvas.svelte",
+		"./InspectorPanel.svelte": "./src/InspectorPanel.svelte",
+		"./NodePalette.svelte": "./src/NodePalette.svelte",
+		"./ValidationPanel.svelte": "./src/ValidationPanel.svelte",
+		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",

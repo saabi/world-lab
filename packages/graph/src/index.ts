@@ -11,3 +11,5 @@ export * from './validate.js';
 export * from './serialize.js';
 export * from './primitive.js';
 export * from './registry.js';
+
+import './primitives/index.js';

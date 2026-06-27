@@ -5,6 +5,7 @@ import './primitives/index.js'; // registers the standard set
 describe('@virtual-planet/graph primitives', () => {
 	it('registers and looks up primitives', () => {
 		expect(getPrimitive('math.remap')).toBeDefined();
+		expect(getPrimitive('procedural.uv')).toBeDefined();
 		expect(listPrimitives().map((p) => p.id)).toContain('noise.perlin3d');
 	});
 

@@ -23,20 +23,15 @@ active brief in [briefs/](./briefs/README.md). Then
 | M6 — ShaderLinker + WGSL tree-shake | ✅ | 12/12 (compiler pkg) | `8b19ece` |
 | M7 — CPU runtime services | ✅ | 4/4 (runtime-cpu pkg) | `a579686` |
 | M8 — resource inputs + CPU views | ✅ | graph 13/13; runtime-cpu 11/11 | `790a898` |
+| M9 — standalone graph editor | ✅ | graph 13/13; runtime-cpu 14/14; graph-editor 7/7 | `8eae495` |
 | Docs — param form addendum | ✅ | cross-links | `9897d3b` |
 
 ## Current front (single serialized task)
 
-- **Active:** **M9 — standalone graph editor** — implement per
-  [briefs/M9-standalone-editor.md](./briefs/M9-standalone-editor.md).
-- **Read order:** this status →
-  [parameter-and-form-schema.md](./parameter-and-form-schema.md) →
-  [parameter-and-form-schema-addendum.md](./parameter-and-form-schema-addendum.md) →
-  M9 brief → [editor.md](./editor.md).
-- M3/M7/M8 prerequisites are complete.
-- Inspector = `ParamForm` + `PortBindingList`; no resource upload in M9.
-- **Delegate:** Sonnet for `evalGraph` + `irAdapter` + Svelte/xyflow; Composer for
-  deps/route wiring.
+- **Active:** **M9b — multi-level editing** — next per
+  [implementation-plan.md](./implementation-plan.md) (brief TBD when pinned).
+- **Read order:** this status → [editor.md](./editor.md) → M9 brief (landed) for
+  baseline editor scope.
 
 ## Resume protocol (any agent)
 

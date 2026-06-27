@@ -44,6 +44,8 @@ export type CpuValue = number | number[];
 export interface CpuEvalContext {
 	inputs: Record<string, CpuValue>;
 	params: Record<string, number | boolean>;
+	/** Per-sample procedural/host inputs for CPU preview (e.g. plane UV). */
+	procedural?: Record<string, CpuValue>;
 }
 
 export interface NodePrimitive {

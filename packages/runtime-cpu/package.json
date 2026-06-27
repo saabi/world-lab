@@ -12,7 +12,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@virtual-planet/graph": "*"
+		"@virtual-planet/graph": "*",
+		"@virtual-planet/schema": "*"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

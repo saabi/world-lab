@@ -5,3 +5,8 @@
 
 /** Package identity marker. */
 export const GRAPH_EDITOR_PACKAGE = '@virtual-planet/graph-editor' as const;
+
+export * from './types.js';
+export * from './irAdapter.js';
+export * from './portBindings.js';
+export * from './defaultGraph.js';
