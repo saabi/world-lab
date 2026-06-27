@@ -62,7 +62,8 @@ runs what.
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Frame-graph: pure core landed (T4 `3fc520a`); **GPU executor = round 2** | 🔄 core done; GPU executor pending | Cursor |
 | [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (R2-T0) | ✅ landed (`52334eb`) | Opus (done) |
 | [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette | ✅ landed (`7917bfc`) — but see fix below | Cursor (done) |
-| [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas, not a hardcoded internal graph) | 📌 contract ready · ⚠ visual | browser-capable agent |
+| [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas) | ✅ landed (`ed9aabd`) + render fix (`0ba7e29`) | Cursor (done) |
+| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** + resource ports (pipeline-as-graph ADR) | 📌 contract ready · Opus pins Part 1 | Opus + agent |
 
 Further briefs are written as each milestone's predecessor lands (serialized).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed

@@ -107,6 +107,13 @@ specific leaks into the core graph model.
 
 ## Render targets, per-target resolution & the pass graph
 
+> **Updated by [pipeline-as-graph.md](./pipeline-as-graph.md):** render targets are now
+> **graph nodes** (`target.render` / `target.display`), and the pass graph **is the graph
+> itself** (target nodes + their read/write edges). The runtime still *schedules and
+> allocates* (ordering, ping-pong, per-target resolution, transient pool) — everything
+> below holds — but authoring is via nodes, not a separate runtime-only structure.
+
+
 A consumer doesn't render "to the screen" — it writes to a **render target / image
 buffer**. The swapchain is one target; offscreen textures are others (ShaderToy's
 Buffer A–D + Image). This makes **resolution a per-target value, not a global
