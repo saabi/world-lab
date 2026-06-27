@@ -14,4 +14,5 @@ import './bias.js';
 import './gain.js';
 import './abs.js';
 import './uv.js';
+import './metricPosition.js';
 import './surfaces/index.js';

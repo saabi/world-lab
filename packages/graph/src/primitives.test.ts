@@ -119,4 +119,24 @@ describe('@virtual-planet/graph primitives', () => {
 		const abs = getPrimitive('math.abs')!.evalCPU!;
 		expect(abs({ inputs: { x: -3.5 }, params: {} }).value).toBe(3.5);
 	});
+
+	it('procedural.metricPosition is registered with vec3f position output', () => {
+		const primitive = getPrimitive('procedural.metricPosition');
+		expect(primitive).toBeDefined();
+		expect(primitive!.category).toBe('procedural');
+		expect(primitive!.inputs).toHaveLength(0);
+		expect(primitive!.outputs).toHaveLength(1);
+		expect(primitive!.outputs[0]).toMatchObject({
+			name: 'position',
+			dataType: 'vec3f'
+		});
+	});
+
+	it('procedural.metricPosition evalCPU returns ctx.procedural.metricPosition', () => {
+		const evalCPU = getPrimitive('procedural.metricPosition')!.evalCPU!;
+		expect(evalCPU({ inputs: {}, params: {}, procedural: { metricPosition: [1, 2, 3] } })).toEqual({
+			position: [1, 2, 3]
+		});
+		expect(evalCPU({ inputs: {}, params: {} })).toEqual({ position: [0, 0, 0] });
+	});
 });
