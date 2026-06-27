@@ -27,10 +27,10 @@
 | 1 | `procedural.metricPosition` graph primitive | `graph` | 1 | ✅ DONE — Cursor | `814a8a1` |
 | 2 | `emitGraphVec3Eval` + `positionExpr` codegen | `runtime-webgpu` | 2 (after 1+8) | ✅ DONE — Cursor | `0a93756` |
 | 3 | Vegetation buffer layout + types | `runtime-webgpu` | 1 | ✅ DONE — Cursor | `4b197bf` |
-| 4 | Vegetation compute consumer + parity | `runtime-webgpu` | 3 (after 2+3) | ⬜ UNCLAIMED | — |
+| 4 | Vegetation compute consumer + parity | `runtime-webgpu` | 3 (after 2+3) | 🔵 CLAIMED — Cursor | — |
 | 5 | M9d.3 CodeMirror syntax highlighting | `graph-editor` + `subdivide` | 1 | 🔵 CLAIMED — Cursor | — |
 | 6 | STATUS ledger update + line-ending fix | docs + 1 WGSL | 1 | ⬜ UNCLAIMED | — |
-| 7 | MCP server scaffold tools | `mcp-server` | 1 | ⬜ UNCLAIMED | — |
+| 7 | MCP server scaffold tools | `mcp-server` | 1 | ✅ DONE — Cursor | `d0f2346` |
 | 8 | Procedural-WGSL `metricPosition` module | `procedural-wgsl` | 1 | ✅ DONE — Cursor | `715b1f6` |
 
 **Wave constraints:**
