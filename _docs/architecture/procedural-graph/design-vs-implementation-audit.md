@@ -6,6 +6,16 @@ conversation ([../../conversations/node-editor-and-then-some.md](../../conversat
 and the architecture docs. Triggered by a user observation that **multi-output
 multi-stage compilation** appeared unbuilt and unplanned.
 
+> **Correction (2026-06-27): this audit itself under-captured a capability.** It found
+> the multi-output *compilation* gap but framed **tessellation / mesh-generation and
+> render targets as runtime-only** — when the transcript (turns 37, 38, 42) explicitly
+> makes the **tessellator/mesh-generator a graph consumer** and declares consumers in the
+> document (`<Consumer type="tessellator" …/>`). The graph is meant to describe the
+> **full pipeline** (geometry/buffers/stages/targets as nodes), not only field math. That
+> is now [pipeline-as-graph.md](./pipeline-as-graph.md). **Process lesson:** audit the
+> transcript against *every* capability claim (geometry/targets/consumers as graph
+> elements), not just the most obvious one (multi-output codegen).
+
 ## Headline finding (confirmed gap)
 
 **The single-graph → multiple-stage-specialized-shaders capability is designed but

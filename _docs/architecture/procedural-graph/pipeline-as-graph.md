@@ -1,20 +1,38 @@
 # Pipeline-as-graph — the graph IS the whole WebGPU pipeline
 
-**Status:** architecture decision (supersedes parts of earlier framing) · **Date:**
-2026-06-27 (Opus) · **Authority:** canonical for what a graph contains — it is the
-**full WebGPU pipeline** (geometry, buffers, stages, targets), not only field/shading
-math. **Touches:** `graph` (node taxonomy + resource ports), `compiler`,
-`runtime-webgpu`, `graph-editor`. Reconciles
+**Status:** architecture decision — **realigns with the original design conversation**
+(not a new direction) · **Date:** 2026-06-27 (Opus) · **Authority:** canonical for what
+a graph contains — it is the **full WebGPU pipeline** (geometry, buffers, stages,
+targets), not only field/shading math. **Touches:** `graph` (node taxonomy + resource
+ports), `compiler`, `runtime-webgpu`, `graph-editor`. Corrects/realigns
 [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md),
 [runtime-and-tessellation.md](./runtime-and-tessellation.md),
-[planet-pipeline-poc-feasibility.md](./planet-pipeline-poc-feasibility.md).
+[design-vs-implementation-audit.md](./design-vs-implementation-audit.md).
 
-> **Why this exists:** the S0 cosine-palette graph rendered, but only described the
-> *fragment shading* (host inputs → effect → output) — it had **no real source and no
-> real target**. A node editor for WebGPU must expose the *pipeline*: where geometry
-> comes from, how it is buffered, the vertex/fragment/compute stages, and where pixels
-> go. The graph should be **self-contained and describe the true pipeline as fully as
-> possible.**
+> **This was in the source conversation; the earlier audit missed it.** The
+> [transcript](../../conversations/node-editor-and-then-some.md) already establishes that
+> tessellation / mesh-generation is a **graph output/consumer**, not a runtime-only
+> concern:
+> - **Turn 37:** "como esto es WebGPU… también usamos shaders que generan vértices para
+>   teselación. Así que también puede ser una **salida para el teselador**."
+> - **Turn 38:** the "**procedural products / consumers**" reframe — Terrain **Mesh
+>   Generator**, Collision, Navigation, … all consume the same fields.
+> - **Turn 42:** the Svelte markup declares consumers *in the document*:
+>   `<Consumer type="tessellator" outputs={["height","normal","lodDensity"]} />`,
+>   `<Consumer type="terrain-fragment" … />`, `<Consumer type="vegetation-compute" … />`.
+>
+> The [design-vs-implementation-audit](./design-vs-implementation-audit.md) caught the
+> *multi-output compilation* gap but **under-captured** this: it framed tessellation and
+> render targets as runtime-only (mapping=graph / scheduling=runtime), which drifted from
+> the transcript. This ADR restores the original intent and makes it concrete
+> (geometry/buffer/stage/target **nodes**). It was surfaced by the S0 graph rendering only
+> *fragment shading* — no real source, no real target.
+>
+> **Reconciling "the graph is unaware of pipeline stages"** (transcript turn 56): that
+> applies to the **field** nodes — noise/math are pure and stage-agnostic. The
+> **pipeline** nodes (`geometry.*` / `stage.*` / `target.*`) are the *stage-aware* layer
+> that wires fields into a pipeline; field subgraphs nest inside stage nodes. Two layers,
+> no contradiction.
 
 ## Principle
 
