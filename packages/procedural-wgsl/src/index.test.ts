@@ -10,9 +10,15 @@ import {
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'procedural.uv': 'uv',
 	'noise.perlin3d': 'perlin3d',
+	'noise.worley': 'worley',
+	'noise.fbm': 'fbm',
 	'math.remap': 'remap',
 	'math.clamp': 'clamp',
 	'math.smoothstep': 'smoothstep',
+	'math.add': 'add',
+	'math.multiply': 'multiply',
+	'math.mix': 'mix',
+	'math.pow': 'pow',
 	'surface.plane': 'plane',
 	'surface.cubeSphere': 'cubeSphere'
 };
@@ -42,5 +48,10 @@ describe('@virtual-planet/procedural-wgsl', () => {
 	it('createStandardLibraryResolver throws for unknown ids', async () => {
 		const resolver = createStandardLibraryResolver();
 		await expect(resolver.resolve('missing.module')).rejects.toThrow('Unknown module: missing.module');
+	});
+
+	it('noise.fbm declares a dependency on noise.perlin3d', () => {
+		expect(STANDARD_LIBRARY_MODULES['noise.fbm']?.dependencies).toEqual(['noise.perlin3d']);
+		expect(STANDARD_LIBRARY_MODULES['noise.fbm']?.source).toContain('perlin3d(');
 	});
 });

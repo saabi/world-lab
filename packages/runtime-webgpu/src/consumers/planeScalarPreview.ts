@@ -11,7 +11,7 @@ import {
 	emitGraphScalarEval,
 	type GraphParamField
 } from '../emitGraphEval.js';
-import { createMemoryModuleResolver } from '../moduleResolver.js';
+import { createStandardLibraryResolver } from '../moduleResolver.js';
 import type { ConsumerExecuteInput, ScalarFieldResult } from '../types.js';
 
 function findOutputName(doc: GraphDocument, output: PortRef): string {
@@ -95,7 +95,7 @@ export async function executePlaneScalarPreview(
 
 	const outputName = findOutputName(graph, output);
 	const slice = sliceGraph(graph, { outputs: [outputName] });
-	const generated = await generateWgsl(slice, createMemoryModuleResolver());
+	const generated = await generateWgsl(slice, createStandardLibraryResolver());
 	const emitted = emitGraphScalarEval(graph, output);
 	const shaderCode = buildComputeShader(generated.code, emitted.body, emitted.resultExpr, emitted.params);
 
