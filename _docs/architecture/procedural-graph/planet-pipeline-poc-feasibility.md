@@ -194,7 +194,7 @@ classes — [parameter-and-form-schema.md](./parameter-and-form-schema.md) class
 
 | ShaderToy | Virtual Planet concept | Status |
 |-----------|------------------------|--------|
-| `iResolution` | viewport host input | ✅ exists (`ViewUniforms.viewport`) |
+| `iResolution` | **per render-target** size (not a global) — the resolution of the buffer this consumer writes; `iChannelResolution[i]` = the size of each input target it reads | ⚠ needs the render-target / pass-graph model ([inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md)) — does **not** exist today |
 | `iTime`, `iTimeDelta`, `iFrame` | `time` host input (+ frame counter) | ✅ time designed; frame counter trivial |
 | `iMouse` | pointer host input — **raw pixel xy + click**, alongside M7's world ray | ⚠ M7 gives world ray; add raw `vec4` mouse |
 | `iChannel0–3` (texture/cubemap) | image **resource** input, GPU-bound | ⚠ M8 = CPU views; **GPU bind is the audit gap** |
@@ -230,7 +230,8 @@ adds tessellation/vertex/multi-stage and ends in route parity.
 
 | Step | Deliverable | Gate |
 |------|-------------|------|
-| **S0** | Fullscreen-fragment consumer + ShaderToy host inputs (`iResolution`/`iTime`/`iMouse`) + a self-describing fragment primitive; schema-driven uniform form feeding it | a hand-written WGSL `mainImage`-style effect runs in the editor, tunable via the generated form |
+| **S0** | Fullscreen-fragment consumer (2-tri plane sized to its **write target**) + ShaderToy host inputs (`iTime`/`iMouse`; `iResolution` from the target, not a global) + a self-describing fragment primitive; schema-driven uniform form feeding it | a hand-written WGSL `mainImage`-style effect renders to a target, tunable via the generated form |
+| **S0.5** | Render-target / image-buffer model: a consumer writes a named target; resolution is per-target; a second consumer reads it as a channel (`iChannelResolution`) — minimal pass graph | a two-pass effect (Buffer→Image) renders at mixed resolutions |
 | **S1** | One `iChannel` image resource **GPU-bound** (closes the audit's resource-bind gap on the easy target) | a texture-sampling effect renders |
 | **P0** | Instance-input model in IR + runtime (bind a per-instance buffer; `instance_index`/`vertex_index` inputs) | headless: a graph reads instance/vertex indices; unit test |
 | **P1** | Tessellator composition nodes: `surface.plane` grid + `patchTransform` + `cubeToSphere` + `displace`; reproduce one patch's `body_dir`/`world_pos` | vitest parity vs `cube_face_uv_to_unit_dir` + `vs_main` math (CPU) |

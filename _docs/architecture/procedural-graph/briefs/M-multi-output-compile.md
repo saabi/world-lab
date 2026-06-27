@@ -112,11 +112,22 @@ Plus: a consumer requesting an unknown output → the returned promise rejects.
 (Use the same in-memory resolver pattern as `codegen.test.ts`; register test primitives
 whose `wgsl.moduleId`s are distinct so module sharing is observable.)
 
+## Note: render targets are a separate (runtime) layer
+
+A consumer also has a **write target** and may read other consumers' targets as channels;
+resolution is **per-target** (see
+[inputs-cpu-and-resources.md → render targets & pass graph](../inputs-cpu-and-resources.md#render-targets-per-target-resolution--the-pass-graph)).
+This brief stays **shader-bundle only** — it does not bind targets or order passes. When
+the consumer-stage model lands, consider an **optional** `target?` / `reads?` hint on
+`ProceduralConsumer` for the later pass-graph executor; do not implement target binding or
+the executor here (separate runtime follow-on).
+
 ## Out of scope
 
 Per-stage entry-point wrappers (vertex `@vertex fn main(...)`, compute workgroup
 attributes, bind-group layout generation) — a **follow-on** (`M-stage-entrypoints`) once
-the bundle exists. Refactoring the existing previews onto the driver — opportunistic,
+the bundle exists. Render-target binding, per-target resolution, and the pass-graph
+executor — a separate runtime follow-on. Refactoring the existing previews onto the driver — opportunistic,
 not here. Resource GPU binds — separate (audit item 2). **No new public exports beyond
 those listed; no AST.**
 

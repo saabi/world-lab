@@ -105,8 +105,52 @@ runtime concern, and it consumes the generic CPU **frustum** service above. So:
 mapping + mesh-gen = primitives; scheduling = runtime; nothing tessellation-
 specific leaks into the core graph model.
 
+## Render targets, per-target resolution & the pass graph
+
+A consumer doesn't render "to the screen" — it writes to a **render target / image
+buffer**. The swapchain is one target; offscreen textures are others (ShaderToy's
+Buffer A–D + Image). This makes **resolution a per-target value, not a global
+`iResolution` uniform** — and since a multi-output graph can drive many fragment/compute
+consumers that read each other's targets, this needs first-class design (it does **not**
+exist today — each preview hardcodes its own texture + ad-hoc `width`/`height`).
+
+**Render target descriptor** (a runtime/host object, not a graph node):
+
+```
+RenderTarget {
+  id; format;
+  size: { kind: 'screen-relative', scale } | { kind: 'fixed', w, h } | { kind: 'driven', expr }
+  // resolved to concrete (w,h) at bind time
+}
+```
+
+**Per-consumer resolution.** Each fragment/compute consumer declares the target it
+**writes**. Its `resolution` host input is bound from *that target's* resolved size — so
+two consumers writing to a full-res and a half-res buffer see different `iResolution`. The
+fullscreen-fragment consumer's implicit geometry is exactly the user's point: a **plane
+tessellator reduced to two triangles, sized to its write target** — a degenerate case of
+the same surface-mapping/tessellation model (§"Tessellation as primitives"), not a special
+path.
+
+**Per-channel resolution.** When consumer B reads consumer A's target as a resource
+**channel**, B also gets that source's resolution (ShaderToy's `iChannelResolution[i]`) —
+because B's sampling math needs the *input's* size, which differs from B's own output size.
+
+**Pass graph.** Cross-target reads form a small **render/pass graph**: consumers + their
+write targets + read-dependencies. The runtime topologically orders passes per frame, and
+supports **single-frame feedback** (a consumer reading its own previous-frame target via
+ping-pong buffers — ShaderToy buffer feedback). This is a *runtime composition* layer, the
+same architectural role as tessellation scheduling: **the graph declares fields/outputs;
+the runtime binds them to targets and orders the passes.** The consumer-stage model
+([briefs/M-multi-output-compile.md](./briefs/M-multi-output-compile.md)) must therefore
+carry an optional **write-target ref** and **channel→target reads**, so the host can
+resolve per-target/per-channel resolution and the pass order. The pass-graph *executor*
+itself is a follow-on runtime milestone, separate from the compile driver.
+
 ## Open design questions
 
+- **Pass-graph executor:** target lifetime/aliasing, ping-pong feedback, and whether the
+  pass order is authored, declared on consumers, or inferred from channel reads.
 - Exact type system for resource ports (formats, channel layouts, sampling modes)
   and how CPU/GPU views stay in sync.
 - Whether frustum/pointer are *graph inputs* a primitive reads, or *services* a
