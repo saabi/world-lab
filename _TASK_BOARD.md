@@ -41,7 +41,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
   per-consumer shaders + `sharedModuleIds`. graph 33/33, compiler 31/31, no regressions.
   (committed below)
 
-## T1 — Planet-shader primitive harvest  ·  Claimed by: UNCLAIMED
+## T1 — Planet-shader primitive harvest  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-planet-primitive-harvest.md`
 - **Owns:** `packages/procedural-wgsl/src/modules/terrain/**` (+ that area's index),
@@ -52,7 +52,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **Note:** parity by reference — copy planet WGSL verbatim; add `category` + `group` frontmatter.
 - **Status:** UNCLAIMED
 
-## T2 — Primitive immutability + real WGSL source + clone  ·  Claimed by: UNCLAIMED
+## T2 — Primitive immutability + real WGSL source + clone  ·  Claimed by: Cursor
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-primitive-immutability.md`
 - **Owns:** `packages/graph-editor/src/primitiveSources.ts`, `CodeView.svelte`,
@@ -62,7 +62,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **⚠ visual gate** — needs a manual `/graph-editor` check (report what you see).
 - **Status:** UNCLAIMED
 
-## T3 — Extract editor-ui (chrome + controls)  ·  Claimed by: UNCLAIMED
+## T3 — Extract editor-ui (chrome + controls)  ·  Claimed by: cursor-agent
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-editor-ui-extraction.md`
 - **Owns:** new `packages/editor-ui/**`; `fe/` import re-points for the moved components;
@@ -73,7 +73,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **⚠ visual gate** — `/scene` sections + sliders still work; report.
 - **Status:** UNCLAIMED
 
-## T4 — Pass-graph executor: PURE CORE ONLY  ·  Claimed by: UNCLAIMED
+## T4 — Pass-graph executor: PURE CORE ONLY  ·  Claimed by: cursor-agent
 
 - **Brief:** `_docs/architecture/procedural-graph/briefs/M-pass-graph-executor.md` —
   **Parts 1–3 only** (target model, `buildPassOrder`/`validatePassGraph`, `resolveTargetSizes`).
@@ -83,7 +83,7 @@ Coordination file for parallel Cursor Composer agents. **Delete when round 1 is 
 - **Do NOT touch:** existing consumers, `runtime-webgpu/src/types.ts`.
 - **Gate:** the headless pure-core tests in the brief's gate items 1 (ordering/lifetimes/
   validation) and the `resolveTargetSizes` test. GPU test (item 2) is round 2.
-- **Status:** UNCLAIMED
+- **Status:** DONE 3fc520a — `frameGraph/types.ts` + `order.ts` (validate/build/lifetimes/sizes); 6 headless tests green; GPU executor still round 2.
 
 ---
 
