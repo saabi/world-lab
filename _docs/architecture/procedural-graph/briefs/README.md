@@ -63,7 +63,7 @@ runs what.
 | [M-stage-entrypoints.md](./M-stage-entrypoints.md) | Stage entry points + bind-group layout (R2-T0) | ✅ landed (`52334eb`) | Opus (done) |
 | [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette | ✅ landed (`7917bfc`) — but see fix below | Cursor (done) |
 | [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas) | ✅ landed (`ed9aabd`) + render fix (`0ba7e29`) | Cursor (done) |
-| [M-node-model-foundation.md](./M-node-model-foundation.md) | **Foundation (R1):** resource ports · role/contract swap families · node **groups** (subgraph nodes) · `list<T>` — built in slices | 🔄 Opus building (atoms ✅) | Opus |
+| [M-node-model-foundation.md](./M-node-model-foundation.md) | **Foundation (R1):** resource ports · role/contract swap families · node **groups** (subgraph nodes) · `list<T>` — built in slices | ✅ landed (`3641621`) | Opus/Gemini (done) |
 | [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | 📌 contract ready | Opus + agent |
 
 Further briefs are written as each milestone's predecessor lands (serialized).

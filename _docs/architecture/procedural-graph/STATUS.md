@@ -54,19 +54,13 @@ active brief in [briefs/](./briefs/README.md). Then
 | · R2-T0 stage entry points (Opus) | ✅ | compiler 36/36 | `52334eb` |
 | · R2-T1 Use.GPU primitive harvest (SDF/colour/noise, license-clean) | ✅ | graph 57/57, procedural-wgsl 22/22 | `0b69570` |
 | · R2-T2 extract → `apps/graph-editor` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
+| · M-node-model-foundation (resource ports · list<T> · groups · role/contract) | ✅ | graph 76/76, compiler 37/37, workspace 333/333 | `3641621` |
 
 ## Current front
 
-**Round 1 of the multi-output/PoC build is complete and reviewed (Opus 2026-06-27):** the
-keystone `compileGraph` driver + consumer-stage model exists; planet shaping nodes
-harvested at parity; editor shows real WGSL with clone-to-edit; shared `editor-ui` package;
-frame-graph pure core. All packages green; `fe` 0 errors.
+**Round 2 of the procedural graph engine is active and advancing:** the **M-node-model-foundation** milestone has landed cleanly (resource ports union, swap-family metadata, function-level node groups, list<T> lowering with static unrolling + dynamic loops, remap/opSubtract decomposition).
 
-**Next — round 2 (unblocked by T0/T4):** stage entry points (Opus —
-[briefs/M-stage-entrypoints.md](./briefs/M-stage-entrypoints.md)), then pass-graph **GPU
-executor** (Part 4 of M-pass-graph-executor), params-as-inputs, usegpu-harvest,
-app-extraction → then the **ShaderToy PoC** (S0 cosine palette → S0.5 Game of Life) → planet
-PoC P0–P5. M13 remains gated (renderer-unification).
+**Next:** general pipeline-as-graph integration (unifying the pipeline stage and pass graph nodes). Next milestone in the roadmap is **M-pipeline-nodes-s0** (building the full pipeline graph describing geometry, buffers, stages, and targets as nodes, consuming the node-model foundation).
 
 **Background:** Stages A–D (the generic engine: IR → primitives → compiler → linker →
 CPU/GPU runtime → editor → tessellation → vegetation) are complete. **M13** (migrating the
