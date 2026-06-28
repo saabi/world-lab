@@ -62,13 +62,17 @@ node-model-design-notes §C. The editor wiring is a later graph-editor task.)
   `loadWgslPrimitive`; successfully compiled and linked within a graph via `compileGraph` + `textLinker`.
   All compiler/graph test packages green.
 
-## Slice 4 — `list<T>` ports + lowering (graph + compiler)
+## Slice 4 — `list<T>` ports + lowering (graph + compiler) — ✅ DONE
 
-A `list<T>` input accepts **multiple edges** of `T` (static) **or** a runtime
-`storageBuffer<T>` (dynamic). Codegen lowers: **static → unroll** over the connected edges;
-**runtime → loop** over the buffer + a count. **Gate:** a node with a `list<f32>` input fed
-3 edges unrolls (3 inlined terms in WGSL); fed a `storageBuffer` emits a `for` loop.
-(`forEach`/`reduce` container nodes are a later follow-on — node-model-design-notes §A.)
+- **Compatibility:** Added `ListDataType` union (`list<f32>`, `list<vec2f>`, etc.) to `DataType` in `@virtual-planet/graph`.
+  Updated `compatibleDataTypes` to allow connection from `T` to `list<T>` and `storageBuffer` to `list<T>`.
+- **Lowering:** Extended codegen in both `@virtual-planet/compiler` (`groupToFunction`) and `@virtual-planet/runtime-webgpu` (`emitGraphEval`):
+  - **Static case:** Multiple edges connected to a `list<T>` input are lowered by unrolling them into an inline WGSL array constructor:
+    `array<T, N>(val1, val2, ...)`
+  - **Dynamic case:** A single edge from a `storageBuffer` is lowered by declaring an accumulator variable and emitting a WGSL `for` loop:
+    `for (var i: u32 = 0u; i < arrayLength(&buf); i = i + 1u) { accum = accum + primitive(buf[i]); }`
+- **Gate met:** A `list<f32>` input fed 3 edges compiles to an unrolled inline array expression; fed a `storageBuffer` compiles to a `for` loop with `arrayLength(&buf)`. All runtime-webgpu and ports unit tests green.
+
 
 ## Decomposition follow-on (after Slice 3)
 

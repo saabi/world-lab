@@ -272,6 +272,12 @@ function emitGraphEval(
 		}
 
 		const argValues: string[] = [];
+		let hasLoop = false;
+		let loopVarName = '';
+		let loopCountName = '';
+		let loopIndexName = '';
+		let loopCallExpr = '';
+
 		for (const binding of inferArguments(node, primitive.wgsl.arguments)) {
 			if (binding.source === 'param') {
 				argValues.push(`params.${paramField(node.id, binding.name)}`);
@@ -283,30 +289,101 @@ function emitGraphEval(
 				throw new Error(`Missing input port ${binding.name} on ${node.id}`);
 			}
 
-			const edge = doc.edges.find(
-				(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
-			);
-			if (!edge) {
-				throw new Error(`Missing edge for ${node.id}.${inputPort.id}`);
-			}
+			const isList = inputPort.dataType.startsWith('list<') && inputPort.dataType.endsWith('>');
 
-			const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
-			if (!upstreamNode) {
-				throw new Error(`Unknown upstream node: ${edge.from.node}`);
-			}
-			const upstreamPort = findPort(upstreamNode, edge.from.port);
-			if (!upstreamPort) {
-				throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
-			}
+			if (isList) {
+				const edges = doc.edges.filter(
+					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
+				);
 
-			const expr = portVar(edge.from.node, edge.from.port);
-			argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
+				const innerType = inputPort.dataType.slice(5, -1) as DataType;
+				const wgslType = wgslTypeFor(innerType);
+
+				if (edges.length === 1) {
+					// Check if the upstream output dataType is 'storageBuffer'
+					const edge = edges[0]!;
+					const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
+					if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
+					const upstreamPort = findPort(upstreamNode, edge.from.port);
+					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+
+					if (upstreamPort.dataType === 'storageBuffer') {
+						// Dynamic case: emit a for loop!
+						hasLoop = true;
+						loopVarName = portVar(edge.from.node, edge.from.port);
+						loopCountName = `count_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
+						loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
+						
+						// The call inside the loop uses buf[i] instead of list argument
+						loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
+						continue;
+					}
+				}
+
+				// Static case (or connected to multiple edges of T): unroll!
+				const argExprs: string[] = [];
+				for (const edge of edges) {
+					const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
+					if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
+					const upstreamPort = findPort(upstreamNode, edge.from.port);
+					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+
+					const expr = portVar(edge.from.node, edge.from.port);
+					argExprs.push(promoteExpr(expr, upstreamPort.dataType, innerType));
+				}
+
+				if (argExprs.length > 0) {
+					argValues.push(`array<${wgslType}, ${argExprs.length}>(${argExprs.join(', ')})`);
+				} else {
+					throw new Error(`Missing edge for list port ${node.id}.${inputPort.id}`);
+				}
+			} else {
+				// Non-list input
+				const edge = doc.edges.find(
+					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
+				);
+				if (!edge) {
+					throw new Error(`Missing edge for ${node.id}.${inputPort.id}`);
+				}
+
+				const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
+				if (!upstreamNode) {
+					throw new Error(`Unknown upstream node: ${edge.from.node}`);
+				}
+				const upstreamPort = findPort(upstreamNode, edge.from.port);
+				if (!upstreamPort) {
+					throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+				}
+
+				const expr = portVar(edge.from.node, edge.from.port);
+				argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
+			}
 		}
 
-		for (const outPort of node.outputs) {
-			const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
-			const lhsType = wgslTypeFor(outPort.dataType);
-			body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
+		const isValueType = (type: DataType) =>
+			['f32', 'vec2f', 'vec3f', 'vec4f', 'bool'].includes(type) ||
+			(type.startsWith('list<') && type.endsWith('>'));
+
+		const valueOutputs = node.outputs.filter((o) => isValueType(o.dataType));
+
+		if (valueOutputs.length > 0) {
+			if (hasLoop) {
+				for (const outPort of valueOutputs) {
+					const lhsVar = portVar(node.id, outPort.id);
+					const lhsType = wgslTypeFor(outPort.dataType);
+					body.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
+					body.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
+					body.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
+					body.push(`\t${lhsVar} = ${lhsVar} + ${loopCallExpr};`);
+					body.push(`}`);
+				}
+			} else {
+				for (const outPort of valueOutputs) {
+					const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
+					const lhsType = wgslTypeFor(outPort.dataType);
+					body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
+				}
+			}
 		}
 	}
 

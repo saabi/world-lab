@@ -140,6 +140,12 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 			...Object.keys(node.params ?? {}).map(k => ({ name: k, source: 'param' as const }))
 		];
 
+		let hasLoop = false;
+		let loopVarName = '';
+		let loopCountName = '';
+		let loopIndexName = '';
+		let loopCallExpr = '';
+
 		for (const binding of actualBindings) {
 			if (binding.source === 'param') {
 				// Param value is fixed in the group, inline it
@@ -151,36 +157,108 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 				const inputPort = node.inputs.find((i) => i.name === binding.name || i.id === binding.name);
 				if (!inputPort) throw new Error(`Missing input port ${binding.name} on node ${node.id}`);
 
-				const edge = subgraph.edges.find(
-					(e) => e.to.node === node.id && e.to.port === inputPort.id
-				);
+				const isList = inputPort.dataType.startsWith('list<') && inputPort.dataType.endsWith('>');
 
-				if (edge) {
-					// Connected upstream
-					const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
-					if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-					const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
-						(p) => p.id === edge.from.port
+				if (isList) {
+					const edges = subgraph.edges.filter(
+						(e) => e.to.node === node.id && e.to.port === inputPort.id
 					);
-					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
-					const expr = portVar(edge.from.node, edge.from.port);
-					argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
-				} else {
-					// Unconnected input: must map to a group input
-					const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
-					if (!groupInputName) {
-						throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input`);
+					const innerType = inputPort.dataType.slice(5, -1) as DataType;
+					const wgslType = wgslTypeFor(innerType);
+
+					if (edges.length === 1) {
+						// Check if the upstream output dataType is 'storageBuffer'
+						const edge = edges[0]!;
+						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
+						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
+						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
+							(p) => p.id === edge.from.port
+						);
+						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+
+						if (upstreamPort.dataType === 'storageBuffer') {
+							// Dynamic case: emit a for loop!
+							hasLoop = true;
+							loopVarName = portVar(edge.from.node, edge.from.port);
+							loopCountName = `count_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
+							loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
+							
+							// The call inside the loop uses buf[i] instead of list argument
+							loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
+							continue;
+						}
 					}
-					argValues.push(groupInputName);
+
+					// Static case (or connected to multiple edges of T): unroll!
+					const argExprs: string[] = [];
+					for (const edge of edges) {
+						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
+						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
+						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
+							(p) => p.id === edge.from.port
+						);
+						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+
+						const expr = portVar(edge.from.node, edge.from.port);
+						argExprs.push(promoteExpr(expr, upstreamPort.dataType, innerType));
+					}
+
+					if (argExprs.length > 0) {
+						argValues.push(`array<${wgslType}, ${argExprs.length}>(${argExprs.join(', ')})`);
+					} else {
+						// Map to group input
+						const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
+						if (!groupInputName) {
+							throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input`);
+						}
+						argValues.push(groupInputName);
+					}
+				} else {
+					// Non-list input
+					const edge = subgraph.edges.find(
+						(e) => e.to.node === node.id && e.to.port === inputPort.id
+					);
+
+					if (edge) {
+						// Connected upstream
+						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
+						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
+						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
+							(p) => p.id === edge.from.port
+						);
+						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
+
+						const expr = portVar(edge.from.node, edge.from.port);
+						argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
+					} else {
+						// Unconnected input: must map to a group input
+						const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
+						if (!groupInputName) {
+							throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input`);
+						}
+						argValues.push(groupInputName);
+					}
 				}
 			}
 		}
 
-		for (const outPort of node.outputs) {
-			const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
-			const lhsType = wgslTypeFor(outPort.dataType);
-			bodyLines.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
+		if (hasLoop) {
+			for (const outPort of node.outputs) {
+				const lhsVar = portVar(node.id, outPort.id);
+				const lhsType = wgslTypeFor(outPort.dataType);
+				bodyLines.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
+				bodyLines.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
+				bodyLines.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
+				bodyLines.push(`\t${lhsVar} = ${lhsVar} + ${loopCallExpr};`);
+				bodyLines.push(`}`);
+			}
+		} else {
+			for (const outPort of node.outputs) {
+				const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
+				const lhsType = wgslTypeFor(outPort.dataType);
+				bodyLines.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
+			}
 		}
 	}
 
