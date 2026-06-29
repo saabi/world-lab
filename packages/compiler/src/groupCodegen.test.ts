@@ -6,6 +6,7 @@ import {
 	type GroupDefinition,
 	type GraphDocument
 } from '@virtual-planet/graph';
+import { quantity, Type } from '@virtual-planet/schema';
 import { loadWgslPrimitive } from './primitiveLoader.js';
 import { groupToFunction } from './groupCodegen.js';
 import { compileGraph } from './compileGraph.js';
@@ -25,19 +26,19 @@ describe('@virtual-planet/compiler groupCodegen', () => {
 					id: 'mult',
 					primitive: 'math.multiply',
 					inputs: [
-						{ id: 'a', name: 'a', dataType: 'f32' },
-						{ id: 'b', name: 'b', dataType: 'f32' }
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
 					],
-					outputs: [{ id: 'value', name: 'value', dataType: 'f32' }]
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
 				},
 				{
 					id: 'add',
 					primitive: 'math.add',
 					inputs: [
-						{ id: 'a', name: 'a', dataType: 'f32' },
-						{ id: 'b', name: 'b', dataType: 'f32' }
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
 					],
-					outputs: [{ id: 'value', name: 'value', dataType: 'f32' }]
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
 				}
 			],
 			edges: [
@@ -128,11 +129,11 @@ describe('@virtual-planet/compiler groupCodegen', () => {
 					id: 'displace_node',
 					primitive: 'g.normalDisplace',
 					inputs: [
-						{ id: 'normal', name: 'normal', dataType: 'f32' },
-						{ id: 'height', name: 'height', dataType: 'f32' },
-						{ id: 'position', name: 'position', dataType: 'f32' }
+						{ id: 'normal', name: 'normal', direction: 'in', dataType: 'f32' },
+						{ id: 'height', name: 'height', direction: 'in', dataType: 'f32' },
+						{ id: 'position', name: 'position', direction: 'in', dataType: 'f32' }
 					],
-					outputs: [{ id: 'value', name: 'value', dataType: 'f32' }]
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
 				}
 			],
 			edges: [],
@@ -180,5 +181,208 @@ describe('@virtual-planet/compiler groupCodegen', () => {
 		expect(linked).toContain('fn multiply(');
 		expect(linked).toContain('fn add(');
 		expect(linked).toContain('fn normalDisplace(');
+	});
+
+	it('emits interface params after inputs with separate frontmatter params section', () => {
+		const subgraph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'sub',
+					primitive: 'math.subtract',
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
+			consumers: []
+		};
+
+		const def: GroupDefinition = {
+			id: 'g.scaleOffset',
+			category: 'math',
+			params: Type.Object({
+				scale: quantity('none', { default: 1 })
+			}),
+			subgraph,
+			interface: {
+				inputs: [{ name: 'x', dataType: 'f32', target: { node: 'sub', port: 'a' } }],
+				params: [{ name: 'scale', target: { node: 'sub', port: 'b' } }],
+				outputs: [{ name: 'value', dataType: 'f32', target: { node: 'sub', port: 'value' } }]
+			}
+		};
+
+		const { wgsl, frontmatter } = groupToFunction(def);
+		expect(wgsl).toContain('fn scaleOffset(x: f32, scale: f32)');
+		expect(frontmatter).toContain('inputs:');
+		expect(frontmatter).toContain('params:');
+		expect(frontmatter).toContain('scale:');
+		expect(frontmatter).toContain('default: 1.0');
+
+		const loaded = loadWgslPrimitive({ moduleId: 'g.scaleOffset', source: `${frontmatter}\n${wgsl}` });
+		expect(loaded.primitive.inputs.map((port) => port.name)).toEqual(['x']);
+		expect(loaded.primitive.wgsl.arguments?.map((arg) => `${arg.name}:${arg.source}`)).toEqual([
+			'x:input',
+			'scale:param'
+		]);
+	});
+
+	it('round-trips a boolean group param through WGSL signature and loaded schema', () => {
+		const subgraph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'gate',
+					primitive: 'math.multiply',
+					params: { b: 1 },
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'enabled', name: 'enabled', direction: 'in', dataType: 'bool' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'gate', port: 'value' } }],
+			consumers: []
+		};
+
+		const def: GroupDefinition = {
+			id: 'g.boolGate',
+			category: 'math',
+			params: Type.Object({
+				enabled: Type.Boolean({ default: true })
+			}),
+			subgraph,
+			interface: {
+				inputs: [{ name: 'x', dataType: 'f32', target: { node: 'gate', port: 'a' } }],
+				params: [{ name: 'enabled', target: { node: 'gate', port: 'enabled' } }],
+				outputs: [{ name: 'value', dataType: 'f32', target: { node: 'gate', port: 'value' } }]
+			}
+		};
+
+		const { wgsl, frontmatter } = groupToFunction(def);
+		expect(wgsl).toContain('fn boolGate(x: f32, enabled: bool)');
+		expect(frontmatter).toContain('enabled:');
+		expect(frontmatter).toContain('default: true');
+
+		const loaded = loadWgslPrimitive({ moduleId: 'g.boolGate', source: `${frontmatter}\n${wgsl}` });
+		expect(loaded.primitive.params.properties?.enabled).toBeDefined();
+		expect(loaded.primitive.wgsl.arguments?.find((arg) => arg.name === 'enabled')?.source).toBe(
+			'param'
+		);
+	});
+
+	it('rejects unmapped GroupDefinition.params schema properties', () => {
+		const subgraph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'sub',
+					primitive: 'math.subtract',
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
+			consumers: []
+		};
+
+		const def: GroupDefinition = {
+			id: 'g.unmapped',
+			category: 'math',
+			params: Type.Object({
+				scale: quantity('none', { default: 1 }),
+				offset: quantity('none', { default: 0 })
+			}),
+			subgraph,
+			interface: {
+				inputs: [{ name: 'x', dataType: 'f32', target: { node: 'sub', port: 'a' } }],
+				params: [{ name: 'scale', target: { node: 'sub', port: 'b' } }],
+				outputs: [{ name: 'value', dataType: 'f32', target: { node: 'sub', port: 'value' } }]
+			}
+		};
+
+		expect(() => groupToFunction(def)).toThrow(/offset/);
+	});
+
+	it('rejects incompatible param schema and target port data types', () => {
+		const subgraph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'sub',
+					primitive: 'math.subtract',
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
+			consumers: []
+		};
+
+		const def: GroupDefinition = {
+			id: 'g.badBool',
+			category: 'math',
+			params: Type.Object({
+				flag: Type.Boolean({ default: true })
+			}),
+			subgraph,
+			interface: {
+				inputs: [{ name: 'x', dataType: 'f32', target: { node: 'sub', port: 'a' } }],
+				params: [{ name: 'flag', target: { node: 'sub', port: 'b' } }],
+				outputs: [{ name: 'value', dataType: 'f32', target: { node: 'sub', port: 'value' } }]
+			}
+		};
+
+		expect(() => groupToFunction(def)).toThrow(/Incompatible group param type bool/);
+	});
+
+	it('rejects integer group param schemas explicitly', () => {
+		const subgraph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'sub',
+					primitive: 'math.subtract',
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'f32' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'f32' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
+			consumers: []
+		};
+
+		const def: GroupDefinition = {
+			id: 'g.integerParam',
+			category: 'math',
+			params: Type.Object({
+				count: Type.Integer({ default: 1 })
+			}),
+			subgraph,
+			interface: {
+				inputs: [{ name: 'x', dataType: 'f32', target: { node: 'sub', port: 'a' } }],
+				params: [{ name: 'count', target: { node: 'sub', port: 'b' } }],
+				outputs: [{ name: 'value', dataType: 'f32', target: { node: 'sub', port: 'value' } }]
+			}
+		};
+
+		expect(() => groupToFunction(def)).toThrow(/integer schemas/);
 	});
 });

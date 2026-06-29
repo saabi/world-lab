@@ -1,3 +1,5 @@
+import type { TSchema } from '@virtual-planet/schema';
+
 export type ValueDataType = 'f32' | 'vec2f' | 'vec3f' | 'vec4f' | 'bool';
 /** External input resources (image/mesh/audio) — see `ResourceDependency`. */
 export type ResourceDataType = 'image' | 'mesh' | 'audio';
@@ -90,6 +92,12 @@ export interface GroupInputMapping {
 	target: PortRef;
 }
 
+/** Maps a group-level param to an internal subgraph input port. */
+export interface GroupParamMapping {
+	name: string;
+	target: PortRef;
+}
+
 export interface GroupOutputMapping {
 	name: string;
 	dataType: DataType;
@@ -99,6 +107,7 @@ export interface GroupOutputMapping {
 
 export interface GroupInterface {
 	inputs: GroupInputMapping[];
+	params?: GroupParamMapping[];
 	outputs: GroupOutputMapping[];
 }
 
@@ -107,6 +116,8 @@ export interface GroupDefinition {
 	category: string;
 	subgraph: GraphDocument;
 	interface: GroupInterface;
+	/** TypeBox object schema — sole source of param type/default/widget metadata. */
+	params?: TSchema;
 	role?: string;
 	help?: string;
 	usage?: string;

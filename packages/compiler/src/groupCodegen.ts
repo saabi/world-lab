@@ -5,8 +5,16 @@ import {
 	type Node,
 	type PortRef,
 	type GroupDefinition,
-	type CoordinateSpace
+	type CoordinateSpace,
+	type ValueDataType
 } from '@virtual-planet/graph';
+import {
+	annotationsOf,
+	fieldKind,
+	fields,
+	sectionsOf,
+	type TSchema
+} from '@virtual-planet/schema';
 
 // Helper to sanitize identifiers for WGSL
 function sanitizeId(id: string): string {
@@ -42,6 +50,84 @@ function promoteExpr(expr: string, fromType: DataType, toType: DataType): string
 	throw new Error(`Type mismatch: ${fromType} -> ${toType}`);
 }
 
+function groupParamWgslType(schema: TSchema): string {
+	const kind = fieldKind(schema);
+	if (kind === 'boolean') return 'bool';
+	if (kind === 'number') return 'f32';
+	if (kind === 'integer') {
+		throw new Error(
+			'Group param mappings do not support integer schemas (i32 graph ports are out of scope)'
+		);
+	}
+	throw new Error(`Unsupported group param schema kind: ${kind}`);
+}
+
+function groupParamDataType(schema: TSchema): ValueDataType {
+	const kind = fieldKind(schema);
+	if (kind === 'boolean') return 'bool';
+	if (kind === 'number') return 'f32';
+	if (kind === 'integer') {
+		throw new Error(
+			'Group param mappings do not support integer schemas (i32 graph ports are out of scope)'
+		);
+	}
+	throw new Error(`Unsupported group param schema kind: ${kind}`);
+}
+
+function assertParamPortCompatible(paramType: ValueDataType, portType: DataType): void {
+	if (paramType === portType) return;
+	throw new Error(
+		`Incompatible group param type ${paramType} for input port data type ${portType}`
+	);
+}
+
+function validateGroupParamContract(def: GroupDefinition): void {
+	const mappings = def.interface.params ?? [];
+	const paramsSchema = def.params;
+
+	if (mappings.length === 0) {
+		if (paramsSchema && fields(paramsSchema).length > 0) {
+			throw new Error('GroupDefinition.params has properties not mapped in interface.params');
+		}
+		return;
+	}
+
+	if (!paramsSchema) {
+		throw new Error('GroupDefinition.params is required when interface.params is set');
+	}
+
+	const schemaFields = new Map(fields(paramsSchema).map((field) => [field.key, field.schema]));
+	const mappedNames = new Set(mappings.map((mapping) => mapping.name));
+
+	for (const name of schemaFields.keys()) {
+		if (!mappedNames.has(name)) {
+			throw new Error(`Group param schema property "${name}" is not mapped in interface.params`);
+		}
+	}
+
+	for (const mapping of mappings) {
+		const schema = schemaFields.get(mapping.name);
+		if (!schema) {
+			throw new Error(`Group param mapping references unknown schema property: ${mapping.name}`);
+		}
+
+		const paramType = groupParamDataType(schema);
+		const node = def.subgraph.nodes.find((candidate) => candidate.id === mapping.target.node);
+		if (!node) {
+			throw new Error(`Unknown group param target node: ${mapping.target.node}`);
+		}
+		const port = node.inputs.find(
+			(candidate) => candidate.id === mapping.target.port || candidate.name === mapping.target.port
+		);
+		if (!port) {
+			throw new Error(
+				`Unknown group param target port: ${mapping.target.node}.${mapping.target.port}`
+			);
+		}
+		assertParamPortCompatible(paramType, port.dataType);
+	}
+}
+
 function formatParamValue(val: unknown, type?: string): string {
 	if (typeof val === 'boolean') {
 		return `${val}`;
@@ -55,6 +141,62 @@ function formatParamValue(val: unknown, type?: string): string {
 		return s.includes('.') || s.includes('e') ? s : `${s}.0`;
 	}
 	return `${val}`;
+}
+
+function serializeParamYaml(name: string, schema: TSchema): string {
+	const lines: string[] = [`  ${name}:`];
+	const annotations = annotationsOf(schema);
+	const kind = fieldKind(schema);
+	if (annotations.description) {
+		lines.push(`    description: ${JSON.stringify(annotations.description)}`);
+	}
+	if (annotations.unit) {
+		lines.push(`    unit: ${annotations.unit}`);
+	}
+	if (annotations.widget) {
+		lines.push(`    widget: ${annotations.widget}`);
+	}
+	if (annotations.section) {
+		lines.push(`    section: ${annotations.section}`);
+	}
+	if (annotations.scaleBehavior) {
+		lines.push(`    scaleBehavior: ${annotations.scaleBehavior}`);
+	}
+	if (annotations.extent) {
+		const [min, max] = annotations.extent;
+		if (min !== null) lines.push(`    min: ${formatParamValue(min)}`);
+		if (max !== null) lines.push(`    max: ${formatParamValue(max)}`);
+	}
+	if (!('default' in (schema as Record<string, unknown>))) {
+		throw new Error(`Missing default for param ${name}`);
+	}
+	lines.push(`    default: ${formatParamValue(annotations.default, kind === 'integer' ? 'integer' : undefined)}`);
+	return lines.join('\n');
+}
+
+function serializeParamsFrontmatter(paramsSchema: TSchema, paramNames: readonly string[]): string {
+	const paramFields = new Map(fields(paramsSchema).map((field) => [field.key, field.schema]));
+	for (const name of paramNames) {
+		if (!paramFields.has(name)) {
+			throw new Error(`Group param mapping references unknown schema property: ${name}`);
+		}
+	}
+	const yamlParams = paramNames.map((name) => serializeParamYaml(name, paramFields.get(name)!)).join('\n');
+	const sectionList = sectionsOf(paramsSchema);
+	const yamlSections =
+		sectionList.length > 0
+			? `\nsections:\n${sectionList
+					.map((section) => {
+						const parts = [`  - id: ${section.id}`];
+						if (section.label) parts.push(`    label: ${JSON.stringify(section.label)}`);
+						if (section.order !== undefined) parts.push(`    order: ${section.order}`);
+						if (section.collapsed !== undefined) parts.push(`    collapsed: ${section.collapsed}`);
+						if (section.parent) parts.push(`    parent: ${section.parent}`);
+						return parts.join('\n');
+					})
+					.join('\n')}`
+			: '';
+	return `${yamlSections}${yamlSections ? '\n' : ''}params:\n${yamlParams}`;
 }
 
 // Topological sort from outputNodeId
@@ -99,6 +241,7 @@ function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
  */
 export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatter: string } {
 	const subgraph = def.subgraph;
+	validateGroupParamContract(def);
 	if (def.interface.outputs.length !== 1) {
 		throw new Error(`Group definition must have exactly one output, got ${def.interface.outputs.length}`);
 	}
@@ -109,10 +252,30 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 	// 1. Sort nodes topologically from the output node
 	const nodeIds = topologicalSort(subgraph, outputNodeId);
 
-	// 2. Map group input ports to targets for quick lookup
+	// 2. Map group input/param ports to targets for quick lookup
 	const inputMappings = new Map<string, string>(); // 'nodeId_portId' -> group input name
 	for (const mapping of def.interface.inputs) {
 		inputMappings.set(`${mapping.target.node}_${mapping.target.port}`, mapping.name);
+	}
+	const paramMappings = new Map<string, string>(); // 'nodeId_portId' -> group param name
+	const mappedParamNames = new Set<string>();
+	for (const mapping of def.interface.params ?? []) {
+		paramMappings.set(`${mapping.target.node}_${mapping.target.port}`, mapping.name);
+		mappedParamNames.add(mapping.name);
+	}
+	let interfaceParamOrder: string[] = [];
+	if (mappedParamNames.size > 0) {
+		if (!def.params) {
+			throw new Error('GroupDefinition.params is required when interface.params is set');
+		}
+		interfaceParamOrder = fields(def.params)
+			.map((field) => field.key)
+			.filter((name) => mappedParamNames.has(name));
+		for (const name of mappedParamNames) {
+			if (!interfaceParamOrder.includes(name)) {
+				throw new Error(`Group param mapping references unknown schema property: ${name}`);
+			}
+		}
 	}
 
 	// 3. Keep track of referenced modules (dependencies)
@@ -207,12 +370,17 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 					if (argExprs.length > 0) {
 						argValues.push(`array<${wgslType}, ${argExprs.length}>(${argExprs.join(', ')})`);
 					} else {
-						// Map to group input
-						const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
-						if (!groupInputName) {
-							throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input`);
+						// Map to group input or param
+						const groupParamName = paramMappings.get(`${node.id}_${inputPort.id}`);
+						if (groupParamName) {
+							argValues.push(groupParamName);
+						} else {
+							const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
+							if (!groupInputName) {
+								throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input or param`);
+							}
+							argValues.push(groupInputName);
 						}
-						argValues.push(groupInputName);
 					}
 				} else {
 					// Non-list input
@@ -232,12 +400,17 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						const expr = portVar(edge.from.node, edge.from.port);
 						argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
 					} else {
-						// Unconnected input: must map to a group input
-						const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
-						if (!groupInputName) {
-							throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input`);
+						// Unconnected input: must map to a group input or param
+						const groupParamName = paramMappings.get(`${node.id}_${inputPort.id}`);
+						if (groupParamName) {
+							argValues.push(groupParamName);
+						} else {
+							const groupInputName = inputMappings.get(`${node.id}_${inputPort.id}`);
+							if (!groupInputName) {
+								throw new Error(`Unconnected port ${node.id}.${inputPort.id} is not mapped to any group input or param`);
+							}
+							argValues.push(groupInputName);
 						}
-						argValues.push(groupInputName);
 					}
 				}
 			}
@@ -267,9 +440,18 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 
 	// 6. Generate function header & body
 	const entryFnName = def.id.split('.').pop() ?? 'group';
-	const argsStr = def.interface.inputs
-		.map((i) => `${i.name}: ${wgslTypeFor(i.dataType)}`)
-		.join(', ');
+	const inputArgs = def.interface.inputs.map((i) => `${i.name}: ${wgslTypeFor(i.dataType)}`);
+	const paramFieldSchemas = def.params
+		? new Map(fields(def.params).map((field) => [field.key, field.schema]))
+		: new Map<string, TSchema>();
+	const paramArgs = interfaceParamOrder.map((name) => {
+		const schema = paramFieldSchemas.get(name);
+		if (!schema) {
+			throw new Error(`Missing schema for group param: ${name}`);
+		}
+		return `${name}: ${groupParamWgslType(schema)}`;
+	});
+	const argsStr = [...inputArgs, ...paramArgs].join(', ');
 	
 	const returnTypeStr = wgslTypeFor(groupOutputMapping.dataType);
 
@@ -300,6 +482,10 @@ ${fnBody}
 	const yamlRole = def.role ? `\nrole: ${def.role}` : '';
 	const yamlHelp = def.help ? `\nhelp: "${def.help.replace(/"/g, '\\"')}"` : '';
 	const yamlUsage = def.usage ? `\nusage: "${def.usage.replace(/"/g, '\\"')}"` : '';
+	const yamlParams =
+		interfaceParamOrder.length > 0 && def.params
+			? `\n${serializeParamsFrontmatter(def.params, interfaceParamOrder)}`
+			: '';
 
 	const frontmatter = `/*---
 id: ${def.id}
@@ -307,7 +493,7 @@ category: ${def.category}
 inputs:
 ${yamlInputs}
 outputs:
-${yamlOutputs}${yamlRole}${yamlHelp}${yamlUsage}
+${yamlOutputs}${yamlParams}${yamlRole}${yamlHelp}${yamlUsage}
 ---*/`;
 
 	return { wgsl, frontmatter };

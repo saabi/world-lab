@@ -93,8 +93,8 @@ state says **Ready to start**.
 
 | Wave | Agent | Task | State | Ownership / collision rule |
 |------|-------|------|-------|----------------------------|
-| W0 | Integrator | Commit coordination docs/source reference separately from implementation | Awaiting human approval | Docs only; exclude dirty code and build artifacts. |
-| W1 | **D1** | [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) | **Ready to start** | Exclusive ownership of graph group types, compiler group codegen, math/SDF graph primitives, related procedural modules/index/tests, and its [handoff](./handoffs/M-node-model-decomposition-fix.md). |
+| W0 | Integrator | Commit coordination docs/source reference separately from implementation | Complete (`6f2e076`) | Docs only; dirty code and build artifacts excluded. |
+| W1 | **D1** | [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) | **Accepted; awaiting commit approval** | Exclusive ownership of graph group types, compiler group codegen, math/SDF graph primitives, related procedural modules/index/tests, and its [handoff](./handoffs/M-node-model-decomposition-fix.md). |
 | W2 | **N1** | [`M-noise-functions-harvest`](./briefs/M-noise-functions-harvest.md) | Queued after W1 commit | Noise leaf files + shared graph/procedural barrels/tests + its [handoff](./handoffs/M-noise-functions-harvest.md). |
 | W2 | **C1** | [`M-colorlab-harvest` slice A](./briefs/M-colorlab-harvest.md) | Queued after W1 commit | Color leaf files + shared graph/procedural barrels/tests + its [handoff](./handoffs/M-colorlab-harvest-a.md). |
 | W2 | Integrator | Rebase/pin [`M-pipeline-nodes-s0`](./briefs/M-pipeline-nodes-s0.md) against landed node-model foundation | Queued after W1 | Contract/docs only; Part 1 of the old brief is partly landed and must not be reimplemented. |

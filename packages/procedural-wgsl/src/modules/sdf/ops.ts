@@ -1,3 +1,5 @@
+import { SDF_OP_SUBTRACT_MODULE } from '../../groups/index.js';
+
 /** WGSL module `sdf.opUnion` — CSG union (reauthored). */
 export const SDF_OP_UNION_SOURCE = `/*---
 id: sdf.opUnion
@@ -16,18 +18,9 @@ export const SDF_OP_UNION_MODULE = {
 	source: SDF_OP_UNION_SOURCE
 } as const;
 
-/** WGSL module `sdf.opSubtract` — CSG subtraction (decomposed to math.subtract and math.max). */
-export const SDF_OP_SUBTRACT_SOURCE = `// @use math.subtract
-// @use math.max
-fn opSubtract(a: f32, b: f32) -> f32 {
-	let v_neg = subtract(0.0, b);
-	return max(a, v_neg);
-}`;
-
-export const SDF_OP_SUBTRACT_MODULE = {
-	id: 'sdf.opSubtract',
-	source: SDF_OP_SUBTRACT_SOURCE
-} as const;
+/** WGSL module `sdf.opSubtract` — generated from canonical group (max + negate). */
+export { SDF_OP_SUBTRACT_MODULE };
+export const SDF_OP_SUBTRACT_SOURCE = SDF_OP_SUBTRACT_MODULE.source;
 
 /** WGSL module `sdf.opIntersect` — CSG intersection (reauthored). */
 export const SDF_OP_INTERSECT_SOURCE = `/*---

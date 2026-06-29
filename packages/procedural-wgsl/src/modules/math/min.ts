@@ -1,5 +1,5 @@
 /** WGSL module `math.min` — scalar min (matches graph evalCPU). */
-export const MATH_MIN_SOURCE = `fn min(a: f32, b: f32) -> f32 {
+export const MATH_MIN_SOURCE = `fn mathMin(a: f32, b: f32) -> f32 {
 	return min(a, b);
 }`;
 

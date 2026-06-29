@@ -18,6 +18,10 @@ function ensureReady(): void {
 	hydrateUserPrimitives();
 }
 
+function hasYamlFrontmatter(source: string): boolean {
+	return /^\s*\/\*---/.test(source);
+}
+
 function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string {
 	const lines = [
 		`id: ${primitive.id}`,
@@ -97,6 +101,10 @@ export function getDefaultPrimitiveSource(moduleId: string): string {
 	const wgslBody = resolveBuiltinWgslBody(primitive.wgsl.moduleId);
 	if (wgslBody === null) {
 		return `/*---\nid: ${moduleId}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\n---*/\n// No WGSL source available for this module.\n`;
+	}
+
+	if (hasYamlFrontmatter(wgslBody)) {
+		return `${wgslBody.trim()}\n`;
 	}
 
 	return formatBuiltinSource(primitive, wgslBody);

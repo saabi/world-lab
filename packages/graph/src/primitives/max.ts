@@ -12,7 +12,7 @@ const max: NodePrimitive = {
 	],
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'math.max', entry: 'max' },
+	wgsl: { moduleId: 'math.max', entry: 'mathMax' },
 	metadata: { help: 'SDF intersection — `max(a, b)` selects the farther surface.' },
 	evalCPU(ctx) {
 		const a = ctx.inputs.a as number;

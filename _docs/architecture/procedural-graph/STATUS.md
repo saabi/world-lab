@@ -63,10 +63,10 @@ boundary.
 
 **Round 2 of the procedural graph engine is active and advancing:** the **M-node-model-foundation** milestone has landed cleanly (resource ports union, swap-family metadata, function-level node groups, list<T> lowering with static unrolling + dynamic loops, remap/opSubtract decomposition).
 
-**Active cleanup:** the working tree contains a correctness fallback for the claimed
-`math.remap` / `sdf.opSubtract` decomposition. Complete
-[`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) before
-advancing.
+**Active cleanup:** [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md)
+is accepted and awaiting commit. `math.remap` and `sdf.opSubtract` are generated from
+canonical groups with declared dependencies; generic group params preserve TypeBox-backed
+numeric/boolean contracts and validate mappings.
 
 **Next:** rebase and execute **M-pipeline-nodes-s0** (building the full pipeline graph
 describing geometry, buffers, stages, and targets as nodes, consuming the node-model

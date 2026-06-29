@@ -21,7 +21,9 @@ describe('@virtual-planet/graph-editor primitiveSources', () => {
 	it('shows real math.remap WGSL from procedural-wgsl, not a fabricated stub', () => {
 		const source = getDefaultPrimitiveSource('math.remap');
 		expect(source).toContain('fn remap(');
-		expect(source).toContain('(x - inMin) / (inMax - inMin)');
+		expect(source).toContain('subtract(');
+		expect(source).toContain('divide(');
+		expect(source).toContain('// @use math.subtract');
 		expect(source).not.toContain(STUB_MARKER);
 	});
 

@@ -10,6 +10,7 @@ import './multiply.js';
 import './divide.js';
 import './min.js';
 import './max.js';
+import './negate.js';
 import './mix.js';
 import './pow.js';
 import './clamp.js';

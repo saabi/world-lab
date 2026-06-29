@@ -28,7 +28,12 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'math.clamp': 'clamp',
 	'math.smoothstep': 'smoothstep',
 	'math.add': 'add',
+	'math.subtract': 'subtract',
+	'math.divide': 'divide',
 	'math.multiply': 'multiply',
+	'math.min': 'mathMin',
+	'math.max': 'mathMax',
+	'math.negate': 'negate',
 	'math.mix': 'mix',
 	'math.pow': 'pow',
 	'math.abs': 'abs',
@@ -47,7 +52,13 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'terrain.normalEstimator': 'normalEstimator',
 	'terrain.worldNormal': 'worldNormal',
 	'terrain.selfShadow': 'selfShadow',
-	'material.pbrLighting': 'pbrLighting'
+	'material.pbrLighting': 'pbrLighting',
+	'sdf.opSubtract': 'opSubtract',
+	'sdf.opUnion': 'opUnion',
+	'sdf.opIntersect': 'opIntersect',
+	'sdf.circle': 'sdfCircle',
+	'sdf.box': 'sdfBox',
+	'sdf.segment': 'sdfSegment'
 };
 
 function registeredWgslModuleIds(): string[] {

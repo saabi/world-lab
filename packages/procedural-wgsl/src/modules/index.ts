@@ -5,6 +5,7 @@ import { MATH_ADD_MODULE } from './math/add.js';
 import { MATH_SUBTRACT_MODULE } from './math/subtract.js';
 import { MATH_DIVIDE_MODULE } from './math/divide.js';
 import { MATH_MIN_MODULE } from './math/min.js';
+import { MATH_NEGATE_MODULE } from './math/negate.js';
 import { MATH_MAX_MODULE } from './math/max.js';
 import { MATH_BIAS_MODULE } from './math/bias.js';
 import { MATH_CLAMP_MODULE } from './math/clamp.js';
@@ -98,6 +99,7 @@ export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[MATH_DIVIDE_MODULE.id]: copyModule(MATH_DIVIDE_MODULE),
 	[MATH_MIN_MODULE.id]: copyModule(MATH_MIN_MODULE),
 	[MATH_MAX_MODULE.id]: copyModule(MATH_MAX_MODULE),
+	[MATH_NEGATE_MODULE.id]: copyModule(MATH_NEGATE_MODULE),
 	[MATH_MULTIPLY_MODULE.id]: copyModule(MATH_MULTIPLY_MODULE),
 	[MATH_MIX_MODULE.id]: copyModule(MATH_MIX_MODULE),
 	[MATH_POW_MODULE.id]: copyModule(MATH_POW_MODULE),
