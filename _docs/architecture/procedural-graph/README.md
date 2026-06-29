@@ -25,6 +25,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [runtime-and-tessellation.md](./runtime-and-tessellation.md) | Consumers, WebGPU pipelines, shared/graph-described surfaces | `runtime-webgpu` |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Generic inputs, CPU runtime services, image/mesh/audio resources, tessellation-as-primitives | `graph`, `runtime-webgpu`, `runtime-cpu` |
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
+| [noise-functions.glsl](./noise-functions.glsl) | Source/reference GLSL noise functions for future `noise.*` primitive harvests | `procedural-wgsl`, `graph` |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
 | [editor-and-scene-integration.md](./editor-and-scene-integration.md) | **ADR:** graph editor vs scene tree; host composition, no package fusion | `graph-editor`, `fe/` scene |
 | [parameter-and-form-schema.md](./parameter-and-form-schema.md) | **ADR:** param SSOT, shared form generator, GPU packing vs authoring | `schema`, `graph`, `graph-editor`, `fe/` |
@@ -38,7 +39,10 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [primitive-library.md](./primitive-library.md) | **Catalogue:** every node built/planned/discussed — fields, domain, inputs, + geometry/buffer/stage/target families; low-hanging fruit | `graph`, `procedural-wgsl` |
 | [node-model-design-notes.md](./node-model-design-notes.md) | **Design:** collections/loops (lights→PBR), elemental geometry + transforms, node-swap UX (Blender math vs perf) | `graph`, `compiler`, `graph-editor` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
-| [briefs/](./briefs/README.md) | Routable per-milestone contract briefs (serialized; M1 ready) | per-milestone |
+| [TASK_BOARD.md](./TASK_BOARD.md) | Active task routing, dependencies, blockers, and commit policy | all |
+| [HANDOFF.md](./HANDOFF.md) | Stable index of task-specific handoff records | all |
+| [handoffs/](./handoffs/README.md) | Task-specific implementation, review, and commit records | all |
+| [briefs/](./briefs/README.md) | Routable per-task contract briefs, ordered by the task board | per-milestone |
 
 ---
 

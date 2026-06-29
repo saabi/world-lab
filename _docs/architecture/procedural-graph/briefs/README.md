@@ -55,6 +55,8 @@ runs what.
 | [M-pass-graph-executor.md](./M-pass-graph-executor.md) | Render-target / frame-graph executor (per-target res, feedback, ordering) | 📌 contract ready · after multi-output | Cursor |
 | [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Port planet-shader functions → primitives (feeds planet PoC P2; parity by reference) | 📌 contract ready | Cursor |
 | [M-usegpu-primitive-harvest.md](./M-usegpu-primitive-harvest.md) | Port Use.GPU WGSL fns (SDF/noise/colour) → primitives (license-verify first) | 📌 contract ready | Cursor |
+| [M-colorlab-harvest.md](./M-colorlab-harvest.md) | Port user's colorlab per-pixel colour transforms → `color.*` primitives | ⏳ Slice A pinned; queued after decomposition | Cursor |
+| [M-noise-functions-harvest.md](./M-noise-functions-harvest.md) | Port selected documented `noise-functions.glsl` functions → `noise.*` primitives | ⏳ first slice pinned; queued after decomposition | Cursor / Composer |
 | [M-multi-output-compile.md](./M-multi-output-compile.md) | Multi-output compile driver (T0) | ✅ landed (`302667f`) | Opus (done) |
 | [M-planet-primitive-harvest.md](./M-planet-primitive-harvest.md) | Planet-shader primitive harvest (T1) | ✅ landed (`3c08c80`) | Cursor (done) |
 | [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source + clone (T2) | ✅ landed (`1ec544d`) | Cursor (done) |
@@ -64,9 +66,11 @@ runs what.
 | [M-shadertoy-s0-runtime.md](./M-shadertoy-s0-runtime.md) | ShaderToy S0: fullscreen-fragment runtime + cosine palette | ✅ landed (`7917bfc`) — but see fix below | Cursor (done) |
 | [M-shadertoy-s0-fix.md](./M-shadertoy-s0-fix.md) | **S0 fix:** effect must be the *canvas graph* (loadable sample + preview renders canvas) | ✅ landed (`ed9aabd`) + render fix (`0ba7e29`) | Cursor (done) |
 | [M-node-model-foundation.md](./M-node-model-foundation.md) | **Foundation (R1):** resource ports · role/contract swap families · node **groups** (subgraph nodes) · `list<T>` — built in slices | ✅ landed (`3641621`) | Opus/Gemini (done) |
-| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | 📌 contract ready | Opus + agent |
+| [M-node-model-decomposition-fix.md](./M-node-model-decomposition-fix.md) | Correctly finish `math.remap` / `sdf.opSubtract` as group-backed decompositions | 🔄 active cleanup | Cursor |
+| [M-pipeline-nodes-s0.md](./M-pipeline-nodes-s0.md) | **S0 redo:** graph = full pipeline — geometry/buffer/stage/target **nodes** (consumes the foundation) | ⚠ rebase contract after decomposition; Part 1 partly landed | Architect + agent |
 
-Further briefs are written as each milestone's predecessor lands (serialized).
+Further briefs are written as predecessors land. Independent briefs may execute in
+parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
 **M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
 parallel polish while M11 is active — see proposal for architect sign-off.
 Live status + resume entry point: [../STATUS.md](../STATUS.md).

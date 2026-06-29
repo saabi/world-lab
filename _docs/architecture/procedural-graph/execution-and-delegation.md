@@ -37,20 +37,21 @@ pass away**. The cheaper the agent, the more the contract must be pinned first.
 The gate is the contract. If a milestone's gate is weak (visual/GPU — see below),
 delegation needs human/Opus oversight regardless of implementer.
 
-## Serialized execution & handoffs
+## Dependency waves, ownership, and handoffs
 
-For now milestones run **one at a time** (serialized). The package split will make
-parallel execution easy later; until synchronization-workflow docs exist, do not
-start a milestone whose dependency is still open.
+The critical dependency chain remains serialized: do not start a milestone whose
+prerequisite is open. Independent tasks may run in parallel when
+[`TASK_BOARD.md`](./TASK_BOARD.md) assigns disjoint files, or when each task uses an
+isolated worktree/branch and the integrator merges them one at a time. Shared barrel,
+registry, lockfile, and ledger edits are integration-owned unless explicitly assigned.
 
-**Every task ends with a handoff.** The last thing an agent does — whether it wrote
+**Every task ends with a task-specific handoff.** The last thing an agent does — whether it wrote
 a brief, implemented a milestone, or reviewed one — is state explicitly:
 
 > **Handoff** → next task id · recommended executor · one-line why.
 
-This keeps a single moving front without a central scheduler. Routable per-milestone
-**briefs** (contract + gate + doc links, ready to hand to any pool agent) live in
-[`briefs/`](./briefs/README.md).
+Routable per-milestone **briefs** live in [`briefs/`](./briefs/README.md); execution
+reports live in [`handoffs/`](./handoffs/README.md). The task board is the scheduler.
 
 ## Continuity & resumption (agent-independent)
 

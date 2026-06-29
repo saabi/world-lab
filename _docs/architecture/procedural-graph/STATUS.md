@@ -6,8 +6,11 @@ including a change of which agent is driving. Keep this file current at every ta
 boundary.
 
 **Read order to resume:** [README.md](./README.md) →
-[execution-and-delegation.md](./execution-and-delegation.md) → **this file** → the
-active brief in [briefs/](./briefs/README.md). Then
+[execution-and-delegation.md](./execution-and-delegation.md) → **this file** →
+[TASK_BOARD.md](./TASK_BOARD.md) → the active brief in
+[briefs/](./briefs/README.md) → its task-specific
+[handoff](./handoffs/README.md). If the task touches params/forms, read
+[parameter-and-form-schema.md](./parameter-and-form-schema.md) before the brief. Then
 `git --no-optional-locks log --oneline` for the per-stage commit ledger.
 
 ## Progress ledger
@@ -60,7 +63,15 @@ active brief in [briefs/](./briefs/README.md). Then
 
 **Round 2 of the procedural graph engine is active and advancing:** the **M-node-model-foundation** milestone has landed cleanly (resource ports union, swap-family metadata, function-level node groups, list<T> lowering with static unrolling + dynamic loops, remap/opSubtract decomposition).
 
-**Next:** general pipeline-as-graph integration (unifying the pipeline stage and pass graph nodes). Next milestone in the roadmap is **M-pipeline-nodes-s0** (building the full pipeline graph describing geometry, buffers, stages, and targets as nodes, consuming the node-model foundation).
+**Active cleanup:** the working tree contains a correctness fallback for the claimed
+`math.remap` / `sdf.opSubtract` decomposition. Complete
+[`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) before
+advancing.
+
+**Next:** rebase and execute **M-pipeline-nodes-s0** (building the full pipeline graph
+describing geometry, buffers, stages, and targets as nodes, consuming the node-model
+foundation). Its existing Part 1 predates the landed resource-port foundation and must be
+reviewed before implementation.
 
 **Background:** Stages A–D (the generic engine: IR → primitives → compiler → linker →
 CPU/GPU runtime → editor → tessellation → vegetation) are complete. **M13** (migrating the
