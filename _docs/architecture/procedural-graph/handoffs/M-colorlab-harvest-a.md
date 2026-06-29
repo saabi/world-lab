@@ -2,8 +2,8 @@
 
 **Brief:** [`../briefs/M-colorlab-harvest.md`](../briefs/M-colorlab-harvest.md)
 **Assigned executor:** Cursor agent C1
-**State:** queued after decomposition acceptance/commit. An isolated worktree only permits
-parallel execution with N1 after that dependency clears.
+**State:** ready to start. Run sequentially with N1 in a shared tree, or concurrently in
+isolated worktrees.
 
 ## Result
 

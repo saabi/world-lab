@@ -58,15 +58,16 @@ boundary.
 | · R2-T1 Use.GPU primitive harvest (SDF/colour/noise, license-clean) | ✅ | graph 57/57, procedural-wgsl 22/22 | `0b69570` |
 | · R2-T2 extract → `apps/graph-editor` (clears tech-debt) | ✅ | app build; fe 0 err | `2966e07` |
 | · M-node-model-foundation (resource ports · list<T> · groups · role/contract) | ✅ | graph 76/76, compiler 37/37, workspace 333/333 | `3641621` |
+| · M-node-model-decomposition-fix | ✅ | graph 77/77; compiler 42/42; procedural-wgsl 35/35; workspace green | `a29b4cc` |
 
 ## Current front
 
 **Round 2 of the procedural graph engine is active and advancing:** the **M-node-model-foundation** milestone has landed cleanly (resource ports union, swap-family metadata, function-level node groups, list<T> lowering with static unrolling + dynamic loops, remap/opSubtract decomposition).
 
-**Active cleanup:** [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md)
-is accepted and awaiting commit. `math.remap` and `sdf.opSubtract` are generated from
-canonical groups with declared dependencies; generic group params preserve TypeBox-backed
-numeric/boolean contracts and validate mappings.
+**Latest boundary:** [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md)
+landed in `a29b4cc`. `math.remap` and `sdf.opSubtract` are generated from canonical groups
+with declared dependencies; generic group params preserve TypeBox-backed numeric/boolean
+contracts and validate mappings.
 
 **Next:** rebase and execute **M-pipeline-nodes-s0** (building the full pipeline graph
 describing geometry, buffers, stages, and targets as nodes, consuming the node-model

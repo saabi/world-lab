@@ -2,8 +2,8 @@
 
 **Brief:** [`../briefs/M-noise-functions-harvest.md`](../briefs/M-noise-functions-harvest.md)
 **Assigned executor:** Cursor agent N1
-**State:** queued after decomposition acceptance/commit. An isolated worktree only permits
-parallel execution with C1 after that dependency clears.
+**State:** ready to start. Run sequentially with C1 in a shared tree, or concurrently in
+isolated worktrees.
 
 ## Result
 

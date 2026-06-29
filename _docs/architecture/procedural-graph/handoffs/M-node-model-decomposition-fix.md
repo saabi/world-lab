@@ -2,7 +2,7 @@
 
 **Brief:** [`../briefs/M-node-model-decomposition-fix.md`](../briefs/M-node-model-decomposition-fix.md)
 **Assigned executor:** Cursor agent D1
-**State:** accepted — awaiting commit approval.
+**State:** landed.
 
 ## Result
 
@@ -122,4 +122,4 @@ Independent re-review gates:
 
 ## Commit record
 
-Not committed; awaiting human commit approval.
+`a29b4cc` — `M-node-model-decomposition-fix: restore generated node groups`
