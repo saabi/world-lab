@@ -95,7 +95,7 @@ state says **Ready to start**.
 |------|-------|------|-------|----------------------------|
 | W0 | Integrator | Commit coordination docs/source reference separately from implementation | Complete (`6f2e076`) | Docs only; dirty code and build artifacts excluded. |
 | W1 | **D1** | [`M-node-model-decomposition-fix`](./briefs/M-node-model-decomposition-fix.md) | Complete (`a29b4cc`) | Generated remap/opSubtract groups and group-param contract landed. |
-| W2 | **N1** | [`M-noise-functions-harvest`](./briefs/M-noise-functions-harvest.md) | **Ready to start** | Noise leaf files + shared graph/procedural barrels/tests + its [handoff](./handoffs/M-noise-functions-harvest.md). |
+| W2 | **N1** | [`M-noise-functions-harvest`](./briefs/M-noise-functions-harvest.md) | **Accepted; awaiting commit approval** | Exact CPU/WGSL hash parity, all six primitives, dependency closure, and API boundaries reviewed. |
 | W2 | **C1** | [`M-colorlab-harvest` slice A](./briefs/M-colorlab-harvest.md) | **Ready to start** | Color leaf files + shared graph/procedural barrels/tests + its [handoff](./handoffs/M-colorlab-harvest-a.md). |
 | W2 | Integrator | Rebase/pin [`M-pipeline-nodes-s0`](./briefs/M-pipeline-nodes-s0.md) against landed node-model foundation | **Ready to start** | Contract/docs only; Part 1 of the old brief is partly landed and must not be reimplemented. |
 | W3 | **P1** | Rebased `M-pipeline-nodes-s0` implementation | Blocked on W2 contract pass | Exclusive pipeline graph/runtime/editor sample files; visual gate required. |

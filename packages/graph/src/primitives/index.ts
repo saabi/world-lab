@@ -3,6 +3,7 @@ import './simplex.js';
 import './worley.js';
 import './fbm.js';
 import './ridgedFbm.js';
+import './noise/index.js';
 import './remap.js';
 import './add.js';
 import './subtract.js';

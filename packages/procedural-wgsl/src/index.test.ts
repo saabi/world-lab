@@ -9,17 +9,20 @@ import {
 	STANDARD_LIBRARY_MODULES
 } from './index.js';
 
-/**
- * WGSL module ids referenced by graph primitives that intentionally have no
- * standard-library module (CPU eval only). Empty while every primitive ships WGSL.
- */
-const CPU_ONLY_WGSL_MODULE_IDS: readonly string[] = [];
+/** Module ids resolved by the library but not registered as graph primitives. */
+const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = ['noise.hash2d'];
 
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'procedural.uv': 'uv',
 	'procedural.metricPosition': 'metricPosition',
 	'noise.perlin3d': 'perlin3d',
+	'noise.value2d': 'value2d',
+	'noise.perlin2d': 'perlin2d',
+	'noise.perlin2dDeriv': 'perlin2dDeriv',
+	'noise.worley2d': 'worley2d',
+	'noise.voronoi2d': 'voronoi2d',
+	'noise.blue2d': 'blue2d',
 	'noise.simplex': 'simplex3d',
 	'noise.worley': 'worley',
 	'noise.fbm': 'fbm',
@@ -89,16 +92,19 @@ describe('@virtual-planet/procedural-wgsl', () => {
 
 		const missingFromLibrary = primitiveModuleIds.filter(
 			(moduleId) =>
-				!CPU_ONLY_WGSL_MODULE_IDS.includes(moduleId) && !STANDARD_LIBRARY_MODULES[moduleId]
+				!RESOLVER_ONLY_WGSL_MODULE_IDS.includes(moduleId) &&
+				!STANDARD_LIBRARY_MODULES[moduleId]
 		);
 		expect(missingFromLibrary).toEqual([]);
 
 		const orphanLibraryModules = libraryModuleIds.filter(
-			(moduleId) => !primitiveModuleIds.includes(moduleId)
+			(moduleId) =>
+				!RESOLVER_ONLY_WGSL_MODULE_IDS.includes(moduleId) &&
+				!primitiveModuleIds.includes(moduleId)
 		);
 		expect(orphanLibraryModules).toEqual([]);
 
-		expect(libraryModuleIds).toEqual(primitiveModuleIds);
+		expect(libraryModuleIds).toEqual([...primitiveModuleIds, ...RESOLVER_ONLY_WGSL_MODULE_IDS].sort());
 	});
 
 	it('createStandardLibraryResolver resolves each id with the expected entry fn', async () => {
