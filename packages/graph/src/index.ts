@@ -20,5 +20,6 @@ export {
 	HASH32_PARITY,
 	NOISE2D_CPU_PARITY
 } from './primitives/noise/parityFixtures.js';
+export { COLORLAB_CPU_PARITY } from './primitives/color/parityFixtures.js';
 
 import './primitives/index.js';

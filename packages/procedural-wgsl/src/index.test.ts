@@ -10,7 +10,7 @@ import {
 } from './index.js';
 
 /** Module ids resolved by the library but not registered as graph primitives. */
-const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = ['noise.hash2d'];
+const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = ['noise.hash2d', 'color.colorlabCommon'];
 
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
@@ -61,7 +61,22 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'sdf.opIntersect': 'opIntersect',
 	'sdf.circle': 'sdfCircle',
 	'sdf.box': 'sdfBox',
-	'sdf.segment': 'sdfSegment'
+	'sdf.segment': 'sdfSegment',
+	'color.srgbToLinear': 'srgbToLinear',
+	'color.linearToSrgb': 'linearToSrgb',
+	'color.hsv2rgb': 'hsv2rgb',
+	'color.srgbTransfer': 'srgbTransfer',
+	'color.srgbTransferInv': 'srgbTransferInv',
+	'color.srgbToXyz': 'srgbToXyz',
+	'color.xyzToSrgb': 'xyzToSrgb',
+	'color.xyzToLab': 'xyzToLab',
+	'color.labToXyz': 'labToXyz',
+	'color.xyzToLuv': 'xyzToLuv',
+	'color.luvToXyz': 'luvToXyz',
+	'color.lsrgbToOklab': 'lsrgbToOklab',
+	'color.oklabToLsrgb': 'oklabToLsrgb',
+	'color.oklabToOklch': 'oklabToOklch',
+	'color.oklchToOklab': 'oklchToOklab'
 };
 
 function registeredWgslModuleIds(): string[] {
