@@ -13,9 +13,10 @@
 		output: PortRef | null;
 		size?: number;
 		refreshEpoch?: number;
+		compileSignature?: string;
 	}
 
-	let { graph, output, size = 256, refreshEpoch = 0 }: Props = $props();
+	let { graph, output, size = 256, refreshEpoch = 0, compileSignature = '' }: Props = $props();
 
 	const blockMessage = $derived(incompleteGraphMessage(fullValidation(graph)));
 
@@ -47,6 +48,7 @@
 
 	$effect(() => {
 		void refreshEpoch;
+		void compileSignature;
 		void graph;
 		startTime = performance.now();
 

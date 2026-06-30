@@ -10,9 +10,10 @@
 	interface Props {
 		graph: GraphDocument;
 		refreshEpoch?: number;
+		compileSignature?: string;
 	}
 
-	let { graph, refreshEpoch = 0 }: Props = $props();
+	let { graph, refreshEpoch = 0, compileSignature = '' }: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
@@ -57,6 +58,7 @@
 
 	$effect(() => {
 		void refreshEpoch;
+		void compileSignature;
 		void densityOutputName;
 		void placementOutputName;
 		void altitudeMeters;

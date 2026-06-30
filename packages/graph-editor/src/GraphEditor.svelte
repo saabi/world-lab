@@ -30,6 +30,7 @@
 	import { inferPreviewBackend, isPreviewModeCompatible, type PreviewBackend } from './previewBackend.js';
 	import { getGraphSample, GRAPH_SAMPLES } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
+	import { computeGraphCompileSignature } from './graphCompileSignature.js';
 	import type { MarkupParseError } from './markup/parseGraphMarkup.js';
 	import {
 		copyNodeToClipboard,
@@ -98,6 +99,15 @@
 	);
 
 	const previewOutput = $derived(primaryPreviewOutput(graph));
+	const compileSignature = $derived(computeGraphCompileSignature(graph));
+
+	$effect(() => {
+		void compileSignature;
+		const timer = setTimeout(() => {
+			previewRefreshEpoch++;
+		}, 150);
+		return () => clearTimeout(timer);
+	});
 
 	function syncPreviewModeForGraph(doc: GraphDocument, force = false) {
 		const inferred = inferPreviewBackend(doc);
@@ -145,8 +155,15 @@
 		scheduleChromeSave();
 	}
 
+	let lastCodeViewSyncNodeId = $state<string | null>(null);
+
 	$effect(() => {
-		if (!selectedNodeId) return;
+		if (!selectedNodeId) {
+			lastCodeViewSyncNodeId = null;
+			return;
+		}
+		if (selectedNodeId === lastCodeViewSyncNodeId) return;
+		lastCodeViewSyncNodeId = selectedNodeId;
 		const node = graph.nodes.find((candidate) => candidate.id === selectedNodeId);
 		if (node) {
 			selectedPrimitiveModuleId = node.primitive;
@@ -446,15 +463,30 @@
 			</button>
 		</div>
 		{#if previewMode === 'cpu'}
-			<CpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
+			<CpuPreviewPanel
+				{graph}
+				output={previewOutput}
+				refreshEpoch={previewRefreshEpoch}
+				{compileSignature}
+			/>
 		{:else if previewMode === 'gpu'}
-			<GpuPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
+			<GpuPreviewPanel
+				{graph}
+				output={previewOutput}
+				refreshEpoch={previewRefreshEpoch}
+				{compileSignature}
+			/>
 		{:else if previewMode === 'mesh'}
-			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} />
+			<MeshPreviewPanel refreshEpoch={previewRefreshEpoch} {compileSignature} />
 		{:else if previewMode === 'effect'}
-			<EffectPreviewPanel {graph} output={previewOutput} refreshEpoch={previewRefreshEpoch} />
+			<EffectPreviewPanel
+				{graph}
+				output={previewOutput}
+				refreshEpoch={previewRefreshEpoch}
+				{compileSignature}
+			/>
 		{:else}
-			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} />
+			<VegetationPreviewPanel {graph} refreshEpoch={previewRefreshEpoch} {compileSignature} />
 		{/if}
 	</div>
 {/snippet}
@@ -495,6 +527,7 @@
 	<CodeView
 		{graph}
 		bind:moduleId={selectedPrimitiveModuleId}
+		{compileSignature}
 		registerActions={(actions) => {
 			codeViewActions = actions;
 		}}
@@ -506,7 +539,7 @@
 {/snippet}
 
 {#snippet compiled()}
-	<CompiledWgslPanel {graph} />
+	<CompiledWgslPanel {graph} {compileSignature} />
 {/snippet}
 
 <svelte:window onkeydown={onWindowKeydown} />

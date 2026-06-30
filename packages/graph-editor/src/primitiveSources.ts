@@ -12,6 +12,16 @@ import {
 
 const STUB_MARKER = 'return 0.0;';
 
+/** Honest notice for pipeline nodes with no standalone WGSL module. */
+export const STRUCTURAL_NODE_NOTICE = '(no WGSL — structural node)';
+
+const STRUCTURAL_PIPELINE_ROLES = new Set([
+	'pipelineGeometrySource',
+	'pipelineBuffer',
+	'pipelineStage',
+	'pipelineTarget'
+]);
+
 const sourceOverrides = new Map<string, string>();
 
 function ensureReady(): void {
@@ -68,6 +78,19 @@ function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string
 	return `/*---\n${lines.join('\n')}\n---*/\n${wgslBody.trim()}\n`;
 }
 
+function isStructuralPipelinePrimitive(primitive: NodePrimitive): boolean {
+	const role = primitive.metadata?.role;
+	return role !== undefined && STRUCTURAL_PIPELINE_ROLES.has(role);
+}
+
+function isFabricatedPipelineStub(source: string): boolean {
+	return /fn\s+\w+\([^)]*\)\s*\{\s*\}/.test(source);
+}
+
+function formatStructuralNodeNotice(primitive: NodePrimitive): string {
+	return `/*---\nid: ${primitive.id}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\nrole: ${primitive.metadata?.role ?? 'structural'}\n---*/\n// ${STRUCTURAL_NODE_NOTICE}\n`;
+}
+
 function resolveBuiltinWgslBody(moduleId: string): string | null {
 	const mod = STANDARD_LIBRARY_MODULES[moduleId];
 	return mod?.source ?? null;
@@ -100,7 +123,14 @@ export function getDefaultPrimitiveSource(moduleId: string): string {
 
 	const wgslBody = resolveBuiltinWgslBody(primitive.wgsl.moduleId);
 	if (wgslBody === null) {
+		if (isStructuralPipelinePrimitive(primitive)) {
+			return formatStructuralNodeNotice(primitive);
+		}
 		return `/*---\nid: ${moduleId}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\n---*/\n// No WGSL source available for this module.\n`;
+	}
+
+	if (isStructuralPipelinePrimitive(primitive) && isFabricatedPipelineStub(wgslBody)) {
+		return formatStructuralNodeNotice(primitive);
 	}
 
 	if (hasYamlFrontmatter(wgslBody)) {
@@ -154,6 +184,12 @@ export function cloneBuiltinPrimitive(builtinId: string, userId?: string): strin
 	registerUserPrimitiveFromSource(targetId, source, previous?.evalCPU);
 	sourceOverrides.set(targetId, source);
 	return targetId;
+}
+
+export function isFabricatedReturnZeroStub(source: string, entryName: string): boolean {
+	return new RegExp(`fn\\s+${entryName}\\s*\\([^)]*\\)\\s*\\{\\s*return\\s+0\\.0;\\s*\\}`).test(
+		source
+	);
 }
 
 /** Reset in-memory source overrides — for tests. */

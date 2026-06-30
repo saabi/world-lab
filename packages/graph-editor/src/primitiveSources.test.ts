@@ -7,7 +7,9 @@ import {
 	getPrimitiveSource,
 	isBuiltinPrimitive,
 	isEditablePrimitive,
+	isFabricatedReturnZeroStub,
 	resetPrimitiveSources,
+	STRUCTURAL_NODE_NOTICE,
 	STUB_MARKER
 } from './primitiveSources.js';
 import { resetUserPrimitives } from './userPrimitives.js';
@@ -25,6 +27,28 @@ describe('@virtual-planet/graph-editor primitiveSources', () => {
 		expect(source).toContain('divide(');
 		expect(source).toContain('// @use math.subtract');
 		expect(source).not.toContain(STUB_MARKER);
+	});
+
+	it('shows real sdf.opSubtract group WGSL with declared deps', () => {
+		const source = getDefaultPrimitiveSource('sdf.opSubtract');
+		expect(source).toContain('fn opSubtract(');
+		expect(source).toContain('// @use');
+		expect(source).not.toContain(STUB_MARKER);
+	});
+
+	it('shows structural notice for pipeline stage nodes instead of empty stubs', () => {
+		const source = getDefaultPrimitiveSource('stage.fragment');
+		expect(source).toContain(STRUCTURAL_NODE_NOTICE);
+		expect(source).not.toMatch(/fn\s+fragmentStage\([^)]*\)\s*\{\s*\}/);
+		expect(source).not.toContain(STUB_MARKER);
+	});
+
+	it('never returns fabricated return 0.0 entry stubs for registered primitives', () => {
+		for (const primitive of listPrimitives()) {
+			if (!primitive.wgsl?.moduleId) continue;
+			const source = getDefaultPrimitiveSource(primitive.id);
+			expect(isFabricatedReturnZeroStub(source, primitive.wgsl.entry)).toBe(false);
+		}
 	});
 
 	it('marks standard-library primitives as built-in and non-editable', () => {

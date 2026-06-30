@@ -21,6 +21,7 @@
 	interface Props {
 		graph: GraphDocument;
 		moduleId?: string | null;
+		compileSignature?: string;
 		onchange?: (next: GraphDocument) => void;
 		onsave?: (result: PrimitiveSaveResult) => void;
 		onerror?: (message: string) => void;
@@ -30,6 +31,7 @@
 	let {
 		graph,
 		moduleId = $bindable<string | null>('noise.perlin3d'),
+		compileSignature = '',
 		onchange,
 		onsave,
 		onerror,
@@ -45,9 +47,13 @@
 	let draft = $state('');
 	let dirty = $state(false);
 	let status = $state<string | null>(null);
+	let loadedSourceKey = $state('');
 
 	$effect(() => {
 		if (!moduleId) return;
+		const key = `${moduleId}\x00${compileSignature}`;
+		if (dirty && key === loadedSourceKey) return;
+		loadedSourceKey = key;
 		draft = getPrimitiveSource(moduleId);
 		dirty = false;
 		status = null;
@@ -81,6 +87,7 @@
 		draft = getPrimitiveSource(moduleId);
 		dirty = false;
 		status = null;
+		loadedSourceKey = `${moduleId}\x00${compileSignature}`;
 	}
 
 	function cloneSelected() {
@@ -113,6 +120,9 @@
 			onchange={(event) => {
 				moduleId = (event.currentTarget as HTMLSelectElement).value || null;
 			}}
+			oninput={(event) => {
+				moduleId = (event.currentTarget as HTMLSelectElement).value || null;
+			}}
 		>
 			{#each editablePrimitives as primitive (primitive.id)}
 				<option value={primitive.id}>{primitive.id}</option>
@@ -129,7 +139,7 @@
 			<span class="status">{status}</span>
 		{/if}
 	</div>
-	{#key `${moduleId ?? 'none'}-${readOnly}`}
+	{#key `${moduleId ?? 'none'}-${readOnly}-${loadedSourceKey}`}
 		<CodeMirrorEditor
 			class="editor"
 			language="primitive-source"

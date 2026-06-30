@@ -8,9 +8,10 @@
 	interface Props {
 		size?: number;
 		refreshEpoch?: number;
+		compileSignature?: string;
 	}
 
-	let { size = 256, refreshEpoch = 0 }: Props = $props();
+	let { size = 256, refreshEpoch = 0, compileSignature = '' }: Props = $props();
 
 	let surfaceId = $state<SurfacePrimitiveId>('surface.cubeSphere');
 
@@ -22,6 +23,7 @@
 
 	$effect(() => {
 		void refreshEpoch;
+		void compileSignature;
 		void surfaceId;
 		if (!canvas) return;
 
