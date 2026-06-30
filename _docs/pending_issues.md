@@ -16,6 +16,7 @@
 - **node groups UX** not built: "Save as group", zone framing, and collapse-to-node. The group *system* (`groupToFunction`/`buildGroupModule`) exists; the editor authoring/collapse UI does not. See `node-model-design-notes.md` §E.
 - **params-as-inputs not wireable in the editor**: promotable params (e.g. remap bounds) should appear as input ports and the form should show connected-vs-literal. Graph-core helpers exist (`paramInputPorts`/`resolveParamBindings`); the editor + codegen integration is pending (see Engine below). Brief: `M-params-as-inputs.md`.
 - **S0 pipeline render unconfirmed (visual)**: the pipeline nodes (`geometry.fullscreenPlane`→`buffer.persist`→`stage.vertex`/`fragment`→`target.display`) and the `pipelineGraph` runner landed headless-green, but "does the canvas show the pipeline and render the palette" needs a human eyeball. Brief: `M-pipeline-nodes-s0.md`.
+- Functions representing group nodes must be decomposable into its components and editable upon request. Built-in group functions such as remap must be inspectable as graphs (ideally a la touchdesigner by zooming in or similar gesture) and outomatically cloned and replaced if modified.
 
 ## Engine — compiler / runtime (not built)
 

@@ -7,7 +7,9 @@ Protocol: claim the first UNCLAIMED task by editing its `Claimed by:` line; stay
 your `Owns:` files; the brief is the contract. **Gate = `check` AND `test`** for every
 package you touch (vitest alone is not enough — `tsc`/svelte-check must pass too), keep all
 prior tests green, and for WGSL output do a validity check. Commit your task as its own
-stage commit; set `Status: DONE <hash>`. ⚠ visual tasks: paste a screenshot of the
+stage commit (**`git add -A` your scope incl. new test files — `git status` must show nothing
+untracked in your scope before `DONE`; the orchestrator commits briefs/board/README/pending_issues**);
+set `Status: DONE <hash>`. ⚠ visual tasks: paste a screenshot of the
 confirmed behaviour. PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`.
 Tabs; verbatimModuleSyntax. See `_docs/architecture/procedural-graph/execution-and-delegation.md` §Gate hardening.
 
@@ -29,7 +31,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
   literal) and apply to vector components (x,y,z=0, w=1). One owner, two parts (shares
   `emitGraphEval.ts`+`types.ts`). Owns graph/compiler/runtime-cpu/runtime-webgpu vector+type
   files — **disjoint from node-swap**, parallel-safe.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-datatype-canonical-and-port-defaults.md`  ·  Claimed by: UNCLAIMED
+  Brief: `_docs/architecture/procedural-graph/briefs/M-datatype-canonical-and-port-defaults.md`  ·  Claimed by: Cursor
 
 ## Later — do NOT start now
 

@@ -73,7 +73,22 @@ runs what.
 | [M-real-geometry-vertex-codegen.md](./M-real-geometry-vertex-codegen.md) | **🔴 gap-fix:** pipeline nodes emit **real** geometry/vertex WGSL (plane grid + `@vertex`); runner uses it, not the hardcoded fullscreen triangle | 📌 contract ready · high priority | browser-capable agent |
 | [M-compiled-wgsl-view.md](./M-compiled-wgsl-view.md) | **Tier 1:** final compiled-WGSL view — watch the whole graph's shader output | 📌 contract ready | Cursor |
 | [M-graph-validation-flagging.md](./M-graph-validation-flagging.md) | **Tier 1:** flag incomplete/invalid graphs (unconnected inputs, no consumer, unresolved) | 📌 contract ready | Cursor |
-| [M-editor-recompile-and-node-source.md](./M-editor-recompile-and-node-source.md) | **Tier 1:** reliable recompile on edit + real source for groups/pipeline nodes | 📌 contract ready | Cursor |
+| [M-editor-recompile-and-node-source.md](./M-editor-recompile-and-node-source.md) | **Tier 1:** reliable recompile on edit + real source for groups/pipeline nodes | ✅ landed (`a8d758f`) | Cursor (done) |
+| [M-real-geometry-vertex-codegen.md](./M-real-geometry-vertex-codegen.md) | **🔴 gap-fix:** real geometry + vertex codegen (replaced pipeline stubs; no-stub guard) | ✅ landed (`07f0ba5`) | Cursor (done) |
+| [M-pipeline-output-reconciliation.md](./M-pipeline-output-reconciliation.md) | **gap-fix:** `target.display` is the pipeline terminal — validator roots reachability at pipeline sinks; editor drops stale output refs | 📌 contract ready · next | Cursor |
+| [M-pipeline-output-reconciliation.md](./M-pipeline-output-reconciliation.md) | output reconciliation landed | ✅ landed (`3a2b6bd`) | Composer (done) |
+| [M-pipeline-consumer-derivation.md](./M-pipeline-consumer-derivation.md) | **gap-fix:** derive implicit image consumer from `stage.fragment → target.display` so a pipeline graph compiles + previews (compile/preview dual of reconciliation) | 📌 contract ready · next · blocks preview-buffer-list | Cursor |
+| [M-pipeline-consumer-derivation.md](./M-pipeline-consumer-derivation.md) | consumer derivation landed | ✅ landed (`bbf649f`) | Cursor (done) |
+| [M-preview-buffer-list.md](./M-preview-buffer-list.md) | Format-adaptive preview — list output buffers by family; buffer selector replaces backend tabs | ✅ landed (`c65912c`) — but visual render gate unmet (see fix) | Cursor (done) |
+| [M-preview-effective-doc-fix.md](./M-preview-effective-doc-fix.md) | **🔴 fix:** preview panels must assemble against `effectiveGraphDocument(doc)`, not the raw doc — closes the buffer-list render gate | 📌 contract ready · next | Cursor |
+| [M-node-palette-organization.md](./M-node-palette-organization.md) | Node palette: top search bar + group by section/contract/both with collapsible groups | ✅ landed (`8e358e1`) | Cursor (done) |
+| [M-palette-collapsed-default.md](./M-palette-collapsed-default.md) | Palette touch-up: all sections collapsed by default | ✅ landed (`f1de8b1`) | Cursor (done) |
+| [M-preview-effective-doc-fix.md](./M-preview-effective-doc-fix.md) | Preview panels assemble against `effectiveGraphDocument` (closed buffer-list render gate) | ✅ landed (`e1cd183`) | Cursor (done) |
+| [M-fullscreen-fragment-params-binding.md](./M-fullscreen-fragment-params-binding.md) | **🔴 fix:** image consumer declares/packs/binds the `GraphParams` uniform | ✅ landed | Cursor (done) |
+| [M-image-preview-opaque-alpha.md](./M-image-preview-opaque-alpha.md) | **fix:** image preview presents opaque RGB (ShaderToy ignores `fragColor.a`) — blank preview was fragment alpha=0 erasing it at `putImageData` | 📌 contract ready | Cursor |
+| [M-node-swap-by-contract.md](./M-node-swap-by-contract.md) | Node-swap UX: click node title → searchable menu filtered by `listSwapFamily` → `replaceNodePrimitive` in place (preserve edges/params) | 🔄 active (Cursor) | Cursor |
+| [M-datatype-canonical-and-port-defaults.md](./M-datatype-canonical-and-port-defaults.md) | **fix+feature:** one `canonicalDataType` (vec2f ≡ vec2<f32>) enforced at every boundary; optional input-port `default` (unconnected → literal) applied to vector components | 📌 contract ready · next | Cursor |
+| [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Infra: make `npm test` compile WGSL on a software adapter + consumer-coverage device test (catches the "string-valid but GPU-rejected" class) | 📌 contract ready · Later (infra) | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
