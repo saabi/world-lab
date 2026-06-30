@@ -27,7 +27,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
   with a list of the graph's output buffers, each tagged by family (geometry/image/data/
   audio), routed to the matching existing panel, with a manual format picker when the family
   can't be inferred. **After** output reconciliation (needs `outputSinkNodeIds`).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-buffer-list.md`  ·  Claimed by: UNCLAIMED  ·  blocked-by: pipeline-output-reconciliation
+  Brief: `_docs/architecture/procedural-graph/briefs/M-preview-buffer-list.md`  ·  Claimed by: UNCLAIMED
 
 ## Later — do NOT start now
 
