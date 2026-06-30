@@ -44,7 +44,7 @@ These three touch **different graph-editor files** → safe in parallel (coordin
   in `GraphEditor.svelte` + `*PreviewPanel.svelte`, CodeView source resolution.
 - **⚠ visual gate** — edit code/param/wire → preview AND compiled-WGSL view update; group +
   pipeline nodes show real source (no stubs).
-- **Status:** UNCLAIMED
+- **Status:** DONE a8d758f
 
 ---
 
