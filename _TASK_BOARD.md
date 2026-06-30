@@ -23,13 +23,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Node swap by contract (title-click replace UX)** — clicking a node's title opens a
-  searchable menu (reuse palette `filterPrimitives`) pre-filtered to `listSwapFamily(primitive)`;
-  selecting replaces the node in place, preserving id/position, compatible edges, and params.
-  New `replaceNodePrimitive` edit intent in `irAdapter`. Owns `GraphNodeView.svelte`,
-  `irAdapter.ts`, new `NodeSwapMenu.svelte` — **disjoint from the alpha fix**, parallel-safe.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-node-swap-by-contract.md`  ·  Claimed by: Cursor
-
 - **Canonical data types + input-port defaults** — `vec2f` ≡ `vec2<f32>` desync breaks
   connections (`mulScalarVec2f`); add one `canonicalDataType` enforced at every boundary +
   consolidate the dup `wgslTypeFor`. Also add optional `default` to input ports (unconnected →
@@ -71,3 +64,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Preview effective doc fix** — preview panels and compile path use `effectiveGraphDocument` — `e1cd183`
 - **Palette collapsed by default** — opt-in `expandedByMode` per grouping mode; search still auto-expands — `f1de8b1`
 - **Fullscreen-fragment params binding** — declare and bind `GraphParams` in image consumer — `aa309e9`
+- **Node swap by contract** — title-click searchable swap menu + `replace-node-primitive` edit intent — `cf23086`
