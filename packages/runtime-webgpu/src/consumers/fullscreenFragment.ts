@@ -101,13 +101,9 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 	return match.name;
 }
 
-function graphUsesShaderToyHost(graph: GraphDocument): boolean {
-	return graph.nodes.some(
-		(node) =>
-			node.primitive === 'host.fragCoord' ||
-			node.primitive === 'host.iResolution' ||
-			node.primitive === 'host.iTime'
-	);
+/** True when emitted WGSL reads ShaderToy host uniforms (not merely when host nodes exist on the canvas). */
+export function wgslReferencesShaderToyUniform(wgsl: string): boolean {
+	return /\bu\.(?:iResolution|iTime|iFrame|iMouse)\b/.test(wgsl);
 }
 
 function buildGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
@@ -140,7 +136,7 @@ export async function assembleFullscreenFragmentModuleAsync(
 	const emitted = emitGraphVec4Eval(graph, output, { shaderToy: true });
 	const evalFn = buildGraphEvalFn(outputName, emitted.body, emitted.resultExpr);
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
-	const usesShaderToyHost = graphUsesShaderToyHost(graph);
+	const usesShaderToyHost = wgslReferencesShaderToyUniform(libraryWithEval);
 	const paramsBinding = usesShaderToyHost ? 1 : 0;
 
 	const bindings = usesShaderToyHost
