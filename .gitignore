@@ -21,3 +21,9 @@ npm-debug.log*
 
 # Windows "downloaded file" / NTFS ADS markers (WSL)
 *Zone.Identifier
+
+# Local verification artifacts (visual gates paste into the board/PR, not the repo)
+screenshots/
+
+# TS incremental build cache
+**/tsconfig.tsbuildinfo

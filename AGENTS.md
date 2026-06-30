@@ -68,6 +68,23 @@ Work proceeds in **integration waves** (see `.cursor/plans/planet_renderer_roadm
 5. **Svelte 5 events** — use `onclick`, `onpointerdown`, etc. Never `on:click` / `on:pointerdown` (legacy); mixing syntaxes is a compile error.
 6. **Template typings** — `src/app.d.ts` augments `svelteHTML.HTMLAttributes` from `svelte/elements` so IDE analysis accepts Svelte 5 event attributes on native elements.
 
+## Committing & untracked artifacts
+
+Default ownership for committing — so nothing is left untracked:
+
+- **Implementing agents** commit **everything in their `Owns:` scope**, including **new files**
+  (tests, modules, fixtures) — not just modified ones. Before setting a task `DONE`, run
+  `git status` and confirm **no untracked or unstaged file inside your scope** remains; stage
+  with `git add -A <your paths>`. A landed task whose new test is left untracked is **not done**.
+- **The orchestrator/architect** commits the **coordination & governance docs** it authors —
+  the briefs under `_docs/architecture/procedural-graph/briefs/`, `_TASK_BOARD.md`,
+  `briefs/README.md`, `_docs/pending_issues.md`, and design-doc edits — **at the time it writes
+  or routes them** (agents stay in their code scope and must not touch these). Don't leave
+  briefs uncommitted waiting on an agent.
+- **Local verification artifacts** (the `screenshots/` from visual gates, build caches,
+  `tsconfig.tsbuildinfo`) are **gitignored**, never committed; paste visual-gate screenshots
+  into the board/PR, not the repo.
+
 ## Key documentation
 
 - [_docs/svelte-component-organization.md](_docs/svelte-component-organization.md) — Two-script-block component structure, section ordering, and migration procedure.
