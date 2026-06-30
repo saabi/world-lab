@@ -1,6 +1,5 @@
 import {
 	getPrimitive,
-	validateGraph,
 	compatibleDataTypes,
 	type CoordinateSpace,
 	type DataType,
@@ -12,6 +11,7 @@ import {
 	type ValidationIssue,
 	type ValidationResult
 } from '@virtual-planet/graph';
+import { Value, type TSchema } from '@virtual-planet/schema';
 
 export interface FlowNodeData {
 	nodeId: string;
@@ -36,7 +36,8 @@ export type GraphEditIntent =
 	| { kind: 'add-edge'; from: PortRef; to: PortRef }
 	| { kind: 'remove-edge'; edgeId: string }
 	| { kind: 'move-node'; nodeId: string; position: { x: number; y: number } }
-	| { kind: 'set-params'; nodeId: string; params: Record<string, unknown> };
+	| { kind: 'set-params'; nodeId: string; params: Record<string, unknown> }
+	| { kind: 'replace-node-primitive'; nodeId: string; primitiveId: string };
 
 let nodeCounter = 0;
 let edgeCounter = 0;
@@ -63,6 +64,61 @@ function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): 
 		dataType: spec.dataType,
 		...(spec.space !== undefined ? { space: spec.space } : {})
 	}));
+}
+
+function paramKeys(schema: TSchema): string[] {
+	const properties = (schema as { properties?: Record<string, unknown> }).properties;
+	return properties ? Object.keys(properties) : [];
+}
+
+function replaceNodePrimitive(node: Node, primitiveId: string): Node {
+	const primitive = getPrimitive(primitiveId);
+	if (!primitive) {
+		throw new Error(`Unknown primitive: ${primitiveId}`);
+	}
+
+	const defaults = Value.Create(primitive.params) as Record<string, unknown>;
+	const merged: Record<string, unknown> = { ...defaults };
+	if (node.params) {
+		for (const key of paramKeys(primitive.params)) {
+			if (key in node.params) {
+				merged[key] = node.params[key];
+			}
+		}
+	}
+	const keys = paramKeys(primitive.params);
+	const { params: _previousParams, ...rest } = node;
+
+	return {
+		...rest,
+		primitive: primitiveId,
+		inputs: instantiatePorts(primitive.inputs, 'in'),
+		outputs: instantiatePorts(primitive.outputs, 'out'),
+		...(keys.length > 0 ? { params: merged } : {})
+	};
+}
+
+function pruneOutputsAndConsumers(
+	doc: GraphDocument,
+	nodeId: string,
+	validOutputPorts: ReadonlySet<string>
+): Pick<GraphDocument, 'outputs' | 'consumers'> {
+	const removedOutputNames = doc.outputs
+		.filter((output) => output.from.node === nodeId && !validOutputPorts.has(output.from.port))
+		.map((output) => output.name);
+	const outputs = doc.outputs.filter(
+		(output) => output.from.node !== nodeId || validOutputPorts.has(output.from.port)
+	);
+	const consumers =
+		removedOutputNames.length === 0
+			? doc.consumers
+			: doc.consumers
+					.map((consumer) => ({
+						...consumer,
+						outputs: consumer.outputs.filter((name) => !removedOutputNames.includes(name))
+					}))
+					.filter((consumer) => consumer.outputs.length > 0);
+	return { outputs, consumers };
 }
 
 function createNode(primitiveId: string, position: { x: number; y: number }): Node {
@@ -258,6 +314,20 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 					node.id === intent.nodeId ? { ...node, params: { ...intent.params } } : node
 				)
 			};
+		}
+		case 'replace-node-primitive': {
+			const existing = doc.nodes.find((node) => node.id === intent.nodeId);
+			if (!existing) {
+				throw new Error(`Unknown node: ${intent.nodeId}`);
+			}
+			const position = existing.position ?? { x: 0, y: 0 };
+			const replaced = replaceNodePrimitive({ ...existing, position }, intent.primitiveId);
+			const nodes = doc.nodes.map((node) => (node.id === intent.nodeId ? replaced : node));
+			const nextDoc: GraphDocument = { ...doc, nodes };
+			const edges = doc.edges.filter((edge) => validateConnection(nextDoc, edge.from, edge.to).ok);
+			const validOutputPorts = new Set(replaced.outputs.map((port) => port.id));
+			const { outputs, consumers } = pruneOutputsAndConsumers(nextDoc, intent.nodeId, validOutputPorts);
+			return { ...nextDoc, edges, outputs, consumers };
 		}
 		default: {
 			const _exhaustive: never = intent;

@@ -4,9 +4,46 @@
 </script>
 
 <script lang="ts">
-	let { data, selected }: NodeProps = $props();
+	import NodeSwapMenu from './NodeSwapMenu.svelte';
+	import { getGraphCanvasContext } from './graphCanvasContext.js';
+
+	let { id, data, selected }: NodeProps = $props();
 
 	const nodeData = $derived(data as FlowNodeData);
+	const canvasContext = getGraphCanvasContext();
+
+	let menuOpen = $state(false);
+	let titlePointerDown: { x: number; y: number } | null = $state(null);
+
+	function onTitlePointerDown(event: PointerEvent) {
+		titlePointerDown = { x: event.clientX, y: event.clientY };
+	}
+
+	function onTitlePointerUp(event: PointerEvent) {
+		if (!titlePointerDown) return;
+		const dx = event.clientX - titlePointerDown.x;
+		const dy = event.clientY - titlePointerDown.y;
+		titlePointerDown = null;
+		if (dx * dx + dy * dy > 9) return;
+		event.stopPropagation();
+		menuOpen = !menuOpen;
+	}
+
+	function onTitleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			event.stopPropagation();
+			menuOpen = !menuOpen;
+		}
+	}
+
+	function closeMenu() {
+		menuOpen = false;
+	}
+
+	function replacePrimitive(primitiveId: string) {
+		canvasContext.onReplacePrimitive(id, primitiveId);
+	}
 </script>
 
 <div
@@ -15,7 +52,28 @@
 	class:issue-error={nodeData.nodeIssue === 'error'}
 	class:issue-warning={nodeData.nodeIssue === 'warning'}
 >
-	<div class="label">{nodeData.label}</div>
+	<div class="label-wrap">
+		<button
+			class="label nodrag nopan"
+			type="button"
+			title="Change operation"
+			aria-expanded={menuOpen}
+			aria-haspopup="dialog"
+			onpointerdown={onTitlePointerDown}
+			onpointerup={onTitlePointerUp}
+			onkeydown={onTitleKeydown}
+		>
+			<span class="label-text">{nodeData.label}</span>
+			<span class="caret" aria-hidden="true">▾</span>
+		</button>
+		{#if menuOpen}
+			<NodeSwapMenu
+				currentPrimitiveId={nodeData.primitiveId}
+				onselect={replacePrimitive}
+				onclose={closeMenu}
+			/>
+		{/if}
+	</div>
 	<div class="ports">
 		<div class="inputs">
 			{#each nodeData.inputs as input (input.id)}
@@ -54,6 +112,7 @@
 
 <style>
 	.graph-node {
+		position: relative;
 		min-width: 160px;
 		padding: 8px;
 		border: 1px solid rgba(255, 255, 255, 0.18);
@@ -86,9 +145,34 @@
 		color: #f7dc6f;
 	}
 
-	.label {
-		font-weight: 600;
+	.label-wrap {
+		position: relative;
 		margin-bottom: 6px;
+	}
+
+	.label {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		width: 100%;
+		padding: 0;
+		border: none;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.label:hover .label-text {
+		text-decoration: underline;
+		text-decoration-color: rgba(255, 255, 255, 0.35);
+	}
+
+	.caret {
+		font-size: 9px;
+		opacity: 0.55;
 	}
 
 	.ports {

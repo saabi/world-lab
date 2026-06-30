@@ -231,4 +231,140 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 			false
 		);
 	});
+
+	it('replaceNodePrimitive keeps id and position', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'noise.value2d',
+			position: { x: 12, y: 34 }
+		});
+		const nodeId = doc.nodes[0]!.id;
+
+		doc = applyEditIntent(doc, {
+			kind: 'replace-node-primitive',
+			nodeId,
+			primitiveId: 'noise.worley2d'
+		});
+
+		expect(doc.nodes).toHaveLength(1);
+		expect(doc.nodes[0]?.id).toBe(nodeId);
+		expect(doc.nodes[0]?.position).toEqual({ x: 12, y: 34 });
+		expect(doc.nodes[0]?.primitive).toBe('noise.worley2d');
+	});
+
+	it('replaceNodePrimitive preserves edges within an identical contract', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'procedural.uv',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'noise.value2d',
+			position: { x: 120, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'math.remap',
+			position: { x: 240, y: 0 }
+		});
+
+		const uvNode = doc.nodes.find((node) => node.primitive === 'procedural.uv')!;
+		const noiseNode = doc.nodes.find((node) => node.primitive === 'noise.value2d')!;
+		const remapNode = doc.nodes.find((node) => node.primitive === 'math.remap')!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: uvNode.id, port: 'uv' },
+			to: { node: noiseNode.id, port: 'position' }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: noiseNode.id, port: 'value' },
+			to: { node: remapNode.id, port: 'x' }
+		});
+		expect(doc.edges).toHaveLength(2);
+
+		doc = applyEditIntent(doc, {
+			kind: 'replace-node-primitive',
+			nodeId: noiseNode.id,
+			primitiveId: 'noise.worley2d'
+		});
+
+		expect(doc.nodes.find((node) => node.id === noiseNode.id)?.primitive).toBe('noise.worley2d');
+		expect(doc.edges).toHaveLength(2);
+		expect(doc.edges.some((edge) => edge.to.node === noiseNode.id && edge.to.port === 'position')).toBe(
+			true
+		);
+		expect(
+			doc.edges.some((edge) => edge.from.node === noiseNode.id && edge.from.port === 'value')
+		).toBe(true);
+	});
+
+	it('replaceNodePrimitive drops edges to ports that no longer exist', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'procedural.uv',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'noise.perlin2dDeriv',
+			position: { x: 120, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'vector.vec3f.x',
+			position: { x: 240, y: 0 }
+		});
+
+		const uvNode = doc.nodes.find((node) => node.primitive === 'procedural.uv')!;
+		const derivNode = doc.nodes.find((node) => node.primitive === 'noise.perlin2dDeriv')!;
+		const splitNode = doc.nodes.find((node) => node.primitive === 'vector.vec3f.x')!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: uvNode.id, port: 'uv' },
+			to: { node: derivNode.id, port: 'position' }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: derivNode.id, port: 'sample' },
+			to: { node: splitNode.id, port: 'value' }
+		});
+		expect(doc.edges).toHaveLength(2);
+
+		doc = applyEditIntent(doc, {
+			kind: 'replace-node-primitive',
+			nodeId: derivNode.id,
+			primitiveId: 'noise.value2d'
+		});
+
+		expect(doc.edges).toHaveLength(1);
+		expect(doc.edges[0]?.to.node).toBe(derivNode.id);
+		expect(doc.edges[0]?.to.port).toBe('position');
+	});
+
+	it('replaceNodePrimitive drops params absent on the new schema', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'noise.voronoi2d',
+			position: { x: 0, y: 0 }
+		});
+		const nodeId = doc.nodes.find((node) => node.primitive === 'noise.voronoi2d')!.id;
+		doc = applyEditIntent(doc, {
+			kind: 'set-params',
+			nodeId,
+			params: { smoothness: 2.5 }
+		});
+		expect(doc.nodes[0]?.params?.smoothness).toBe(2.5);
+
+		doc = applyEditIntent(doc, {
+			kind: 'replace-node-primitive',
+			nodeId,
+			primitiveId: 'noise.worley2d'
+		});
+
+		expect(doc.nodes[0]?.params).toBeUndefined();
+	});
 });

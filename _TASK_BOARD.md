@@ -23,9 +23,33 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-_(none — add new briefs below.)_
+- **Node swap by contract (title-click replace UX)** — clicking a node's title opens a
+  searchable menu (reuse palette `filterPrimitives`) pre-filtered to `listSwapFamily(primitive)`;
+  selecting replaces the node in place, preserving id/position, compatible edges, and params.
+  New `replaceNodePrimitive` edit intent in `irAdapter`. Owns `GraphNodeView.svelte`,
+  `irAdapter.ts`, new `NodeSwapMenu.svelte` — **disjoint from the alpha fix**, parallel-safe.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-node-swap-by-contract.md`  ·  Claimed by: Cursor
+
+- **Canonical data types + input-port defaults** — `vec2f` ≡ `vec2<f32>` desync breaks
+  connections (`mulScalarVec2f`); add one `canonicalDataType` enforced at every boundary +
+  consolidate the dup `wgslTypeFor`. Also add optional `default` to input ports (unconnected →
+  literal) and apply to vector components (x,y,z=0, w=1). One owner, two parts (shares
+  `emitGraphEval.ts`+`types.ts`). Owns graph/compiler/runtime-cpu/runtime-webgpu vector+type
+  files — **disjoint from node-swap**, parallel-safe.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-datatype-canonical-and-port-defaults.md`  ·  Claimed by: UNCLAIMED
 
 ## Later — do NOT start now
+
+- **Image preview presents opaque RGB** — a valid pipeline renders blank because the fragment
+  alpha (`constant.f32 → vec4f.w`, default 0) makes `putImageData` paint fully transparent.
+  ShaderToy ignores `fragColor.a` for display; force alpha to 255 on present (in the readback
+  or the panel). Owns `EffectPreviewPanel.svelte` (± the fullscreen readback).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-image-preview-opaque-alpha.md`  ·  Claimed by: UNCLAIMED
+
+- **Device-compile test hardening** (infra) — make `npm test` actually compile WGSL against a
+  software WebGPU adapter (currently all device tests `skipIf(!hasWebGPU)` and silently skip);
+  add a consumer-coverage device test that catches the "string-valid but GPU-rejected" class
+  (bit us 3×). Brief: `_docs/architecture/procedural-graph/briefs/M-device-compile-test-hardening.md`.
 
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU
 binds, mesh-gen consumer, node-swap/groups/tooltips UX) · Tier 3 (transforms, colorlab

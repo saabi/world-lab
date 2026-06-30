@@ -12,6 +12,7 @@
 	import type { GraphDocument } from '@virtual-planet/graph';
 	import GraphNodeView from './GraphNodeView.svelte';
 	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
+	import { setGraphCanvasContext } from './graphCanvasContext.js';
 	import {
 		applyEditIntent,
 		graphToFlow,
@@ -42,6 +43,14 @@
 	}: Props = $props();
 
 	const nodeTypes = { graphNode: GraphNodeView };
+
+	setGraphCanvasContext({
+		onReplacePrimitive(nodeId, primitiveId) {
+			onchange?.(
+				applyEditIntent(graph, { kind: 'replace-node-primitive', nodeId, primitiveId })
+			);
+		}
+	});
 
 	let nodes = $state.raw<Node<FlowNodeData>[]>([]);
 	let edges = $state.raw<Edge<FlowEdgeData>[]>([]);
