@@ -46,9 +46,32 @@ These three touch **different graph-editor files** → safe in parallel (coordin
   pipeline nodes show real source (no stubs).
 - **Status:** DONE a8d758f
 
+> **Tier 1 (T-A/T-B/T-C) all landed** — `63e2ea9`, `a146cdd`, `a8d758f`. Opus-reviewed
+> green (check + test). Visual gates pending the human eyeball.
+
 ---
 
-## After Tier 1 — do NOT start now
+## T-D — 🔴 Real geometry + vertex codegen (replace pipeline stubs)  ·  Claimed by: UNCLAIMED
+
+- **Brief:** `_docs/architecture/procedural-graph/briefs/M-real-geometry-vertex-codegen.md`
+- **Why:** the pipeline nodes (`geometry.plane`/`fullscreenPlane`/`stage.vertex`/…) have
+  **empty WGSL stubs** and the runner renders via a **hardcoded fullscreen triangle** — so
+  the compiled WGSL has empty functions and no tessellation/geometry code. Make it real.
+- **Owns:** `packages/procedural-wgsl/src/modules/pipeline/stubs.ts` (→ real `geometry.plane`
+  grid WGSL + `evalCPU`; `buffer.persist`/`target.display` become honest "structural" nodes,
+  not empty stubs), `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts` +
+  `pipelineGraph.ts` (build the vertex shader from `stage.vertex`+`geometry.plane`, drop the
+  hardcoded `FULLSCREEN_VERTEX_WGSL`), `assembleStageEntry` vertex template if needed.
+- **Gate (per the brief):** compiled WGSL contains real `plane_grid_position` math (not an
+  empty `fn planeGrid() {}`) + a `@vertex` entry calling it; `geometry.plane` `evalCPU`
+  parity at `resU/resV=2`; extend the no-stub guard so no registered node emits an empty
+  body. **check AND test**; WGSL validity. ⚠ **visual**: the ShaderToy sample still renders
+  (now node-driven) and the compiled-WGSL view shows real geometry/vertex code — screenshot.
+- **Status:** UNCLAIMED
+
+---
+
+## Later — do NOT start now
 
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU
 binds, mesh-gen consumer, node-swap/groups/tooltips UX) · Tier 3 (transforms, colorlab
