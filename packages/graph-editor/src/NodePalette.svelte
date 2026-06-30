@@ -1,5 +1,19 @@
 <script lang="ts">
-	import { listPrimitives } from '@virtual-planet/graph';
+	import { onMount } from 'svelte';
+	import Section from '@virtual-planet/editor-ui/Section.svelte';
+	import Subsection from '@virtual-planet/editor-ui/Subsection.svelte';
+	import { listPrimitives, type NodePrimitive } from '@virtual-planet/graph';
+
+	import {
+		filterPaletteGroups,
+		filterPrimitives,
+		groupPrimitives,
+		paletteGroupCount,
+		primitiveBadge,
+		type PaletteGroup,
+		type PaletteMode
+	} from './nodePaletteModel.js';
+	import { loadPaletteState, savePaletteState } from './nodePaletteStorage.js';
 
 	interface Props {
 		onadd?: (primitiveId: string) => void;
@@ -7,33 +21,248 @@
 
 	let { onadd }: Props = $props();
 
-	const primitives = $derived(listPrimitives());
+	const allPrimitives = $derived(listPrimitives());
+
+	let searchQuery = $state('');
+	let paletteMode = $state<PaletteMode>('section');
+	let collapsedGroups = $state<Set<string>>(new Set());
+
+	const filteredPrimitives = $derived(filterPrimitives(allPrimitives, searchQuery));
+	const visibleIds = $derived(new Set(filteredPrimitives.map((primitive) => primitive.id)));
+	const groupedPrimitives = $derived(
+		filterPaletteGroups(groupPrimitives(filteredPrimitives, paletteMode), visibleIds)
+	);
+	const searchActive = $derived(searchQuery.trim().length > 0);
+
+	onMount(() => {
+		const stored = loadPaletteState();
+		paletteMode = stored.mode;
+		collapsedGroups = new Set(stored.collapsedGroups);
+	});
+
+	function persistPaletteState() {
+		savePaletteState({
+			mode: paletteMode,
+			collapsedGroups: [...collapsedGroups]
+		});
+	}
+
+	function setPaletteMode(mode: PaletteMode) {
+		paletteMode = mode;
+		persistPaletteState();
+	}
+
+	function isGroupOpen(key: string): boolean {
+		if (searchActive) return true;
+		return !collapsedGroups.has(key);
+	}
+
+	function toggleGroup(key: string) {
+		const next = new Set(collapsedGroups);
+		if (next.has(key)) next.delete(key);
+		else next.add(key);
+		collapsedGroups = next;
+		persistPaletteState();
+	}
+
+	function subgroupDefaultOpen(key: string): boolean {
+		return searchActive || isGroupOpen(key);
+	}
 </script>
 
+{#snippet primitiveButton(primitive: NodePrimitive)}
+	<button
+		class="item"
+		type="button"
+		title={primitive.metadata?.help ?? primitive.metadata?.description ?? primitive.id}
+		onclick={() => onadd?.(primitive.id)}
+	>
+		<span class="name">{primitive.id}</span>
+		<span class="badge">{primitiveBadge(primitive, paletteMode)}</span>
+	</button>
+{/snippet}
+
+{#snippet primitiveList(primitives: NodePrimitive[])}
+	<div class="primitive-list">
+		{#each primitives as primitive (primitive.id)}
+			{@render primitiveButton(primitive)}
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet renderSubgroup(group: PaletteGroup)}
+	{#key `${searchQuery}:${group.key}`}
+		<Subsection title={`${group.label} (${group.primitives.length})`} defaultOpen={subgroupDefaultOpen(group.key)}>
+			{@render primitiveList(group.primitives)}
+			{#if group.subgroups}
+				{#each group.subgroups as subgroup (subgroup.key)}
+					{@render renderSubgroup(subgroup)}
+				{/each}
+			{/if}
+		</Subsection>
+	{/key}
+{/snippet}
+
+{#snippet renderSectionGroup(group: PaletteGroup)}
+	<Section
+		title={`${group.label} (${paletteGroupCount(group)})`}
+		open={isGroupOpen(group.key)}
+		onToggle={() => toggleGroup(group.key)}
+	>
+		{#if group.subgroups && group.subgroups.length > 0}
+			{#each group.subgroups as subgroup (subgroup.key)}
+				{@render renderSubgroup(subgroup)}
+			{/each}
+		{/if}
+		{@render primitiveList(group.primitives)}
+	</Section>
+{/snippet}
+
+{#snippet renderContractGroup(group: PaletteGroup)}
+	<Section
+		title={`${group.label} (${group.primitives.length})`}
+		open={isGroupOpen(group.key)}
+		onToggle={() => toggleGroup(group.key)}
+	>
+		{@render primitiveList(group.primitives)}
+	</Section>
+{/snippet}
+
 <div class="palette">
-	<h2 class="title">Primitives</h2>
-	{#each primitives as primitive (primitive.id)}
-		<button class="item" type="button" onclick={() => onadd?.(primitive.id)}>
-			<span class="name">{primitive.id}</span>
-			<span class="category">{primitive.category}</span>
-		</button>
-	{/each}
+	<header class="palette-header">
+		<h2 class="title">Primitives</h2>
+		<input
+			class="search"
+			type="search"
+			placeholder="Search nodes…"
+			aria-label="Search primitives"
+			bind:value={searchQuery}
+		/>
+		<div class="mode-switch" role="tablist" aria-label="Palette grouping mode">
+			<button
+				type="button"
+				role="tab"
+				class:active={paletteMode === 'section'}
+				aria-selected={paletteMode === 'section'}
+				onclick={() => setPaletteMode('section')}
+			>
+				Section
+			</button>
+			<button
+				type="button"
+				role="tab"
+				class:active={paletteMode === 'contract'}
+				aria-selected={paletteMode === 'contract'}
+				onclick={() => setPaletteMode('contract')}
+			>
+				Contract
+			</button>
+			<button
+				type="button"
+				role="tab"
+				class:active={paletteMode === 'both'}
+				aria-selected={paletteMode === 'both'}
+				onclick={() => setPaletteMode('both')}
+			>
+				Both
+			</button>
+		</div>
+	</header>
+
+	<div class="palette-body">
+		{#if groupedPrimitives.length === 0}
+			<p class="empty">No primitives match “{searchQuery.trim()}”.</p>
+		{:else if paletteMode === 'contract'}
+			{#each groupedPrimitives as group (group.key)}
+				{@render renderContractGroup(group)}
+			{/each}
+		{:else}
+			{#each groupedPrimitives as group (group.key)}
+				{@render renderSectionGroup(group)}
+			{/each}
+		{/if}
+	</div>
 </div>
 
 <style>
 	.palette {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 8px;
 		height: 100%;
-		overflow: auto;
+		min-height: 0;
+	}
+
+	.palette-header {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 8px 8px 6px;
+		flex: 0 0 auto;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
 	.title {
-		margin: 0 0 4px;
+		margin: 0;
 		font-size: 12px;
 		font-weight: 600;
+	}
+
+	.search {
+		width: 100%;
+		box-sizing: border-box;
+		font-size: 11px;
+		padding: 5px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #0f1420;
+		color: inherit;
+	}
+
+	.search:focus {
+		outline: none;
+		border-color: rgba(120, 170, 255, 0.55);
+	}
+
+	.mode-switch {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 4px;
+	}
+
+	.mode-switch button {
+		font-size: 10px;
+		padding: 4px 6px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+		opacity: 0.75;
+	}
+
+	.mode-switch button.active {
+		opacity: 1;
+		border-color: rgba(255, 255, 255, 0.35);
+		background: #24304a;
+	}
+
+	.palette-body {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
+		padding: 4px 8px 8px;
+	}
+
+	.empty {
+		margin: 8px 0 0;
+		font-size: 11px;
+		opacity: 0.65;
+	}
+
+	.primitive-list {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
 
 	.item {
@@ -48,6 +277,7 @@
 		color: inherit;
 		cursor: pointer;
 		text-align: left;
+		width: 100%;
 	}
 
 	.item:hover {
@@ -59,7 +289,7 @@
 		font-weight: 500;
 	}
 
-	.category {
+	.badge {
 		font-size: 10px;
 		opacity: 0.6;
 	}
