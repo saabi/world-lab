@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Virtual Planet Architecture Diagram Set</title>
+	<style>
+		:root {
+			color-scheme: light;
+			--ink: #17212b;
+			--muted: #586574;
+			--line: #9aa8b6;
+			--paper: #f8fafc;
+			--panel: #ffffff;
+			--blue: #d8ecff;
+			--blue-line: #2b75b9;
+			--green: #dbf3e6;
+			--green-line: #2c8461;
+			--amber: #fff0cf;
+			--amber-line: #b7791f;
+			--red: #ffe0df;
+			--red-line: #b8403a;
+			--violet: #eadfff;
+			--violet-line: #7959b8;
+			--gray: #eef2f6;
+			--gray-line: #718096;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			background: var(--paper);
+			color: var(--ink);
+			font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+		}
+
+		header {
+			padding: 32px clamp(18px, 4vw, 56px) 24px;
+			background: #101820;
+			color: white;
+		}
+
+		header h1 {
+			margin: 0 0 10px;
+			font-size: clamp(28px, 4vw, 46px);
+			line-height: 1.05;
+			letter-spacing: 0;
+		}
+
+		header p {
+			max-width: 980px;
+			margin: 0;
+			color: #d7e1ea;
+			font-size: 17px;
+		}
+
+		nav {
+			position: sticky;
+			top: 0;
+			z-index: 1;
+			display: flex;
+			gap: 8px;
+			overflow-x: auto;
+			padding: 10px clamp(18px, 4vw, 56px);
+			background: rgba(248, 250, 252, 0.96);
+			border-bottom: 1px solid #d7dee7;
+			backdrop-filter: blur(8px);
+		}
+
+		nav a {
+			white-space: nowrap;
+			color: #1d4e89;
+			text-decoration: none;
+			padding: 6px 10px;
+			border: 1px solid #c7d7e8;
+			border-radius: 6px;
+			background: #fff;
+			font-size: 13px;
+		}
+
+		main {
+			max-width: 1240px;
+			margin: 0 auto;
+			padding: 24px clamp(14px, 3vw, 28px) 64px;
+		}
+
+		section {
+			margin: 0 0 28px;
+			padding: clamp(16px, 3vw, 28px);
+			background: var(--panel);
+			border: 1px solid #dce3eb;
+			border-radius: 8px;
+			box-shadow: 0 1px 3px rgba(23, 33, 43, 0.05);
+		}
+
+		h2 {
+			margin: 0 0 8px;
+			font-size: clamp(22px, 3vw, 30px);
+			line-height: 1.15;
+			letter-spacing: 0;
+		}
+
+		h3 {
+			margin: 20px 0 8px;
+			font-size: 18px;
+		}
+
+		p {
+			max-width: 980px;
+			margin: 0 0 14px;
+		}
+
+		code {
+			padding: 1px 5px;
+			background: #edf2f7;
+			border-radius: 4px;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+			font-size: 0.92em;
+		}
+
+		.diagram {
+			width: 100%;
+			overflow-x: auto;
+			margin: 16px 0 10px;
+			padding: 8px;
+			background: #fbfdff;
+			border: 1px solid #e4ebf2;
+			border-radius: 8px;
+		}
+
+		svg {
+			display: block;
+			min-width: 920px;
+			max-width: 100%;
+			height: auto;
+		}
+
+		.box {
+			fill: var(--gray);
+			stroke: var(--gray-line);
+			stroke-width: 1.5;
+			rx: 8;
+		}
+
+		.blue { fill: var(--blue); stroke: var(--blue-line); }
+		.green { fill: var(--green); stroke: var(--green-line); }
+		.amber { fill: var(--amber); stroke: var(--amber-line); }
+		.red { fill: var(--red); stroke: var(--red-line); }
+		.violet { fill: var(--violet); stroke: var(--violet-line); }
+		.white { fill: #fff; stroke: #8795a4; }
+		.dashed { stroke-dasharray: 6 5; }
+
+		.label {
+			fill: var(--ink);
+			font: 600 14px system-ui, sans-serif;
+		}
+
+		.small {
+			fill: var(--muted);
+			font: 12px system-ui, sans-serif;
+		}
+
+		.edge {
+			fill: none;
+			stroke: #5f6f82;
+			stroke-width: 1.7;
+			marker-end: url(#arrow);
+		}
+
+		.edge-soft {
+			fill: none;
+			stroke: #8795a4;
+			stroke-width: 1.4;
+			marker-end: url(#arrow-soft);
+		}
+
+		.note-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			gap: 12px;
+			margin-top: 14px;
+		}
+
+		.note {
+			padding: 12px;
+			background: #f8fafc;
+			border: 1px solid #dce3eb;
+			border-radius: 8px;
+		}
+
+		.note strong {
+			display: block;
+			margin-bottom: 4px;
+		}
+
+		details {
+			margin-top: 12px;
+			padding: 10px 12px;
+			background: #f8fafc;
+			border: 1px solid #dce3eb;
+			border-radius: 8px;
+		}
+
+		summary {
+			cursor: pointer;
+			font-weight: 700;
+		}
+
+		ul {
+			margin: 8px 0 0 20px;
+			padding: 0;
+		}
+
+		li + li {
+			margin-top: 4px;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<h1>Virtual Planet Architecture Diagram Set</h1>
+		<p>
+			A proposed documentation pack for explaining the repository through HTML and SVG.
+			The diagrams are built here as self-contained SVGs and are organized from broad
+			repository structure down to the per-frame WebGPU render path.
+		</p>
+	</header>
+
+	<nav aria-label="Diagram navigation">
+		<a href="#set">Diagram Set</a>
+		<a href="#repo">Repository Map</a>
+		<a href="#routes">Routes and State</a>
+		<a href="#frame">Scene Frame</a>
+		<a href="#gpu">GPU Passes</a>
+		<a href="#planet">Planet Renderer</a>
+		<a href="#data">Data Ownership</a>
+		<a href="#graph">Procedural Graph</a>
+		<a href="#waves">Integration Gates</a>
+	</nav>
+
+	<main>
+		<section id="set">
+			<h2>Best Diagram Set</h2>
+			<p>
+				The project is best explained as a set of related diagrams rather than one
+				system map. One diagram should orient new contributors in the workspace, one
+				should explain route-level ownership, and the rest should zoom into the live
+				<code>/scene</code> renderer, the reusable planet renderer, and the graph/compiler
+				stack that is growing beside it.
+			</p>
+			<div class="note-grid">
+				<div class="note"><strong>1. Repository map</strong>Where code lives and which packages are active, supporting, archived, or future-facing.</div>
+				<div class="note"><strong>2. Route and state flow</strong>How <code>/scene/[...path]</code>, <code>/solar-systems</code>, localStorage, URL selection, and panels interact.</div>
+				<div class="note"><strong>3. Scene frame pipeline</strong>The high-value runtime diagram: scene evaluation, draw list, LOD, passes, procedural targets.</div>
+				<div class="note"><strong>4. GPU pass/resource map</strong>Shared WebGPU device, color/depth/surface-distance targets, terrain, water, atmosphere.</div>
+				<div class="note"><strong>5. Planet renderer pipeline</strong>The reusable focused-body path from params/camera/tessellation to scheduled patches and WGSL passes.</div>
+				<div class="note"><strong>6. Data ownership boundaries</strong>Which modules own scene documents, camera state, physical params, render prefs, flight state, and derived frame data.</div>
+				<div class="note"><strong>7. Procedural graph stack</strong>The emerging authoring/IR/compiler/runtime/editor architecture and how it will eventually feed the planet renderer.</div>
+				<div class="note"><strong>8. Integration gates</strong>Wave constraints and verification gates so work advances without breaking the renderer.</div>
+			</div>
+		</section>
+
+		<section id="repo">
+			<h2>1. Repository Map</h2>
+			<p>
+				The active application is <code>fe/</code>. The workspace also contains a reusable
+				procedural graph stack under <code>packages/</code> and a standalone graph editor
+				app under <code>apps/graph-editor</code>. The archived <code>fe.old/</code> reference
+				is intentionally outside the active workspace.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1100 540" role="img" aria-labelledby="repo-title repo-desc">
+					<title id="repo-title">Repository map</title>
+					<desc id="repo-desc">Workspace folders grouped by role.</desc>
+					<defs>
+						<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+							<path d="M0,0 L0,6 L9,3 z" fill="#5f6f82" />
+						</marker>
+						<marker id="arrow-soft" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+							<path d="M0,0 L0,6 L9,3 z" fill="#8795a4" />
+						</marker>
+					</defs>
+					<rect class="box white" x="30" y="30" width="1040" height="480" rx="10" />
+					<text class="label" x="55" y="62">virtual_planet workspace</text>
+
+					<rect class="box blue" x="70" y="100" width="300" height="155" />
+					<text class="label" x="90" y="132">fe/ active SvelteKit app</text>
+					<text class="small" x="90" y="160">Routes: /scene, /solar-systems</text>
+					<text class="small" x="90" y="182">Renderer: WebGPU-first planet + scene</text>
+					<text class="small" x="90" y="204">Docs: README, vite-wgsl, vite-glslify</text>
+					<text class="small" x="90" y="226">Commands run from fe/</text>
+
+					<rect class="box green" x="430" y="92" width="285" height="190" />
+					<text class="label" x="450" y="124">fe/src/lib/planet</text>
+					<text class="small" x="450" y="152">scene + scene3d + components</text>
+					<text class="small" x="450" y="174">render + passes + gpu/wgsl</text>
+					<text class="small" x="450" y="196">params + patches + camera + flight</text>
+					<text class="small" x="450" y="218">sundog catalog and enrichment</text>
+					<text class="small" x="450" y="240">math helpers and material layers</text>
+
+					<rect class="box violet" x="775" y="90" width="255" height="205" />
+					<text class="label" x="795" y="122">packages/ graph stack</text>
+					<text class="small" x="795" y="150">schema, graph, compiler</text>
+					<text class="small" x="795" y="172">runtime-cpu, runtime-webgpu</text>
+					<text class="small" x="795" y="194">graph-editor, editor-ui</text>
+					<text class="small" x="795" y="216">procedural-wgsl, mcp-server</text>
+					<text class="small" x="795" y="238">subdivide layout package</text>
+
+					<rect class="box amber" x="170" y="335" width="260" height="112" />
+					<text class="label" x="190" y="367">_docs/</text>
+					<text class="small" x="190" y="394">Canonical architecture specs</text>
+					<text class="small" x="190" y="416">Renderer snapshots and plans</text>
+
+					<rect class="box amber" x="500" y="335" width="250" height="112" />
+					<text class="label" x="520" y="367">apps/graph-editor</text>
+					<text class="small" x="520" y="394">Standalone graph editor app</text>
+					<text class="small" x="520" y="416">Consumes graph-editor package</text>
+
+					<rect class="box red dashed" x="820" y="350" width="210" height="82" />
+					<text class="label" x="840" y="382">fe.old/</text>
+					<text class="small" x="840" y="408">Archived Sapper reference</text>
+
+					<path class="edge" d="M370 177 C390 177 400 177 430 177" />
+					<path class="edge-soft" d="M715 185 C745 185 750 185 775 185" />
+					<path class="edge-soft" d="M625 335 C625 310 660 292 775 238" />
+					<path class="edge-soft" d="M300 335 C310 305 310 278 270 255" />
+				</svg>
+			</div>
+			<details>
+				<summary>Reading notes</summary>
+				<ul>
+					<li><code>fe/</code> remains the active production app and owns the live renderer.</li>
+					<li><code>packages/</code> contains framework-neutral graph/compiler/runtime work that is not yet the primary planet renderer.</li>
+					<li><code>_docs/architecture/procedural-graph/README.md</code> is the canonical ADR for the graph stack.</li>
+				</ul>
+			</details>
+		</section>
+
+		<section id="routes">
+			<h2>2. Routes and State Flow</h2>
+			<p>
+				The <code>/scene/[...path]</code> route owns the editable scene document and shared
+				transport. It passes state into the editor shell and viewport panels; selection
+				round-trips through the URL path, while persistent scene and viewport settings
+				use localStorage.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1100 560" role="img" aria-labelledby="routes-title routes-desc">
+					<title id="routes-title">Routes and state flow</title>
+					<desc id="routes-desc">Scene route state, panels, and persistence.</desc>
+					<rect class="box blue" x="50" y="55" width="290" height="125" />
+					<text class="label" x="72" y="88">/scene/[...path]/+page.svelte</text>
+					<text class="small" x="72" y="116">Owns PlanetScene document</text>
+					<text class="small" x="72" y="138">Owns selectedId, clock, play/speed</text>
+					<text class="small" x="72" y="160">Owns flight and viewport settings</text>
+
+					<rect class="box green" x="420" y="52" width="260" height="116" />
+					<text class="label" x="442" y="85">SceneEditorShell</text>
+					<text class="small" x="442" y="113">Subdivided editor layout</text>
+					<text class="small" x="442" y="135">Outliner, properties, viewport zones</text>
+
+					<rect class="box green" x="770" y="40" width="260" height="112" />
+					<text class="label" x="792" y="73">SceneViewport3D</text>
+					<text class="small" x="792" y="101">WebGPU 3D renderer</text>
+					<text class="small" x="792" y="123">Camera, draw list, passes</text>
+
+					<rect class="box green" x="770" y="195" width="260" height="112" />
+					<text class="label" x="792" y="228">SystemMapPanel</text>
+					<text class="small" x="792" y="256">2D system overview</text>
+					<text class="small" x="792" y="278">Shared play/pause/speed controls</text>
+
+					<rect class="box amber" x="58" y="250" width="270" height="128" />
+					<text class="label" x="80" y="283">URL path</text>
+					<text class="small" x="80" y="311">/scene/Sol/Earth/Moon</text>
+					<text class="small" x="80" y="333">resolvePath() -> selectedId</text>
+					<text class="small" x="80" y="355">pathOf() -> goto()</text>
+
+					<rect class="box amber" x="415" y="250" width="275" height="166" />
+					<text class="label" x="437" y="283">localStorage</text>
+					<text class="small" x="437" y="311">vp.systemScene</text>
+					<text class="small" x="437" y="333">vp.sceneLayout</text>
+					<text class="small" x="437" y="355">vp.sceneViewSettings</text>
+					<text class="small" x="437" y="377">vp.deviceTessellation</text>
+					<text class="small" x="437" y="399">No persisted clock/transport</text>
+
+					<rect class="box violet" x="780" y="370" width="250" height="122" />
+					<text class="label" x="802" y="403">/solar-systems</text>
+					<text class="small" x="802" y="431">SunDog galaxy map</text>
+					<text class="small" x="802" y="453">Loads catalog systems</text>
+					<text class="small" x="802" y="475">Opens systems into /scene</text>
+
+					<path class="edge" d="M340 112 C365 112 390 112 420 112" />
+					<path class="edge" d="M680 101 C715 101 735 96 770 96" />
+					<path class="edge" d="M680 139 C715 180 730 230 770 250" />
+					<path class="edge" d="M195 180 L195 250" />
+					<path class="edge-soft" d="M328 314 C355 314 382 314 415 314" />
+					<path class="edge-soft" d="M550 168 L550 250" />
+					<path class="edge-soft" d="M905 370 C890 340 886 320 900 307" />
+				</svg>
+			</div>
+		</section>
+
+		<section id="frame">
+			<h2>3. Scene Frame Pipeline</h2>
+			<p>
+				This is the most important runtime diagram. The route supplies a scene and time;
+				the viewport evaluates transforms, chooses LOD, converts bodies to sphere/dot
+				instances, selects procedural planet/moon targets, and records everything into
+				one scene engine.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 610" role="img" aria-labelledby="frame-title frame-desc">
+					<title id="frame-title">Scene frame pipeline</title>
+					<desc id="frame-desc">Per-frame data flow through SceneViewport3D.</desc>
+					<rect class="box blue" x="40" y="65" width="190" height="90" />
+					<text class="label" x="62" y="98">PlanetScene + time</text>
+					<text class="small" x="62" y="126">Route state</text>
+
+					<rect class="box green" x="285" y="58" width="215" height="105" />
+					<text class="label" x="307" y="92">evaluateScene()</text>
+					<text class="small" x="307" y="120">Animated snapshot</text>
+					<text class="small" x="307" y="142">Driven transforms resolved</text>
+
+					<rect class="box green" x="555" y="48" width="230" height="125" />
+					<text class="label" x="577" y="82">Camera frame</text>
+					<text class="small" x="577" y="110">Orbit/free-fly/spaceflight</text>
+					<text class="small" x="577" y="132">viewProjection()</text>
+					<text class="small" x="577" y="154">Floating origin near/far</text>
+
+					<rect class="box amber" x="850" y="55" width="220" height="112" />
+					<text class="label" x="872" y="88">buildDrawList()</text>
+					<text class="small" x="872" y="116">Project bodies to screen</text>
+					<text class="small" x="872" y="138">dot | sphere | procedural</text>
+					<text class="small" x="872" y="160">LOD hysteresis + blends</text>
+
+					<rect class="box amber" x="120" y="250" width="230" height="118" />
+					<text class="label" x="142" y="283">Sphere instances</text>
+					<text class="small" x="142" y="311">instancesFromDrawList()</text>
+					<text class="small" x="142" y="333">Dots as fixed-screen spheres</text>
+					<text class="small" x="142" y="355">Stars marked emissive</text>
+
+					<rect class="box amber" x="445" y="250" width="245" height="118" />
+					<text class="label" x="467" y="283">Procedural targets</text>
+					<text class="small" x="467" y="311">selectProceduralTargets()</text>
+					<text class="small" x="467" y="333">Planets/moons above dot LOD</text>
+					<text class="small" x="467" y="355">Selected first, capped at 8</text>
+
+					<rect class="box green" x="775" y="250" width="245" height="118" />
+					<text class="label" x="797" y="283">Per-target inputs</text>
+					<text class="small" x="797" y="311">buildProceduralRenderInput()</text>
+					<text class="small" x="797" y="333">body params, atmosphere</text>
+					<text class="small" x="797" y="355">lighting, eclipses, tessellation</text>
+
+					<rect class="box violet" x="240" y="460" width="245" height="92" />
+					<text class="label" x="262" y="493">SceneEngine.render()</text>
+					<text class="small" x="262" y="521">Owns render-pass lifecycle</text>
+
+					<rect class="box violet" x="575" y="450" width="260" height="112" />
+					<text class="label" x="597" y="483">Recorded passes</text>
+					<text class="small" x="597" y="511">SpherePass, OrbitLinePass</text>
+					<text class="small" x="597" y="533">PlanetRenderer.recordInto()</text>
+					<text class="small" x="597" y="555">Water and atmosphere overlays</text>
+
+					<path class="edge" d="M230 110 C250 110 265 110 285 110" />
+					<path class="edge" d="M500 110 C522 110 535 110 555 110" />
+					<path class="edge" d="M785 110 C810 110 825 110 850 110" />
+					<path class="edge" d="M960 167 C885 218 660 214 565 250" />
+					<path class="edge" d="M940 167 C830 222 390 210 235 250" />
+					<path class="edge" d="M690 309 C720 309 745 309 775 309" />
+					<path class="edge" d="M235 368 C255 410 295 435 362 460" />
+					<path class="edge" d="M897 368 C865 417 810 438 705 450" />
+					<path class="edge" d="M485 506 C515 506 545 506 575 506" />
+				</svg>
+			</div>
+		</section>
+
+		<section id="gpu">
+			<h2>4. Shared GPU Pass and Resource Map</h2>
+			<p>
+				<code>SceneEngine</code> is the pass host: it owns one WebGPU device, one shared
+				depth target, and extra sampleable targets used by water and atmosphere. This is
+				the renderer-unification boundary that lets spheres, terrain, water, and
+				atmosphere agree on depth.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 620" role="img" aria-labelledby="gpu-title gpu-desc">
+					<title id="gpu-title">Shared GPU pass map</title>
+					<desc id="gpu-desc">SceneEngine resources and render passes.</desc>
+					<rect class="box blue" x="60" y="60" width="245" height="130" />
+					<text class="label" x="82" y="94">requestWebGPUDevice()</text>
+					<text class="small" x="82" y="122">Shared GPUDevice</text>
+					<text class="small" x="82" y="144">Canvas configured once</text>
+					<text class="small" x="82" y="166">Adopted by WebGPUBackend</text>
+
+					<rect class="box green" x="390" y="42" width="300" height="168" />
+					<text class="label" x="412" y="76">SceneEngine</text>
+					<text class="small" x="412" y="104">depth24plus: shared depth</text>
+					<text class="small" x="412" y="126">r32float: surface distance</text>
+					<text class="small" x="412" y="148">sceneColor: explicit composite</text>
+					<text class="small" x="412" y="170">waterColor: post-water source</text>
+					<text class="small" x="412" y="192">Command encoder + pass lifecycle</text>
+
+					<rect class="box amber" x="90" y="295" width="210" height="98" />
+					<text class="label" x="112" y="328">Geometry pass</text>
+					<text class="small" x="112" y="356">Clear color, depth, surface</text>
+					<text class="small" x="112" y="378">Spheres + terrain + orbits</text>
+
+					<rect class="box violet" x="360" y="272" width="220" height="122" />
+					<text class="label" x="382" y="305">Terrain records in-pass</text>
+					<text class="small" x="382" y="333">PlanetRenderer.recordInto()</text>
+					<text class="small" x="382" y="355">WebGPUBackend.recordTerrainInto()</text>
+					<text class="small" x="382" y="377">Writes depth and surface distance</text>
+
+					<rect class="box violet" x="650" y="295" width="190" height="98" />
+					<text class="label" x="672" y="328">Water pass</text>
+					<text class="small" x="672" y="356">Samples scene color</text>
+					<text class="small" x="672" y="378">Samples depth</text>
+
+					<rect class="box violet" x="895" y="272" width="180" height="122" />
+					<text class="label" x="917" y="305">Atmosphere overlay</text>
+					<text class="small" x="917" y="333">SceneAtmospherePass</text>
+					<text class="small" x="917" y="355">Samples depth + surface</text>
+					<text class="small" x="917" y="377">Explicit or alpha composite</text>
+
+					<rect class="box green" x="408" y="478" width="300" height="78" />
+					<text class="label" x="430" y="511">Swapchain presentation</text>
+					<text class="small" x="430" y="539">Final color view submitted</text>
+
+					<path class="edge" d="M305 125 C335 125 360 125 390 125" />
+					<path class="edge" d="M540 210 C475 245 300 245 195 295" />
+					<path class="edge" d="M545 210 C530 235 498 245 470 272" />
+					<path class="edge" d="M580 210 C635 250 690 260 745 295" />
+					<path class="edge" d="M630 210 C770 245 870 245 985 272" />
+					<path class="edge" d="M300 344 C325 344 335 344 360 344" />
+					<path class="edge" d="M580 344 C610 344 625 344 650 344" />
+					<path class="edge" d="M840 344 C860 344 875 344 895 344" />
+					<path class="edge" d="M985 394 C930 455 790 500 708 517" />
+				</svg>
+			</div>
+		</section>
+
+		<section id="planet">
+			<h2>5. Reusable Planet Renderer Pipeline</h2>
+			<p>
+				<code>PlanetRenderer</code> is a headless host around <code>RenderBackend</code>.
+				It turns per-frame inputs into a <code>RenderFrame</code>, schedules transient
+				patches, and delegates GPU work to the backend. The same host supports the
+				standalone planet path and the body-relative <code>/scene</code> terrain path.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 610" role="img" aria-labelledby="planet-title planet-desc">
+					<title id="planet-title">Planet renderer pipeline</title>
+					<desc id="planet-desc">PlanetRenderInputs through RenderFrame to GPU passes.</desc>
+					<rect class="box blue" x="55" y="70" width="230" height="128" />
+					<text class="label" x="77" y="103">PlanetRenderInputs</text>
+					<text class="small" x="77" y="131">PlanetParameters</text>
+					<text class="small" x="77" y="153">CameraState, lighting</text>
+					<text class="small" x="77" y="175">Tessellation, atmosphere</text>
+
+					<rect class="box green" x="365" y="58" width="260" height="150" />
+					<text class="label" x="387" y="91">PlanetRenderer</text>
+					<text class="small" x="387" y="119">Holds modeState</text>
+					<text class="small" x="387" y="141">Holds LocalFrame</text>
+					<text class="small" x="387" y="163">render(), renderToTexture()</text>
+					<text class="small" x="387" y="185">recordInto(external pass)</text>
+
+					<rect class="box green" x="705" y="70" width="250" height="128" />
+					<text class="label" x="727" y="103">buildRenderFrame()</text>
+					<text class="small" x="727" y="131">selectRenderMode()</text>
+					<text class="small" x="727" y="153">build/maybe rebase LocalFrame</text>
+					<text class="small" x="727" y="175">Build RenderFrame</text>
+
+					<rect class="box amber" x="75" y="295" width="230" height="118" />
+					<text class="label" x="97" y="328">Orbit scheduler</text>
+					<text class="small" x="97" y="356">scheduleOrbitPatches()</text>
+					<text class="small" x="97" y="378">Cube-sphere descriptors</text>
+					<text class="small" x="97" y="400">PackedBucket upload layout</text>
+
+					<rect class="box amber" x="385" y="295" width="230" height="118" />
+					<text class="label" x="407" y="328">Surface scheduler</text>
+					<text class="small" x="407" y="356">buildSurfacePatchRings()</text>
+					<text class="small" x="407" y="378">Near-surface patch carpet</text>
+					<text class="small" x="407" y="400">Active by camera mode</text>
+
+					<rect class="box violet" x="705" y="282" width="250" height="144" />
+					<text class="label" x="727" y="315">RenderBackend</text>
+					<text class="small" x="727" y="343">WebGPUBackend primary</text>
+					<text class="small" x="727" y="365">TerrainPass, AtmospherePass</text>
+					<text class="small" x="727" y="387">PatchCull, debug, stubs</text>
+					<text class="small" x="727" y="409">WebGLBackend fallback placeholder</text>
+
+					<rect class="box red" x="405" y="495" width="300" height="74" />
+					<text class="label" x="427" y="528">WGSL planet kernel modules</text>
+					<text class="small" x="427" y="556">kernel, material, normal, lighting, shadow</text>
+
+					<path class="edge" d="M285 134 C315 134 335 134 365 134" />
+					<path class="edge" d="M625 134 C655 134 675 134 705 134" />
+					<path class="edge" d="M760 198 C590 240 330 235 190 295" />
+					<path class="edge" d="M825 198 C720 245 605 250 500 295" />
+					<path class="edge" d="M830 198 L830 282" />
+					<path class="edge" d="M305 354 C450 450 575 460 705 354" />
+					<path class="edge" d="M615 354 C645 354 675 354 705 354" />
+					<path class="edge-soft" d="M830 426 C760 475 680 500 705 532" />
+					<path class="edge-soft" d="M500 413 C505 455 520 482 555 495" />
+				</svg>
+			</div>
+		</section>
+
+		<section id="data">
+			<h2>6. Data Ownership Boundaries</h2>
+			<p>
+				This diagram is useful for code review because it separates persisted authoring
+				data from transient runtime state and derived frame data. Most bugs in this app
+				come from crossing these boundaries accidentally.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 560" role="img" aria-labelledby="data-title data-desc">
+					<title id="data-title">Data ownership boundaries</title>
+					<desc id="data-desc">Persistent, transient, derived, and GPU data owners.</desc>
+					<rect class="box blue" x="55" y="70" width="245" height="340" />
+					<text class="label" x="77" y="104">Persisted authoring state</text>
+					<text class="small" x="77" y="136">PlanetScene document</text>
+					<text class="small" x="77" y="158">Node tree, transforms</text>
+					<text class="small" x="77" y="180">Body appearance/atmosphere</text>
+					<text class="small" x="77" y="202">Render/view settings</text>
+					<text class="small" x="77" y="224">Panel layout</text>
+					<text class="small" x="77" y="262">Owners:</text>
+					<text class="small" x="77" y="284">sceneDocument.ts</text>
+					<text class="small" x="77" y="306">sceneEdit.ts</text>
+					<text class="small" x="77" y="328">viewportPrefs.ts</text>
+
+					<rect class="box green" x="350" y="70" width="245" height="340" />
+					<text class="label" x="372" y="104">Transient interaction state</text>
+					<text class="small" x="372" y="136">selectedId from URL</text>
+					<text class="small" x="372" y="158">clock, playing, speed</text>
+					<text class="small" x="372" y="180">orbit/free-fly camera</text>
+					<text class="small" x="372" y="202">ship state, input state</text>
+					<text class="small" x="372" y="224">gamepad state</text>
+					<text class="small" x="372" y="262">Owners:</text>
+					<text class="small" x="372" y="284">route + SceneViewport3D</text>
+					<text class="small" x="372" y="306">camera/, flight/</text>
+
+					<rect class="box amber" x="645" y="70" width="245" height="340" />
+					<text class="label" x="667" y="104">Derived frame data</text>
+					<text class="small" x="667" y="136">Evaluated scene snapshot</text>
+					<text class="small" x="667" y="158">World transforms</text>
+					<text class="small" x="667" y="180">Draw list + LOD</text>
+					<text class="small" x="667" y="202">Procedural targets</text>
+					<text class="small" x="667" y="224">RenderFrame</text>
+					<text class="small" x="667" y="262">Owners:</text>
+					<text class="small" x="667" y="284">driver.ts, sceneTree.ts</text>
+					<text class="small" x="667" y="306">drawList.ts</text>
+					<text class="small" x="667" y="328">buildRenderFrame.ts</text>
+
+					<rect class="box violet" x="940" y="70" width="140" height="340" />
+					<text class="label" x="962" y="104">GPU state</text>
+					<text class="small" x="962" y="136">Device</text>
+					<text class="small" x="962" y="158">Pipelines</text>
+					<text class="small" x="962" y="180">Bind groups</text>
+					<text class="small" x="962" y="202">Textures</text>
+					<text class="small" x="962" y="224">Buffers</text>
+					<text class="small" x="962" y="262">Owners:</text>
+					<text class="small" x="962" y="284">scene3d/</text>
+					<text class="small" x="962" y="306">render/</text>
+					<text class="small" x="962" y="328">gpu/wgsl/</text>
+
+					<path class="edge" d="M300 240 C320 240 330 240 350 240" />
+					<path class="edge" d="M595 240 C615 240 625 240 645 240" />
+					<path class="edge" d="M890 240 C910 240 920 240 940 240" />
+					<path class="edge-soft" d="M475 410 C475 480 177 480 177 410" />
+					<text class="small" x="225" y="468">Only explicit save/persistence should flow back</text>
+				</svg>
+			</div>
+		</section>
+
+		<section id="graph">
+			<h2>7. Procedural Graph Stack</h2>
+			<p>
+				The graph stack is an adjacent architecture track: it is intended to become the
+				typed procedural language for terrain, materials, vegetation, resources, and
+				future WebGPU pipelines. Today it lives mostly in <code>packages/</code> and the
+				standalone graph editor.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 640" role="img" aria-labelledby="graph-title graph-desc">
+					<title id="graph-title">Procedural graph stack</title>
+					<desc id="graph-desc">Authoring surfaces through graph IR, compiler, runtime, and consumers.</desc>
+					<rect class="box blue" x="55" y="55" width="250" height="140" />
+					<text class="label" x="77" y="88">Authoring surfaces</text>
+					<text class="small" x="77" y="116">packages/graph-editor</text>
+					<text class="small" x="77" y="138">apps/graph-editor</text>
+					<text class="small" x="77" y="160">JSON, markup, programmatic API</text>
+					<text class="small" x="77" y="182">Future MCP/AI sessions</text>
+
+					<rect class="box green" x="405" y="55" width="250" height="140" />
+					<text class="label" x="427" y="88">Typed Graph IR</text>
+					<text class="small" x="427" y="116">packages/graph</text>
+					<text class="small" x="427" y="138">Ports, primitive registry</text>
+					<text class="small" x="427" y="160">Validation, serialization</text>
+					<text class="small" x="427" y="182">Pipeline nodes emerging</text>
+
+					<rect class="box amber" x="765" y="55" width="250" height="140" />
+					<text class="label" x="787" y="88">Compiler</text>
+					<text class="small" x="787" y="116">packages/compiler</text>
+					<text class="small" x="787" y="138">Dependency slicing</text>
+					<text class="small" x="787" y="160">WGSL codegen</text>
+					<text class="small" x="787" y="182">Module linker + entrypoints</text>
+
+					<rect class="box violet" x="155" y="305" width="255" height="135" />
+					<text class="label" x="177" y="338">Runtime CPU</text>
+					<text class="small" x="177" y="366">packages/runtime-cpu</text>
+					<text class="small" x="177" y="388">Evaluation, resources</text>
+					<text class="small" x="177" y="410">Frustum/camera helpers</text>
+
+					<rect class="box violet" x="495" y="305" width="255" height="135" />
+					<text class="label" x="517" y="338">Runtime WebGPU</text>
+					<text class="small" x="517" y="366">packages/runtime-webgpu</text>
+					<text class="small" x="517" y="388">Buffers, pipeline graph</text>
+					<text class="small" x="517" y="410">Surface mesh, vegetation buffers</text>
+
+					<rect class="box red" x="835" y="305" width="210" height="135" />
+					<text class="label" x="857" y="338">WGSL library</text>
+					<text class="small" x="857" y="366">procedural-wgsl</text>
+					<text class="small" x="857" y="388">Reusable modules</text>
+					<text class="small" x="857" y="410">Resolver support</text>
+
+					<rect class="box green" x="385" y="525" width="350" height="70" />
+					<text class="label" x="407" y="558">Consumers</text>
+					<text class="small" x="407" y="584">Virtual Planet terrain, materials, vegetation, future gameplay</text>
+
+					<path class="edge" d="M305 125 C340 125 370 125 405 125" />
+					<path class="edge" d="M655 125 C690 125 730 125 765 125" />
+					<path class="edge" d="M850 195 C760 255 675 280 622 305" />
+					<path class="edge-soft" d="M530 195 C430 250 330 280 282 305" />
+					<path class="edge-soft" d="M900 195 C920 235 930 270 940 305" />
+					<path class="edge" d="M282 440 C330 500 420 520 560 525" />
+					<path class="edge" d="M622 440 L622 525" />
+					<path class="edge-soft" d="M940 440 C880 500 760 520 620 525" />
+				</svg>
+			</div>
+			<details>
+				<summary>Current relationship to the renderer</summary>
+				<ul>
+					<li>The live renderer still uses hand-authored WGSL modules under <code>fe/src/lib/planet/gpu/wgsl</code>.</li>
+					<li>The graph stack is additive: it should first prove typed IR, compiler, and runtime slices before replacing the planet kernel.</li>
+					<li>The eventual migration target is one graph feeding multiple consumers: terrain, material, collision, water, vegetation, and previews.</li>
+				</ul>
+			</details>
+		</section>
+
+		<section id="waves">
+			<h2>8. Integration Gates</h2>
+			<p>
+				The wave model deserves its own small diagram because it is an architectural
+				control, not just a process note. The contracts in <code>params/</code>,
+				<code>patches/</code>, and <code>render/</code> should advance one wave at a time.
+			</p>
+			<div class="diagram">
+				<svg viewBox="0 0 1120 390" role="img" aria-labelledby="waves-title waves-desc">
+					<title id="waves-title">Integration gates</title>
+					<desc id="waves-desc">Renderer waves and verification gates.</desc>
+					<rect class="box blue" x="55" y="88" width="160" height="90" />
+					<text class="label" x="82" y="122">G0</text>
+					<text class="small" x="82" y="150">check + build</text>
+					<text class="small" x="82" y="170">/scene loads</text>
+
+					<rect class="box green" x="260" y="88" width="160" height="90" />
+					<text class="label" x="287" y="122">G1</text>
+					<text class="small" x="287" y="150">check + test</text>
+					<text class="small" x="287" y="170">WGSL typed</text>
+
+					<rect class="box amber" x="465" y="88" width="160" height="90" />
+					<text class="label" x="492" y="122">G2</text>
+					<text class="small" x="492" y="150">dev /scene</text>
+					<text class="small" x="492" y="170">Orbit planet</text>
+
+					<rect class="box amber" x="670" y="88" width="160" height="90" />
+					<text class="label" x="697" y="122">G3</text>
+					<text class="small" x="697" y="150">~100 m altitude</text>
+					<text class="small" x="697" y="170">No jitter</text>
+
+					<rect class="box violet" x="875" y="88" width="160" height="90" />
+					<text class="label" x="902" y="122">G4</text>
+					<text class="small" x="902" y="150">Orbit to surface</text>
+					<text class="small" x="902" y="170">Stable horizon/fog</text>
+
+					<path class="edge" d="M215 133 L260 133" />
+					<path class="edge" d="M420 133 L465 133" />
+					<path class="edge" d="M625 133 L670 133" />
+					<path class="edge" d="M830 133 L875 133" />
+
+					<rect class="box red" x="175" y="245" width="770" height="72" />
+					<text class="label" x="200" y="278">Contract files move sequentially</text>
+					<text class="small" x="200" y="302">patches/types.ts, params/planetParams.ts, render/RenderBackend.ts, WGSL-first GPU code</text>
+				</svg>
+			</div>
+		</section>
+	</main>
+</body>
+</html>
