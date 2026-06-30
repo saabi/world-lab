@@ -23,7 +23,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-_(none — add tasks below as briefs are pinned.)_
+_(none — add new briefs below.)_
 
 ## Later — do NOT start now
 
@@ -45,3 +45,5 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Format-adaptive preview buffer list** — enumerate graph output buffers by family; buffer selector replaces backend tabs — `c65912c`
 - **Node palette organization** — search + section/contract/both grouping with collapsible groups — `8e358e1`
 - **Preview effective doc fix** — preview panels and compile path use `effectiveGraphDocument` — `e1cd183`
+- **Palette collapsed by default** — opt-in `expandedByMode` per grouping mode; search still auto-expands — `f1de8b1`
+- **Fullscreen-fragment params binding** — declare and bind `GraphParams` in image consumer — `aa309e9`
