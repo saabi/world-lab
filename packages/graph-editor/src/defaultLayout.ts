@@ -1,6 +1,6 @@
 import { createPaneId, type LayoutDocument } from '@virtual-planet/subdivide';
 
-/** The editor's default pane tree (zones: palette, canvas, preview, code, inspector, validation, markup). */
+/** The editor's default pane tree (zones: palette, canvas, preview, code, compiled, inspector, validation, markup). */
 export function defaultGraphEditorLayout(): LayoutDocument {
 	return {
 		root: {
@@ -41,7 +41,14 @@ export function defaultGraphEditorLayout(): LayoutDocument {
 							id: createPaneId(),
 							zone: 'code',
 							pos: 0.82,
-							size: 0.18
+							size: 0.09
+						},
+						{
+							type: 'pane',
+							id: createPaneId(),
+							zone: 'compiled',
+							pos: 0.91,
+							size: 0.09
 						}
 					]
 				},

@@ -9,10 +9,11 @@
 		graphEditorSyntaxHighlighting,
 		graphEditorTheme,
 		planetMarkupLanguage,
-		primitiveSourceLanguageSupport
+		primitiveSourceLanguageSupport,
+		wgslLanguageSupport
 	} from './codemirror/index.js';
 
-	export type CodeMirrorLanguage = 'planet-markup' | 'primitive-source';
+	export type CodeMirrorLanguage = 'planet-markup' | 'primitive-source' | 'wgsl';
 </script>
 
 <script lang="ts">
@@ -37,7 +38,9 @@
 	let syncing = false;
 
 	function languageExtension(lang: CodeMirrorLanguage): Extension {
-		return lang === 'planet-markup' ? planetMarkupLanguage() : primitiveSourceLanguageSupport();
+		if (lang === 'planet-markup') return planetMarkupLanguage();
+		if (lang === 'wgsl') return wgslLanguageSupport();
+		return primitiveSourceLanguageSupport();
 	}
 
 	function createState(doc: string): EditorState {

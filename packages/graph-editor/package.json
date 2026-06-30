@@ -14,6 +14,7 @@
 		"@virtual-planet/compiler": "*",
 		"@virtual-planet/editor-ui": "*",
 		"@virtual-planet/graph": "*",
+		"@virtual-planet/procedural-wgsl": "*",
 		"@virtual-planet/runtime-cpu": "*",
 		"@virtual-planet/runtime-webgpu": "*",
 		"@virtual-planet/schema": "*",
@@ -42,6 +43,7 @@
 		"svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@webgpu/types": "^0.1.70",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
 	}

@@ -16,6 +16,7 @@
 	import ValidationPanel from './ValidationPanel.svelte';
 	import MarkupView from './MarkupView.svelte';
 	import CodeView from './CodeView.svelte';
+	import CompiledWgslPanel from './CompiledWgslPanel.svelte';
 	import {
 		clearGraphStorage,
 		formatGraphForDownload,
@@ -493,6 +494,10 @@
 	/>
 {/snippet}
 
+{#snippet compiled()}
+	<CompiledWgslPanel {graph} />
+{/snippet}
+
 <svelte:window onkeydown={onWindowKeydown} />
 
 <div class="graph-editor">
@@ -534,12 +539,13 @@
 			bind:layout
 			onlayoutchange={onLayoutChange}
 			{zoneContextMenus}
-			zones={{ palette, canvas, preview, code, inspector, validation, markup }}
+			zones={{ palette, canvas, preview, code, compiled, inspector, validation, markup }}
 			zoneLabels={{
 				palette: 'Palette',
 				canvas: 'Graph',
 				preview: 'Preview',
 				code: 'Code',
+				compiled: 'Compiled WGSL',
 				inspector: 'Inspector',
 				validation: 'Validation',
 				markup: 'Markup'
