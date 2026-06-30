@@ -53,6 +53,16 @@ function formatValidationIssue(issue: ValidationIssue): string {
 			return `type-mismatch: edge ${issue.edge}, ${issue.from} -> ${issue.to}`;
 		case 'space-mismatch':
 			return `space-mismatch: edge ${issue.edge}, ${issue.from} -> ${issue.to}`;
+		case 'unresolved-primitive':
+			return `unresolved-primitive: node ${issue.node}, primitive ${issue.primitive}`;
+		case 'unconnected-input':
+			return `unconnected-input: node ${issue.node}, port ${issue.port}`;
+		case 'no-output-path':
+			return `no-output-path: output ${issue.output}, ${issue.node}.${issue.port}`;
+		case 'dangling-node':
+			return `dangling-node: node ${issue.node}`;
+		default:
+			return JSON.stringify(issue);
 	}
 }
 

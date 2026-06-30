@@ -9,8 +9,10 @@ runs what.
 
 ## Conventions
 
-- **Serialized for now.** One brief in flight at a time. Parallel execution waits
-  until synchronization-workflow docs exist.
+- **Parallel via task board.** Independent tasks run in parallel when a `_TASK_BOARD.md`
+  assigns **disjoint files/packages** (claim-by-edit; see
+  [execution-and-delegation.md](../execution-and-delegation.md)). The critical *dependency
+  chain* stays serialized — never start a task whose prerequisite is open.
 - **Self-contained.** A brief links the relevant stream doc(s) so a fresh or
   external agent (Cursor / Codex / Gemini Antigravity) needs no other context.
 - **Gate = done.** The task is complete when the brief's tests are green and

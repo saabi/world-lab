@@ -37,6 +37,25 @@ pass away**. The cheaper the agent, the more the contract must be pinned first.
 The gate is the contract. If a milestone's gate is weak (visual/GPU — see below),
 delegation needs human/Opus oversight regardless of implementer.
 
+### Gate hardening (earned from real failures — non-negotiable)
+
+1. **`check` AND `test`, every touched package.** `npm run check` (tsc/svelte-check) is part
+   of the gate, not optional. Vitest (esbuild) strips types, so tests pass while `tsc`
+   fails — this has produced "all green" claims that were not. Run **both**; a milestone is
+   not done until both are green for every package it touches.
+2. **WGSL-emitting changes require a validity check.** Headless tests do **not** compile
+   WGSL, so invalid generated WGSL (undefined-fn calls, out-of-scope identifiers) passes
+   green and fails only on GPU. Require: the `procedural-wgsl/use-deps` guard (`@use` ↔
+   `dependencies`), a string-level declared-before-used assertion for assembled shaders,
+   and a device compile (`wgslCompile.test.ts` pattern) where available.
+3. **The reviewer re-runs the gate independently.** Never accept an agent's self-reported
+   "N/N green." The Opus/review step runs `check`+`test` itself and inspects the surface —
+   self-reports have been wrong (tsc failing, invalid WGSL, "renders" ≠ "is the canvas
+   graph").
+4. **Visual gates encode intent, not just "it renders."** A visual brief's gate must state
+   the *behaviour* to confirm (e.g. "nodes appear in the canvas AND editing changes the
+   render"), require a human screenshot, and not be marked done on headless green alone.
+
 ## Dependency waves, ownership, and handoffs
 
 The critical dependency chain remains serialized: do not start a milestone whose
