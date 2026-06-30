@@ -12,6 +12,7 @@ import {
 	type ValidationResult
 } from '@virtual-planet/graph';
 import { Value, type TSchema } from '@virtual-planet/schema';
+import { inputHandleId, outputHandleId } from './portHandles.js';
 
 export interface FlowNodeData {
 	nodeId: string;
@@ -52,8 +53,12 @@ function nextEdgeId(): string {
 	return `e_${edgeCounter}`;
 }
 
-function findPort(node: Node, portId: string): Port | undefined {
-	return [...node.inputs, ...node.outputs].find((port) => port.id === portId);
+function findInputPort(node: Node, portId: string): Port | undefined {
+	return node.inputs.find((port) => port.id === portId);
+}
+
+function findOutputPort(node: Node, portId: string): Port | undefined {
+	return node.outputs.find((port) => port.id === portId);
 }
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
@@ -164,8 +169,8 @@ export function graphToFlow(doc: GraphDocument): {
 		id: edge.id,
 		source: edge.from.node,
 		target: edge.to.node,
-		sourceHandle: edge.from.port,
-		targetHandle: edge.to.port,
+		sourceHandle: outputHandleId(edge.from.port),
+		targetHandle: inputHandleId(edge.to.port),
 		data: {
 			edgeId: edge.id,
 			from: edge.from,
@@ -197,8 +202,8 @@ export function validateConnection(
 		return { ok: false, issues };
 	}
 
-	const fromPort = findPort(fromNode, from.port);
-	const toPort = findPort(toNode, to.port);
+	const fromPort = findOutputPort(fromNode, from.port);
+	const toPort = findInputPort(toNode, to.port);
 
 	if (!fromPort) {
 		issues.push({ kind: 'unknown-port', edge: edgeId, node: from.node, port: from.port });

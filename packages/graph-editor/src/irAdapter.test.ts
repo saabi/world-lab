@@ -367,4 +367,57 @@ describe('@virtual-planet/graph-editor irAdapter', () => {
 
 		expect(doc.nodes[0]?.params).toBeUndefined();
 	});
+
+	it('allows mulScalar vec2f output to feed worley2d position (fragCoord scale pipeline)', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'host.fragCoord',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'constant.f32',
+			position: { x: 0, y: 100 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'vector.mulScalar.vec2f',
+			position: { x: 200, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'noise.worley2d',
+			position: { x: 420, y: 0 }
+		});
+
+		const frag = doc.nodes.find((node) => node.primitive === 'host.fragCoord')!;
+		const scalar = doc.nodes.find((node) => node.primitive === 'constant.f32')!;
+		const mul = doc.nodes.find((node) => node.primitive === 'vector.mulScalar.vec2f')!;
+		const worley = doc.nodes.find((node) => node.primitive === 'noise.worley2d')!;
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: frag.id, port: 'coord' },
+			to: { node: mul.id, port: 'value' }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: scalar.id, port: 'value' },
+			to: { node: mul.id, port: 'scalar' }
+		});
+
+		const worleyPosition = validateConnection(
+			doc,
+			{ node: mul.id, port: 'value' },
+			{ node: worley.id, port: 'position' }
+		);
+		expect(worleyPosition.ok).toBe(true);
+
+		doc = applyEditIntent(doc, {
+			kind: 'add-edge',
+			from: { node: mul.id, port: 'value' },
+			to: { node: worley.id, port: 'position' }
+		});
+		expect(doc.edges).toHaveLength(3);
+	});
 });

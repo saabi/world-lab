@@ -13,6 +13,7 @@
 	import GraphNodeView from './GraphNodeView.svelte';
 	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
 	import { setGraphCanvasContext } from './graphCanvasContext.js';
+	import { inputHandleId, outputHandleId, portIdFromHandle } from './portHandles.js';
 	import {
 		applyEditIntent,
 		graphToFlow,
@@ -126,8 +127,12 @@
 			return;
 		}
 
-		const from = { node: connection.source, port: connection.sourceHandle };
-		const to = { node: connection.target, port: connection.targetHandle };
+		const fromPort = portIdFromHandle(connection.sourceHandle);
+		const toPort = portIdFromHandle(connection.targetHandle);
+		if (!fromPort || !toPort) return;
+
+		const from = { node: connection.source, port: fromPort };
+		const to = { node: connection.target, port: toPort };
 		const validation = validateConnection(graph, from, to);
 		if (!validation.ok) return;
 
@@ -143,10 +148,13 @@
 		) {
 			return false;
 		}
+		const fromPort = portIdFromHandle(connection.sourceHandle);
+		const toPort = portIdFromHandle(connection.targetHandle);
+		if (!fromPort || !toPort) return false;
 		return validateConnection(
 			graph,
-			{ node: connection.source, port: connection.sourceHandle },
-			{ node: connection.target, port: connection.targetHandle }
+			{ node: connection.source, port: fromPort },
+			{ node: connection.target, port: toPort }
 		).ok;
 	}
 </script>

@@ -85,8 +85,8 @@ function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
 	return sorted;
 }
 
-function findPort(node: Node, portId: string) {
-	return [...node.inputs, ...node.outputs].find((port) => port.id === portId);
+function findOutputPort(node: Node, portId: string) {
+	return node.outputs.find((port) => port.id === portId);
 }
 
 function promoteExpr(expr: string, fromType: DataType, toType: DataType): string {
@@ -186,7 +186,7 @@ function emitGraphEval(
 	if (!outputNode) {
 		throw new Error(`Unknown output node: ${output.node}`);
 	}
-	const outputPort = findPort(outputNode, output.port);
+	const outputPort = findOutputPort(outputNode, output.port);
 	if (!outputPort || outputPort.direction !== 'out') {
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
@@ -290,7 +290,7 @@ function emitGraphEval(
 					const edge = edges[0]!;
 					const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
 					if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-					const upstreamPort = findPort(upstreamNode, edge.from.port);
+					const upstreamPort = findOutputPort(upstreamNode, edge.from.port);
 					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 					if (upstreamPort.dataType === 'storageBuffer') {
@@ -311,7 +311,7 @@ function emitGraphEval(
 				for (const edge of edges) {
 					const upstreamNode = doc.nodes.find((candidate) => candidate.id === edge.from.node);
 					if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-					const upstreamPort = findPort(upstreamNode, edge.from.port);
+					const upstreamPort = findOutputPort(upstreamNode, edge.from.port);
 					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 					const expr = portVar(edge.from.node, edge.from.port);
@@ -341,7 +341,7 @@ function emitGraphEval(
 				if (!upstreamNode) {
 					throw new Error(`Unknown upstream node: ${edge.from.node}`);
 				}
-				const upstreamPort = findPort(upstreamNode, edge.from.port);
+				const upstreamPort = findOutputPort(upstreamNode, edge.from.port);
 				if (!upstreamPort) {
 					throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 				}

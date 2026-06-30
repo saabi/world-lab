@@ -19,8 +19,12 @@ function syncNodePorts(node: Node, primitive: NodePrimitive): Node {
 	};
 }
 
-function findPort(node: Node, portId: string): Port | undefined {
-	return [...node.inputs, ...node.outputs].find((port) => port.id === portId);
+function findInputPort(node: Node, portId: string): Port | undefined {
+	return node.inputs.find((port) => port.id === portId);
+}
+
+function findOutputPort(node: Node, portId: string): Port | undefined {
+	return node.outputs.find((port) => port.id === portId);
 }
 
 /** Rewire edges and graph outputs when a node has a single port and the ref is stale. */
@@ -31,10 +35,10 @@ export function repairStalePortRefs(doc: GraphDocument): GraphDocument {
 		const fromNode = doc.nodes.find((node) => node.id === from.node);
 		const toNode = doc.nodes.find((node) => node.id === to.node);
 
-		if (fromNode && !findPort(fromNode, from.port) && fromNode.outputs.length === 1) {
+		if (fromNode && !findOutputPort(fromNode, from.port) && fromNode.outputs.length === 1) {
 			from = { node: from.node, port: fromNode.outputs[0]!.id };
 		}
-		if (toNode && !findPort(toNode, to.port) && toNode.inputs.length === 1) {
+		if (toNode && !findInputPort(toNode, to.port) && toNode.inputs.length === 1) {
 			to = { node: to.node, port: toNode.inputs[0]!.id };
 		}
 
@@ -43,7 +47,7 @@ export function repairStalePortRefs(doc: GraphDocument): GraphDocument {
 
 	const outputs = doc.outputs.map((output) => {
 		const node = doc.nodes.find((candidate) => candidate.id === output.from.node);
-		if (node && !findPort(node, output.from.port) && node.outputs.length === 1) {
+		if (node && !findOutputPort(node, output.from.port) && node.outputs.length === 1) {
 			return {
 				...output,
 				from: { node: output.from.node, port: node.outputs[0]!.id }

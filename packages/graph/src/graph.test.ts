@@ -179,6 +179,36 @@ describe('@virtual-planet/graph IR', () => {
 		});
 	});
 
+	it('accepts edges from output ports that share a name with an input on the source node', () => {
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_mul',
+					primitive: 'vector.mulScalar.vec2f',
+					inputs: [
+						{ id: 'value', name: 'value', direction: 'in', dataType: 'vec2f' },
+						{ id: 'scalar', name: 'scalar', direction: 'in', dataType: 'f32' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec2f' }]
+				},
+				{
+					id: 'n_add',
+					primitive: 'vector.add.vec2f',
+					inputs: [
+						{ id: 'a', name: 'a', direction: 'in', dataType: 'vec2f' },
+						{ id: 'b', name: 'b', direction: 'in', dataType: 'vec2f' }
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec2f' }]
+				}
+			],
+			edges: [{ id: 'e_mul_add', from: { node: 'n_mul', port: 'value' }, to: { node: 'n_add', port: 'a' } }],
+			outputs: [],
+			consumers: []
+		};
+		expect(validateGraph(doc).ok).toBe(true);
+	});
+
 	it('rejects mismatched resource ports', () => {
 		const res = validateGraph(resourceGraph('mesh'));
 		expect(res.ok).toBe(false);

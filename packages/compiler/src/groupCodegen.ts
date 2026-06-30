@@ -322,9 +322,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						const edge = edges[0]!;
 						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
 						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
-							(p) => p.id === edge.from.port
-						);
+						const upstreamPort = upstreamNode.outputs.find((p) => p.id === edge.from.port);
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 						if (upstreamPort.dataType === 'storageBuffer') {
@@ -345,9 +343,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 					for (const edge of edges) {
 						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
 						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
-							(p) => p.id === edge.from.port
-						);
+						const upstreamPort = upstreamNode.outputs.find((p) => p.id === edge.from.port);
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 						const expr = portVar(edge.from.node, edge.from.port);
@@ -379,9 +375,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						// Connected upstream
 						const upstreamNode = subgraph.nodes.find((n) => n.id === edge.from.node);
 						if (!upstreamNode) throw new Error(`Unknown upstream node: ${edge.from.node}`);
-						const upstreamPort = [...upstreamNode.inputs, ...upstreamNode.outputs].find(
-							(p) => p.id === edge.from.port
-						);
+						const upstreamPort = upstreamNode.outputs.find((p) => p.id === edge.from.port);
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 						const expr = portVar(edge.from.node, edge.from.port);

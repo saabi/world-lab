@@ -6,6 +6,7 @@
 <script lang="ts">
 	import NodeSwapMenu from './NodeSwapMenu.svelte';
 	import { getGraphCanvasContext } from './graphCanvasContext.js';
+	import { inputHandleId, outputHandleId } from './portHandles.js';
 
 	let { id, data, selected }: NodeProps = $props();
 
@@ -85,7 +86,7 @@
 					<Handle
 						type="target"
 						position={Position.Left}
-						id={input.id}
+						id={inputHandleId(input.id)}
 						style="top: auto; position: relative; transform: none;"
 					/>
 					<span>{input.name}</span>
@@ -101,7 +102,7 @@
 					<Handle
 						type="source"
 						position={Position.Right}
-						id={output.id}
+						id={outputHandleId(output.id)}
 						style="top: auto; position: relative; transform: none;"
 					/>
 				</div>

@@ -21,8 +21,8 @@ export interface EvalGraphOptions {
 
 const RESOURCE_TYPES = new Set<DataType>(['image', 'mesh', 'audio']);
 
-function findPort(node: Node, portId: string) {
-	return [...node.inputs, ...node.outputs].find((port) => port.id === portId);
+function findOutputPort(node: Node, portId: string) {
+	return node.outputs.find((port) => port.id === portId);
 }
 
 function coerceInputValue(value: CpuValue, fromType: DataType, toType: DataType): CpuValue {
@@ -121,7 +121,7 @@ function evaluateNode(
 			throw new Error(`Unknown upstream node: ${edge.from.node}`);
 		}
 
-		const fromPort = findPort(fromNode, edge.from.port);
+		const fromPort = findOutputPort(fromNode, edge.from.port);
 		if (!fromPort) {
 			throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 		}
@@ -180,7 +180,7 @@ export function evaluateGraphOutput(
 		throw new Error(`Unknown output node: ${output.node}`);
 	}
 
-	const outputPort = findPort(outputNode, output.port);
+	const outputPort = findOutputPort(outputNode, output.port);
 	if (!outputPort || outputPort.direction !== 'out') {
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
