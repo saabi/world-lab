@@ -5,7 +5,7 @@
 	"description": "Typed Graph IR: nodes, ports (data + coordinate-space), validation, serialization.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/graph"
 	},
 	"type": "module",

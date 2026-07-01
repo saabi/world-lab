@@ -4,14 +4,15 @@
 workspace scripts, Changesets. **Depends on:** OS1 app layout migration.
 **Status:** ✅ Landed.
 
-> **Note on `repository` metadata:** the GitHub repo has **not** been renamed to `world-lab`
-> yet (this brief explicitly says not to do that here). All `repository.url` fields (root +
-> every package) point at the **current actual remote**,
-> `https://github.com/saabi/virtual_planet.git`, which is accurate today. **Expected follow-up
-> (external, not part of any brief):** once the GitHub repo is renamed to `world-lab`, do a
-> one-pass find/replace of that URL across `package.json` (root + `packages/*` + `apps/*`) —
-> GitHub's own redirect would keep old clones working, but the metadata should point at the
-> new canonical name.
+> **Note on `repository` metadata:** at initial landing, the GitHub repo had not yet been
+> renamed, so `repository.url` pointed at the then-current `saabi/virtual_planet`. The external
+> rename to `saabi/world-lab` has since happened; the follow-up is done — every
+> `repository.url` (root, all `packages/*`, both `apps/*`), the local git remote, and the one
+> live `**Repository:**` pointer in `_docs/specs/virtual_planet_architecture_plan.md` now read
+> `saabi/world-lab`. (Two apps — `apps/scene-editor`, `apps/webgputoy` — were also missing
+> `repository`/`description` entirely from the original OS2 pass; a script bug silently
+> skipped them since they had no `description` key to anchor the insertion on. Fixed in the
+> same pass.)
 
 ## Objective
 

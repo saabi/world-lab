@@ -5,7 +5,7 @@
 	"description": "Graph compiler: dependency slicing, WGSL codegen, module resolution, shader linking.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/compiler"
 	},
 	"type": "module",

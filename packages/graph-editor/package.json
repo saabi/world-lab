@@ -5,7 +5,7 @@
 	"description": "Reusable Svelte graph-editor components over the Typed Graph IR (no renderer logic).",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/graph-editor"
 	},
 	"type": "module",

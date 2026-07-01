@@ -5,7 +5,7 @@
 	"description": "Blender-style resizable pane layouts for Svelte 5 — layout tree engine ported from saabi/svelte-subdivide.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/subdivide"
 	},
 	"type": "module",

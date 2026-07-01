@@ -2,6 +2,12 @@
 	"name": "@virtual-planet/webgputoy-app",
 	"private": true,
 	"version": "0.0.0",
+	"description": "WebGPUToy — the standalone procedural-graph editor / WebGPU playground app.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/saabi/world-lab.git",
+		"directory": "apps/webgputoy"
+	},
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",

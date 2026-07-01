@@ -1,7 +1,7 @@
 # Virtual Planet Renderer — Architecture and Implementation Plan
 
 **Audience:** repository agents and implementation assistants  
-**Repository:** `saabi/virtual_planet`  
+**Repository:** `saabi/world-lab`  
 **Status:** Proposed architecture for next-stage renderer
 
 ---

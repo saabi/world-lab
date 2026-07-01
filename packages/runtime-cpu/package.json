@@ -5,7 +5,7 @@
 	"description": "CPU runtime: camera frustum, pointer/picking, resource sampling, CPU primitive evaluation.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/runtime-cpu"
 	},
 	"type": "module",

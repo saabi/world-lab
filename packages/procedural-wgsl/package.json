@@ -5,7 +5,7 @@
 	"description": "Standard library of reusable WGSL function modules (noise, terrain, vegetation, math).",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/procedural-wgsl"
 	},
 	"type": "module",

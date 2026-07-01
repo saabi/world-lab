@@ -2,6 +2,12 @@
 	"name": "@virtual-planet/scene-editor-app",
 	"private": true,
 	"version": "0.0.1",
+	"description": "Virtual Planet scene/solar-system editor — the active World Lab scene-editor app (SvelteKit, Svelte 5, WebGPU).",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/saabi/world-lab.git",
+		"directory": "apps/scene-editor"
+	},
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",

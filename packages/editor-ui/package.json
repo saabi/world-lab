@@ -5,7 +5,7 @@
 	"description": "Shared Svelte editor chrome and parameter controls (sections, tabs, sliders, checkboxes).",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/editor-ui"
 	},
 	"type": "module",

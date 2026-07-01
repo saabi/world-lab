@@ -5,7 +5,7 @@
 	"description": "MCP server exposing the Typed Graph IR to AI assistants (documents, sessions, compile, diagnostics).",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/saabi/virtual_planet.git",
+		"url": "https://github.com/saabi/world-lab.git",
 		"directory": "packages/mcp-server"
 	},
 	"type": "module",
