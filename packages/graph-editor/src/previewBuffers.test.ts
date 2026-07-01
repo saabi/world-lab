@@ -113,4 +113,43 @@ describe('enumeratePreviewBuffers', () => {
 		expect(imageBuffers).toHaveLength(1);
 		expect(imageBuffers[0]?.id).toBe('image');
 	});
+
+	it('lists one buffer per pipeline display target with distinct ids', () => {
+		const graph: GraphDocument = {
+			...cosinePaletteEffectGraph(),
+			outputs: [],
+			consumers: [],
+			nodes: [
+				...cosinePaletteEffectGraph().nodes,
+				{
+					id: 'n_display_b',
+					primitive: 'target.display',
+					inputs: [{ id: 'color', name: 'color', direction: 'in', dataType: 'texture' }],
+					outputs: []
+				}
+			],
+			edges: [
+				...cosinePaletteEffectGraph().edges,
+				{
+					id: 'e_fragment_display_b',
+					from: { node: 'n_fragment', port: 'texture' },
+					to: { node: 'n_display_b', port: 'color' }
+				}
+			]
+		};
+
+		const buffers = enumeratePreviewBuffers(graph);
+		const imageBuffers = buffers.filter((buffer) => buffer.family === 'image');
+		expect(imageBuffers).toHaveLength(2);
+		expect(new Set(imageBuffers.map((buffer) => buffer.id)).size).toBe(2);
+		expect(imageBuffers.map((buffer) => buffer.id).sort()).toEqual(['n_display', 'n_display_b']);
+		expect(resolvePreviewBufferPort(graph, imageBuffers[0]!)).toEqual({
+			node: 'n_effect',
+			port: 'color'
+		});
+		expect(resolvePreviewBufferPort(graph, imageBuffers[1]!)).toEqual({
+			node: 'n_effect',
+			port: 'color'
+		});
+	});
 });

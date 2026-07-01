@@ -59,24 +59,16 @@ function labelForNode(doc: GraphDocument, nodeId: string): string {
 	return node?.primitive ?? nodeId;
 }
 
-function isPipelineFieldOutput(doc: GraphDocument, from: PortRef): boolean {
-	return derivePipelinePresentations(doc).some(
-		(presentation) =>
-			presentation.fieldOutput.node === from.node && presentation.fieldOutput.port === from.port
-	);
-}
-
 function bufferFromOutput(doc: GraphDocument, name: string, from: PortRef): PreviewBuffer {
 	const dataType = (outputPortDataType(doc, from) ?? 'f32') as DataType;
-	const pipelineField = isPipelineFieldOutput(doc, from);
-	const family = pipelineField ? 'image' : previewFamily(dataType);
+	const family = previewFamily(dataType);
 	return {
 		id: name,
 		label: name,
 		source: from,
 		dataType,
 		family,
-		inferred: pipelineField ? true : dataType !== 'vec4f'
+		inferred: dataType !== 'vec4f'
 	};
 }
 
@@ -85,10 +77,14 @@ function bufferFromPipelineSink(
 	displayNodeId: string,
 	fieldOutput: PortRef | null
 ): PreviewBuffer {
+	const baseLabel = labelForNode(doc, displayNodeId);
+	const label = fieldOutput
+		? `${baseLabel} · ${fieldOutput.node}.${fieldOutput.port}`
+		: baseLabel;
 	if (fieldOutput) {
 		return {
 			id: displayNodeId,
-			label: labelForNode(doc, displayNodeId),
+			label,
 			source: fieldOutput,
 			dataType: 'vec4f',
 			family: 'image',
@@ -97,12 +93,20 @@ function bufferFromPipelineSink(
 	}
 	return {
 		id: displayNodeId,
-		label: labelForNode(doc, displayNodeId),
+		label,
 		source: { sinkNode: displayNodeId },
 		dataType: 'texture',
 		family: 'image',
 		inferred: true
 	};
+}
+
+function presentationCountForField(
+	presentations: ReturnType<typeof derivePipelinePresentations>,
+	fieldKey: string
+): number {
+	return presentations.filter((presentation) => portKey(presentation.fieldOutput) === fieldKey)
+		.length;
 }
 
 /** Map a port `DataType` to a preview family (exhaustive over the `DataType` union). */
@@ -144,27 +148,54 @@ export function allPreviewFamilyDataTypes(): readonly DataType[] {
 	return ALL_DATA_TYPES;
 }
 
-/** Declared graph outputs plus pipeline render-target sinks (deduped by source). */
+/** Declared value outputs plus one buffer per pipeline render-target sink. */
 export function enumeratePreviewBuffers(doc: GraphDocument): PreviewBuffer[] {
 	const buffers: PreviewBuffer[] = [];
-	const seenSources = new Set<string>();
+	const presentations = derivePipelinePresentations(doc);
+	const pipelineFieldKeys = new Set(presentations.map((presentation) => portKey(presentation.fieldOutput)));
 
+	const seenValueKeys = new Set<string>();
 	for (const output of effectiveOutputs(doc)) {
-		const key = portKey(output.from);
-		if (seenSources.has(key)) continue;
-		seenSources.add(key);
+		const fieldKey = portKey(output.from);
+		if (pipelineFieldKeys.has(fieldKey)) continue;
+		if (seenValueKeys.has(fieldKey)) continue;
+		seenValueKeys.add(fieldKey);
 		buffers.push(bufferFromOutput(doc, output.name, output.from));
 	}
 
-	const presentations = derivePipelinePresentations(doc);
+	const declaredPipelineOutputs = doc.outputs.filter((output) =>
+		pipelineFieldKeys.has(portKey(output.from))
+	);
+	const seenDeclaredNames = new Set<string>();
+	for (const output of declaredPipelineOutputs) {
+		const fieldKey = portKey(output.from);
+		if (presentationCountForField(presentations, fieldKey) > 1) continue;
+		if (seenDeclaredNames.has(output.name)) continue;
+		seenDeclaredNames.add(output.name);
+		buffers.push({
+			...bufferFromOutput(doc, output.name, output.from),
+			family: 'image',
+			inferred: true
+		});
+	}
+
+	const seenSinkIds = new Set<string>();
 	for (const node of doc.nodes) {
 		if (!isPipelineTarget(node)) continue;
+		if (seenSinkIds.has(node.id)) continue;
+		seenSinkIds.add(node.id);
+
 		const presentation = presentations.find((candidate) => candidate.displayNodeId === node.id);
-		const fieldOutput = presentation?.fieldOutput ?? null;
-		const key = fieldOutput ? portKey(fieldOutput) : `sink:${node.id}`;
-		if (seenSources.has(key)) continue;
-		seenSources.add(key);
-		buffers.push(bufferFromPipelineSink(doc, node.id, fieldOutput));
+		const fieldKey = presentation ? portKey(presentation.fieldOutput) : null;
+		if (
+			fieldKey &&
+			presentationCountForField(presentations, fieldKey) === 1 &&
+			declaredPipelineOutputs.some((output) => portKey(output.from) === fieldKey)
+		) {
+			continue;
+		}
+
+		buffers.push(bufferFromPipelineSink(doc, node.id, presentation?.fieldOutput ?? null));
 	}
 
 	return buffers;
