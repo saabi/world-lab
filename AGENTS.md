@@ -86,11 +86,19 @@ Default ownership for committing — so nothing is left untracked:
   (tests, modules, fixtures) — not just modified ones. Before setting a task `DONE`, run
   `git status` and confirm **no untracked or unstaged file inside your scope** remains; stage
   with `git add -A <your paths>`. A landed task whose new test is left untracked is **not done**.
-- **The orchestrator/architect** commits the **coordination & governance docs** it authors —
-  the briefs under `_docs/architecture/procedural-graph/briefs/`, `_TASK_BOARD.md`,
-  `briefs/README.md`, `_docs/pending_issues.md`, and design-doc edits — **at the time it writes
-  or routes them** (agents stay in their code scope and must not touch these). Don't leave
-  briefs uncommitted waiting on an agent.
+- **`_TASK_BOARD.md` is the one shared exception:** agents *do* edit it (claim by editing
+  `Claimed by:`; on landing, edit **your task's row only** to `Status: DONE <hash>`) and commit
+  that edit **in the same stage commit as your code** — never as a separate/later commit, never
+  left uncommitted. This is the *only* status marker for a task; it lives here, not in the
+  brief.
+- **Individual brief `.md` files, `briefs/README.md`, `_docs/pending_issues.md`, and other
+  design-doc edits are orchestrator-only, always** — agents must never edit or create these,
+  not even to add a status line to their own brief. (This split caused real drift once: an
+  agent would write `Status: DONE <hash>` into its brief's header, correctly not commit it per
+  this rule, and the edit would sit uncommitted for many turns until the orchestrator happened
+  to notice. Fix: that status lives on the board row instead, committed atomically with the
+  code — see above.) The orchestrator commits these files **at the time it writes or routes
+  them**; don't leave them uncommitted waiting on an agent.
 - **Local verification artifacts** (the `screenshots/` from visual gates, build caches,
   `tsconfig.tsbuildinfo`) are **gitignored**, never committed; paste visual-gate screenshots
   into the board/PR, not the repo.

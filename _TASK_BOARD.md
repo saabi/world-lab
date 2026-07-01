@@ -7,11 +7,17 @@ Protocol: claim the first UNCLAIMED task by editing its `Claimed by:` line; stay
 your `Owns:` files; the brief is the contract. **Gate = `check` AND `test`** for every
 package you touch (vitest alone is not enough — `tsc`/svelte-check must pass too), keep all
 prior tests green, and for WGSL output do a validity check. Commit your task as its own
-stage commit (**`git add -A` your scope incl. new test files — `git status` must show nothing
-untracked in your scope before `DONE`; the orchestrator commits briefs/board/README/pending_issues**);
-set `Status: DONE <hash>`. ⚠ visual tasks: paste a screenshot of the
+stage commit (`git add -A` your scope incl. new test files — `git status` must show nothing
+untracked in your scope before `DONE`). ⚠ visual tasks: paste a screenshot of the
 confirmed behaviour. PATH: `export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"`.
 Tabs; verbatimModuleSyntax. See `_docs/architecture/procedural-graph/execution-and-delegation.md` §Gate hardening.
+
+**Status/ownership split (no split responsibility on one edit):** `Status: DONE <hash>` is
+set **only on this file's row for your task**, in the **same stage commit** as your code —
+this file is the single place task status lives. **Never edit a standalone brief `.md` under
+`briefs/`** (not even a status line) — those are orchestrator-only, always, including marking
+them done; editing one there and not committing it (or vice versa) is exactly the drift this
+rule exists to prevent. The orchestrator commits briefs/README/pending_issues.
 
 Coordinate only on shared files (e.g. `GraphEditor.svelte`): note who owns the shared edit.
 The critical *dependency chain* stays serialized — never start a task whose prerequisite
