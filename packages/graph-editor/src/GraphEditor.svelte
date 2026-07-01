@@ -44,6 +44,8 @@
 		type PreviewBuffersByPane,
 		type PreviewPaneSelection
 	} from './previewPaneSelection.js';
+	import { createPreviewFrameLoop, type PreviewFrameLoop } from './previewFrameLoop.js';
+	import { planIndependentGraphFramePasses } from '@virtual-planet/runtime-webgpu';
 	import { listSampleArtifacts } from './samples.js';
 	import { formatValidationIssue, fullValidation } from './graphValidation.js';
 	import { computeGraphCompileSignature } from './graphCompileSignature.js';
@@ -79,6 +81,7 @@
 	let documentReadOnly = $state(false);
 	let documentRevision = $state(0);
 	let previewRefreshEpoch = $state(0);
+	let previewFrameLoop = $state<PreviewFrameLoop | null>(null);
 	let canvasFitView = $state<(() => void) | null>(null);
 	let codeViewActions = $state<CodeViewActions | null>(null);
 	let markupViewActions = $state<MarkupViewActions | null>(null);
@@ -138,6 +141,27 @@
 			previewRefreshEpoch++;
 		}, 150);
 		return () => clearTimeout(timer);
+	});
+
+	$effect(() => {
+		const doc = previewDoc;
+		const signature = compileSignature;
+		void previewRefreshEpoch;
+
+		if (planIndependentGraphFramePasses(doc).length === 0) {
+			previewFrameLoop?.destroy();
+			previewFrameLoop = null;
+			return;
+		}
+
+		const loop = createPreviewFrameLoop({ graph: doc, compileSignature: signature });
+		previewFrameLoop = loop;
+		return () => {
+			loop.destroy();
+			if (previewFrameLoop === loop) {
+				previewFrameLoop = null;
+			}
+		};
 	});
 
 	function syncPreviewSelectionsForGraph(doc: GraphDocument) {
@@ -561,6 +585,7 @@
 		buffers={previewBuffers}
 		selection={previewBuffersByPane[paneId]}
 		defaultBufferId={defaultPreviewBufferId}
+		frameLoop={previewFrameLoop}
 		refreshEpoch={previewRefreshEpoch}
 		{compileSignature}
 		onSelectionChange={(selection) => updatePreviewPaneSelection(paneId, selection)}

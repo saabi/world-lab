@@ -8,6 +8,8 @@ multi-output compile ✅, stage-entrypoints ✅ · **Supersedes:** `M-shared-pre
 [M-unified-preview-execution.md](./M-unified-preview-execution.md),
 [M-pass-graph-executor.md](./M-pass-graph-executor.md) · **Contract author:** Opus.
 
+**Status:** DONE `<hash>`
+
 ## Objective
 
 Replace per-pane independent shaders/loops with **one execution per frame**: a single loop runs

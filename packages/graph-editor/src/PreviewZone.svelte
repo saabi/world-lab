@@ -15,6 +15,7 @@
 		type PreviewFamily
 	} from './previewBuffers.js';
 	import { resolvePaneBufferId, type PreviewPaneSelection } from './previewPaneSelection.js';
+	import type { PreviewFrameLoop } from './previewFrameLoop.js';
 
 	interface Props {
 		paneId: string;
@@ -22,6 +23,7 @@
 		buffers: PreviewBuffer[];
 		selection: PreviewPaneSelection | undefined;
 		defaultBufferId: string | null;
+		frameLoop: PreviewFrameLoop | null;
 		refreshEpoch: number;
 		compileSignature: string;
 		onSelectionChange: (selection: PreviewPaneSelection) => void;
@@ -33,6 +35,7 @@
 		buffers,
 		selection,
 		defaultBufferId,
+		frameLoop,
 		refreshEpoch,
 		compileSignature,
 		onSelectionChange
@@ -135,8 +138,8 @@
 		<EffectPreviewPanel
 			{graph}
 			output={previewOutput}
-			refreshEpoch={refreshEpoch}
-			{compileSignature}
+			targetId={selectedBufferId}
+			{frameLoop}
 		/>
 	{:else if previewRenderer === 'audio'}
 		<AudioPreviewPanel

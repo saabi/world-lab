@@ -1,0 +1,36 @@
+import '@virtual-planet/graph';
+import { describe, expect, it, vi } from 'vitest';
+import { effectiveGraphDocument } from '@virtual-planet/graph';
+import { planIndependentGraphFramePasses } from '@virtual-planet/runtime-webgpu';
+
+import { animatedWorleyPipelineGraph } from './graphBuilders.js';
+
+const executeMock = vi.fn(async () => ({
+	width: 4,
+	height: 4,
+	targets: {
+		n_display: new Uint8Array(64),
+		n_target_display_1: new Uint8Array(64)
+	}
+}));
+
+vi.mock('@virtual-planet/runtime-webgpu', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@virtual-planet/runtime-webgpu')>();
+	return {
+		...actual,
+		requestGpuDevice: vi.fn(async () => ({ adapter: {}, device: {} as GPUDevice })),
+		GraphFrameExecutor: class {
+			execute = executeMock;
+		}
+	};
+});
+
+describe('single-loop preview integration', () => {
+	it('plans two independent targets for the Worley sample', () => {
+		const graph = effectiveGraphDocument(animatedWorleyPipelineGraph());
+		expect(planIndependentGraphFramePasses(graph).map((pass) => pass.targetId).sort()).toEqual([
+			'n_display',
+			'n_target_display_1'
+		]);
+	});
+});

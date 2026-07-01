@@ -1,32 +1,28 @@
 <script lang="ts">
 	import type { GraphDocument, PortRef } from '@virtual-planet/graph';
-	import {
-		PipelineGraphExecutor,
-		requestGpuDevice,
-		type ShaderToyHostInputs
-	} from '@virtual-planet/runtime-webgpu';
 
 	import { fullValidation, incompleteGraphMessage } from './graphValidation.js';
+	import {
+		blitPreviewPixels,
+		type PreviewFrameLoop,
+		type PreviewPointer
+	} from './previewFrameLoop.js';
 
 	interface Props {
 		graph: GraphDocument;
 		output: PortRef | null;
+		targetId: string | null;
+		frameLoop: PreviewFrameLoop | null;
 		size?: number;
-		refreshEpoch?: number;
-		compileSignature?: string;
 	}
 
-	let { graph, output, size = 256, refreshEpoch = 0, compileSignature = '' }: Props = $props();
+	let { graph, output, targetId, frameLoop, size = 256 }: Props = $props();
 
 	const blockMessage = $derived(incompleteGraphMessage(fullValidation(graph)));
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
-	let pointer = $state<[number, number, number, number]>([0, 0, 0, 0]);
-	let startTime = performance.now();
-
-	const webGpuAvailable =
-		typeof navigator !== 'undefined' && typeof navigator.gpu !== 'undefined';
+	let pointer = $state<PreviewPointer>([0, 0, 0, 0]);
 
 	function onPointerMove(event: PointerEvent) {
 		const target = event.currentTarget as HTMLElement;
@@ -35,94 +31,46 @@
 		const y = (event.clientY - rect.top) / rect.height;
 		const click = event.buttons > 0 ? 1 : 0;
 		pointer = [x, y, click, 0];
+		if (targetId && frameLoop) {
+			frameLoop.setPointer(targetId, pointer);
+		}
 	}
 
 	function onPointerDown(event: PointerEvent) {
 		onPointerMove(event);
-		pointer = [pointer[0], pointer[1], 1, 0];
 	}
 
 	function onPointerUp() {
 		pointer = [pointer[0], pointer[1], 0, 0];
+		if (targetId && frameLoop) {
+			frameLoop.setPointer(targetId, pointer);
+		}
 	}
 
 	$effect(() => {
-		void refreshEpoch;
-		void compileSignature;
 		void graph;
 		void output;
-		startTime = performance.now();
+		void targetId;
+		void frameLoop;
 
-		if (!canvas || !output || blockMessage) return;
-
-		if (!webGpuAvailable) {
-			statusMessage = 'WebGPU is not available in this browser.';
+		if (!canvas || !output || !targetId || !frameLoop || blockMessage) {
+			statusMessage = null;
 			return;
 		}
 
-		let cancelled = false;
-		let frame = 0;
-		let device: GPUDevice | null = null;
-		const executor = new PipelineGraphExecutor();
 		statusMessage = 'Rendering…';
-
-		void (async () => {
-			try {
-				const handle = await requestGpuDevice();
-				device = handle.device;
-				if (cancelled) return;
-				statusMessage = null;
-
-				const render = async () => {
-					if (cancelled || !device || !canvas || !output) return;
-
-					const host: ShaderToyHostInputs = {
-						iTime: (performance.now() - startTime) / 1000,
-						iFrame: frame++,
-						iMouse: pointer
-					};
-
-					try {
-						const result = await executor.execute({
-							device,
-							graph,
-							output,
-							width: size,
-							height: size,
-							host
-						});
-
-						const context = canvas.getContext('2d');
-						if (!context) return;
-
-						const image = context.createImageData(size, size);
-						image.data.set(result.pixels);
-						context.putImageData(image, 0, 0);
-					} catch (error) {
-						if (!cancelled) {
-							statusMessage =
-								error instanceof Error ? error.message : 'Effect preview failed.';
-						}
-						return;
-					}
-
-					requestAnimationFrame(() => {
-						void render();
-					});
-				};
-
-				void render();
-			} catch (error) {
-				if (!cancelled) {
-					statusMessage = error instanceof Error ? error.message : 'WebGPU init failed.';
-				}
+		const unsubscribe = frameLoop.subscribe((snapshot) => {
+			if (snapshot.error) {
+				statusMessage = snapshot.error;
+				return;
 			}
-		})();
+			const pixels = snapshot.targets[targetId];
+			if (!pixels || !canvas) return;
+			statusMessage = null;
+			blitPreviewPixels(canvas, snapshot.width, snapshot.height, pixels);
+		});
 
-		return () => {
-			cancelled = true;
-			device?.destroy();
-		};
+		return unsubscribe;
 	});
 </script>
 
@@ -136,13 +84,16 @@
 	onpointerleave={onPointerUp}
 >
 	<h2 class="title">Effect preview</h2>
+	<p class="hint">Animation clock is shared across preview panes; pointer is local to this pane.</p>
 	{#if blockMessage}
 		<p class="blocked">{blockMessage}</p>
-	{:else if output}
+	{:else if output && targetId && frameLoop}
 		<canvas bind:this={canvas} width={size} height={size} class="effect-canvas"></canvas>
 		{#if statusMessage}
 			<p class="status">{statusMessage}</p>
 		{/if}
+	{:else if output}
+		<p class="empty">Preview loop unavailable — wire a pipeline display target.</p>
 	{:else}
 		<p class="empty">Wire a vec4 image output with a fragment consumer.</p>
 	{/if}
@@ -163,6 +114,14 @@
 		align-self: flex-start;
 		font-size: 12px;
 		font-weight: 600;
+	}
+
+	.hint {
+		margin: 0;
+		align-self: flex-start;
+		font-size: 10px;
+		opacity: 0.55;
+		line-height: 1.35;
 	}
 
 	.effect-canvas {

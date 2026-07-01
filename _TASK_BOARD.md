@@ -25,16 +25,9 @@ _(none claimed — add tasks below as briefs are pinned.)_
 
 ## Ready to route
 
-- **Single-loop preview (frame-graph executor + panes as views)** — replace per-pane
-  independent shaders with ONE execution per frame: GPU frame executor runs all outputs each
-  frame (topological, shared uniforms) into target textures; panes become views (display a
-  texture, no per-pane shader/clock/loop). Phase 1 of `M-unified-preview-execution`; supersedes
-  the shared-clock stopgap. Scope: independent outputs (cross-target reads + feedback deferred).
-  Owns `runtime-webgpu` (frame executor, = `M-pass-graph-executor` GPU half), `graph-editor`
-  (loop + `PreviewZone`/`GraphEditor`). Bigger task — coordinate.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-single-loop-preview.md`  ·  Claimed by: UNCLAIMED
-
-  _(superseded: `M-shared-preview-clock.md` — one loop subsumes the shared clock; do not run)_
+- **Shared preview clock (synced uniforms)** — **SUPERSEDED** by `M-single-loop-preview.md`
+  (do not run). Brief kept for history:
+  `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`
 
 - **`geometry.plane` orientation + dimensions** (user-flagged) — add width/height + orientation
   params (defaults reproduce the current fullscreen quad); WGSL + evalCPU parity. Owns
@@ -97,3 +90,4 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 - **Independent output buffer per preview pane** — Subdivide passes pane id to zone snippets; `PreviewZone.svelte` + per-pane chrome (`previewBuffersByPane`) — `b73e6b3`
 - **Effect preview renders the selected output** — target-aware `planPipelineGraph` + `EffectPreviewPanel` forwards `output` — `628da75`
 - **Help/usage tooltips + drop SDF alias primitives** — inspector help/usage surfacing; removed `sdf.opUnion`/`opIntersect` — `5a17295`
+- **Single-loop preview (panes as views)** — `GraphFrameExecutor` + shared preview rAF loop; effect panes display frame textures — `<hash>`
