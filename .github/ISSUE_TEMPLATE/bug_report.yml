@@ -1,0 +1,54 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. World Lab is pre-1.0 — please check
+        `_docs/pending_issues.md` first in case it's already tracked.
+  - type: dropdown
+    id: app
+    attributes:
+      label: Where does this happen?
+      options:
+        - apps/scene-editor
+        - apps/webgputoy
+        - a packages/* library
+        - build/tooling (npm, vite, changesets, CI)
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser (and WebGPU support), Node version (`node -v`)
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / error messages
+      description: Paste any console errors (browser devtools or terminal) — please don't
+        include secrets or personal data.
+      render: shell
+    validations:
+      required: false

@@ -1,7 +1,11 @@
 # Brief OS3 - Public readiness, governance, and final cleanup
 
 **Type:** open-source readiness. **Scope:** README, roadmap, governance docs, CI,
-final cleanup. **Depends on:** OS1 and OS2. **Status:** draft.
+final cleanup. **Depends on:** OS1 and OS2. **Status:** ✅ Landed — **except** the "Final
+pre-public cleanup" section below, which is explicitly deferred (per its own text: "perform
+these only when the owner says the repo is ready to open" — that signal hasn't been given).
+Everything else landed: README/ROADMAP, both app READMEs, governance docs (CONTRIBUTING,
+SECURITY, CODE_OF_CONDUCT, PR template, issue templates), and `.github/workflows/ci.yml`.
 
 ## Objective
 

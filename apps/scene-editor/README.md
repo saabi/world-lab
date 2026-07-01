@@ -1,9 +1,15 @@
-# Virtual Planet (`fe/`)
+# Scene Editor
 
-SvelteKit 2 + Svelte 5 (runes) + TypeScript + WebGPU.
+Part of [World Lab](../../README.md). SvelteKit 2 + Svelte 5 (runes) + TypeScript + WebGPU.
+The current scene / solar-system / planet-renderer app — its renderer subsystem is named
+**Virtual Planet**; a public product name for the app itself is still open.
 
-Primary routes: **`/scene`** (editor + renderer), **`/solar-systems`** (SunDog).  
+Primary routes: **`/scene`** (editor + renderer), **`/solar-systems`** (SunDog galaxy map).
 `/planet` and `/old` redirect to `/scene` (retired).
+
+**Public deployment domain:** not yet finalized (see [ROADMAP](../../ROADMAP.md)).
+
+## Local development
 
 ```sh
 npm run dev
@@ -46,8 +52,28 @@ The Node server listens on `PORT` (default `3000`) and `HOST` (default `0.0.0.0`
 From the repo root:
 
 ```sh
-cd fe && npm run build
-pm2 start ../ecosystem.config.cjs
+cd apps/scene-editor && npm run build
+pm2 start ../../ecosystem.config.cjs
 ```
 
 Set `ORIGIN`, `PUBLIC_SITE_URL`, `PUBLIC_UMAMI_SRC`, and `PUBLIC_UMAMI_WEBSITE_ID` in the PM2 environment (or in `.env` before build) for production analytics and canonical URLs.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## Current limitations
+
+- Camera near/far planes don't yet account for all objects visible on screen (see
+  `_docs/pending_issues.md`).
+- The planet can disappear when close to the surface and looking up (near/far or fog
+  interaction; tracked in `_docs/pending_issues.md`).
+- The public product name and deployment domain are still open.
+
+## Roadmap
+
+Mid-term, this app's shaping pipeline is intended to migrate onto the procedural-graph
+engine (`@virtual-planet/graph` + friends, currently developed in `apps/webgputoy`)
+incrementally — gated so the live rendering gates here never regress. See the root
+[ROADMAP.md](../../ROADMAP.md) and `AGENTS.md`'s wave-integration rules for the gate
+checklist this app's changes are held to.

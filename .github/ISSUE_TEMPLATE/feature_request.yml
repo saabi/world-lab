@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        World Lab is pre-1.0 and moving fast — check `ROADMAP.md` to see if this is already
+        planned, and please open this before starting substantial work on it yourself.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does this apply?
+      options:
+        - apps/scene-editor
+        - apps/webgputoy
+        - a packages/* library (procedural-graph engine)
+        - documentation / governance
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What can't you do today that this would let you do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch it out if you have one in mind — not required.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

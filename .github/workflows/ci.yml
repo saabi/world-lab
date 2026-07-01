@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main, next]
+  pull_request:
+    branches: [main, next]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/scene-editor/.nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check --workspaces --if-present
+
+      - run: npm run test --workspaces --if-present
+
+      - run: npm run build --workspaces --if-present
