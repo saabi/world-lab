@@ -228,6 +228,46 @@ export const VECTOR_MIX_VEC2F_MODULE = vectorModule('vector.mix.vec2f', VECTOR_M
 export const VECTOR_MIX_VEC3F_MODULE = vectorModule('vector.mix.vec3f', VECTOR_MIX_VEC3F_SOURCE);
 export const VECTOR_MIX_VEC4F_MODULE = vectorModule('vector.mix.vec4f', VECTOR_MIX_VEC4F_SOURCE);
 
+export const VECTOR_COMBINE_VEC2F_F32_SOURCE = `fn combineVec2fF32(xy: vec2<f32>, z: f32) -> vec3<f32> {
+	return vec3<f32>(xy, z);
+}`;
+
+export const VECTOR_COMBINE_VEC3F_F32_SOURCE = `fn combineVec3fF32(xyz: vec3<f32>, w: f32) -> vec4<f32> {
+	return vec4<f32>(xyz, w);
+}`;
+
+export const VECTOR_COMBINE_VEC2F_F32_F32_SOURCE = `fn combineVec2fF32F32(xy: vec2<f32>, z: f32, w: f32) -> vec4<f32> {
+	return vec4<f32>(xy, z, w);
+}`;
+
+export const VECTOR_COMBINE_VEC2F_VEC2F_SOURCE = `fn combineVec2fVec2f(xy: vec2<f32>, zw: vec2<f32>) -> vec4<f32> {
+	return vec4<f32>(xy, zw);
+}`;
+
+export const VECTOR_COMBINE_VEC2F_F32_MODULE = vectorModule(
+	'vector.combine.vec2f_f32',
+	VECTOR_COMBINE_VEC2F_F32_SOURCE
+);
+export const VECTOR_COMBINE_VEC3F_F32_MODULE = vectorModule(
+	'vector.combine.vec3f_f32',
+	VECTOR_COMBINE_VEC3F_F32_SOURCE
+);
+export const VECTOR_COMBINE_VEC2F_F32_F32_MODULE = vectorModule(
+	'vector.combine.vec2f_f32_f32',
+	VECTOR_COMBINE_VEC2F_F32_F32_SOURCE
+);
+export const VECTOR_COMBINE_VEC2F_VEC2F_MODULE = vectorModule(
+	'vector.combine.vec2f_vec2f',
+	VECTOR_COMBINE_VEC2F_VEC2F_SOURCE
+);
+
+export const VECTOR_COMBINE_MODULES = [
+	VECTOR_COMBINE_VEC2F_F32_MODULE,
+	VECTOR_COMBINE_VEC3F_F32_MODULE,
+	VECTOR_COMBINE_VEC2F_F32_F32_MODULE,
+	VECTOR_COMBINE_VEC2F_VEC2F_MODULE
+] as const;
+
 export const VECTOR_MATH_MODULES = [
 	VECTOR_ADD_VEC2F_MODULE,
 	VECTOR_ADD_VEC3F_MODULE,

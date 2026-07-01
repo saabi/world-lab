@@ -101,7 +101,8 @@ import {
 	VECTOR_VEC4F_X_MODULE,
 	VECTOR_VEC4F_Y_MODULE,
 	VECTOR_VEC4F_Z_MODULE,
-	VECTOR_MATH_MODULES
+	VECTOR_MATH_MODULES,
+	VECTOR_COMBINE_MODULES
 } from './vector/index.js';
 
 function copyModule(mod: {
@@ -204,7 +205,8 @@ export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[VECTOR_VEC4F_Y_MODULE.id]: copyModule(VECTOR_VEC4F_Y_MODULE),
 	[VECTOR_VEC4F_Z_MODULE.id]: copyModule(VECTOR_VEC4F_Z_MODULE),
 	[VECTOR_VEC4F_W_MODULE.id]: copyModule(VECTOR_VEC4F_W_MODULE),
-	...Object.fromEntries(VECTOR_MATH_MODULES.map((mod) => [mod.id, copyModule(mod)]))
+	...Object.fromEntries(VECTOR_MATH_MODULES.map((mod) => [mod.id, copyModule(mod)])),
+	...Object.fromEntries(VECTOR_COMBINE_MODULES.map((mod) => [mod.id, copyModule(mod)]))
 };
 
 export {
@@ -291,7 +293,8 @@ export {
 	VECTOR_VEC4F_X_MODULE,
 	VECTOR_VEC4F_Y_MODULE,
 	VECTOR_VEC4F_Z_MODULE,
-	VECTOR_MATH_MODULES
+	VECTOR_MATH_MODULES,
+	VECTOR_COMBINE_MODULES
 };
 
 export { MATH_ABS_SOURCE } from './math/abs.js';
@@ -392,5 +395,9 @@ export {
 	VECTOR_VEC4F_W_SOURCE,
 	VECTOR_VEC4F_X_SOURCE,
 	VECTOR_VEC4F_Y_SOURCE,
-	VECTOR_VEC4F_Z_SOURCE
+	VECTOR_VEC4F_Z_SOURCE,
+	VECTOR_COMBINE_VEC2F_F32_SOURCE,
+	VECTOR_COMBINE_VEC3F_F32_SOURCE,
+	VECTOR_COMBINE_VEC2F_F32_F32_SOURCE,
+	VECTOR_COMBINE_VEC2F_VEC2F_SOURCE
 } from './vector/index.js';

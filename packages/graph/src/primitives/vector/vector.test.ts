@@ -167,4 +167,55 @@ describe('vector utility primitives', () => {
 			})
 		).toEqual({ value: [2.5, 12.5, 25] });
 	});
+
+	it('combines smaller vectors and scalars into larger vectors', () => {
+		expect(
+			getPrimitive('vector.combine.vec2f_f32')!.evalCPU!({
+				inputs: { xy: [1, 2], z: 3 },
+				params: {}
+			})
+		).toEqual({ value: [1, 2, 3] });
+		expect(
+			getPrimitive('vector.combine.vec2f_f32')!.evalCPU!({
+				inputs: { xy: [1, 2] },
+				params: {}
+			})
+		).toEqual({ value: [1, 2, 0] });
+		expect(
+			getPrimitive('vector.combine.vec3f_f32')!.evalCPU!({
+				inputs: { xyz: [1, 2, 3], w: 0.5 },
+				params: {}
+			})
+		).toEqual({ value: [1, 2, 3, 0.5] });
+		expect(
+			getPrimitive('vector.combine.vec3f_f32')!.evalCPU!({
+				inputs: { xyz: [1, 2, 3] },
+				params: {}
+			})
+		).toEqual({ value: [1, 2, 3, 1] });
+		expect(
+			getPrimitive('vector.combine.vec2f_f32_f32')!.evalCPU!({
+				inputs: { xy: [4, 5], z: 6, w: 7 },
+				params: {}
+			})
+		).toEqual({ value: [4, 5, 6, 7] });
+		expect(
+			getPrimitive('vector.combine.vec2f_vec2f')!.evalCPU!({
+				inputs: { xy: [1, 2], zw: [3, 4] },
+				params: {}
+			})
+		).toEqual({ value: [1, 2, 3, 4] });
+	});
+
+	it('declares port defaults on combine appended scalars', () => {
+		expect(getPrimitive('vector.combine.vec3f_f32')!.inputs).toEqual(
+			expect.arrayContaining([
+				{ name: 'xyz', dataType: 'vec3f' },
+				{ name: 'w', dataType: 'f32', default: 1 }
+			])
+		);
+		expect(getPrimitive('vector.combine.vec2f_f32')!.inputs).toEqual(
+			expect.arrayContaining([{ name: 'z', dataType: 'f32', default: 0 }])
+		);
+	});
 });

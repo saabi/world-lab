@@ -278,4 +278,26 @@ describe('@virtual-planet/runtime-webgpu emitGraphScalarEval', () => {
 		const emitted = emitGraphVec4Eval(graph, { node: 'n_vec4', port: 'value' });
 		expect(emitted.body.join('\n')).toContain('makeVec4f(0.0, 0.0, 0.0, 1.0)');
 	});
+
+	it('emits combineVec3fF32 for vector.combine.vec3f_f32', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [
+				snapshotNode('n_xyz', 'vector.vec3f'),
+				snapshotNode('n_combine', 'vector.combine.vec3f_f32')
+			],
+			edges: [
+				{
+					id: 'e_xyz',
+					from: { node: 'n_xyz', port: 'value' },
+					to: { node: 'n_combine', port: 'xyz' }
+				}
+			],
+			outputs: [{ name: 'color', from: { node: 'n_combine', port: 'value' } }],
+			consumers: []
+		};
+
+		const emitted = emitGraphVec4Eval(graph, { node: 'n_combine', port: 'value' });
+		expect(emitted.body.join('\n')).toContain('combineVec3fF32(v_n_xyz_value, 1.0)');
+	});
 });

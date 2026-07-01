@@ -289,6 +289,126 @@ function mixPrimitive(inputType: VectorType, size: number): NodePrimitive {
 	};
 }
 
+function scalarInput(inputs: Record<string, unknown>, name: string, defaultValue: number): number {
+	const value = inputs[name];
+	return value === undefined || value === null ? defaultValue : Number(value);
+}
+
+function combineVec2fF32Primitive(): NodePrimitive {
+	return {
+		id: 'vector.combine.vec2f_f32',
+		category: 'vector',
+		inputs: [
+			{ name: 'xy', dataType: 'vec2f' },
+			{ name: 'z', dataType: 'f32', default: 0 }
+		],
+		outputs: [{ name: 'value', dataType: 'vec3f' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: 'vector.combine.vec2f_f32', entry: 'combineVec2fF32' },
+		metadata: {
+			description: 'Append a scalar to vec2f → vec3f.',
+			help: 'Combine xy + z into vec3f; unconnected z defaults to 0.',
+			keywords: ['append', 'combine', 'concat', 'promote'],
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const xy = vectorValues(ctx.inputs.xy, 2);
+			const z = scalarInput(ctx.inputs, 'z', 0);
+			return { value: [xy[0]!, xy[1]!, z] };
+		}
+	};
+}
+
+function combineVec3fF32Primitive(): NodePrimitive {
+	return {
+		id: 'vector.combine.vec3f_f32',
+		category: 'vector',
+		inputs: [
+			{ name: 'xyz', dataType: 'vec3f' },
+			{ name: 'w', dataType: 'f32', default: 1 }
+		],
+		outputs: [{ name: 'value', dataType: 'vec4f' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: 'vector.combine.vec3f_f32', entry: 'combineVec3fF32' },
+		metadata: {
+			description: 'Append a scalar to vec3f → vec4f.',
+			help: 'Combine xyz + w into vec4f; unconnected w defaults to 1 (opaque/homogeneous).',
+			keywords: ['append', 'combine', 'concat', 'promote', 'homogeneous'],
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const xyz = vectorValues(ctx.inputs.xyz, 3);
+			const w = scalarInput(ctx.inputs, 'w', 1);
+			return { value: [xyz[0]!, xyz[1]!, xyz[2]!, w] };
+		}
+	};
+}
+
+function combineVec2fF32F32Primitive(): NodePrimitive {
+	return {
+		id: 'vector.combine.vec2f_f32_f32',
+		category: 'vector',
+		inputs: [
+			{ name: 'xy', dataType: 'vec2f' },
+			{ name: 'z', dataType: 'f32', default: 0 },
+			{ name: 'w', dataType: 'f32', default: 1 }
+		],
+		outputs: [{ name: 'value', dataType: 'vec4f' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: 'vector.combine.vec2f_f32_f32', entry: 'combineVec2fF32F32' },
+		metadata: {
+			description: 'Build vec4f from vec2f + two scalars.',
+			help: 'Combine xy + z + w; unconnected z defaults to 0, w to 1.',
+			keywords: ['append', 'combine', 'concat', 'promote', 'homogeneous'],
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const xy = vectorValues(ctx.inputs.xy, 2);
+			const z = scalarInput(ctx.inputs, 'z', 0);
+			const w = scalarInput(ctx.inputs, 'w', 1);
+			return { value: [xy[0]!, xy[1]!, z, w] };
+		}
+	};
+}
+
+function combineVec2fVec2fPrimitive(): NodePrimitive {
+	return {
+		id: 'vector.combine.vec2f_vec2f',
+		category: 'vector',
+		inputs: [
+			{ name: 'xy', dataType: 'vec2f' },
+			{ name: 'zw', dataType: 'vec2f' }
+		],
+		outputs: [{ name: 'value', dataType: 'vec4f' }],
+		params: Type.Object({}),
+		wgsl: { moduleId: 'vector.combine.vec2f_vec2f', entry: 'combineVec2fVec2f' },
+		metadata: {
+			description: 'Concatenate two vec2f values → vec4f.',
+			help: 'Combine xy and zw into vec4f (xyzw).',
+			keywords: ['append', 'combine', 'concat'],
+			pure: true,
+			deterministic: true
+		},
+		evalCPU(ctx) {
+			const xy = vectorValues(ctx.inputs.xy, 2);
+			const zw = vectorValues(ctx.inputs.zw, 2);
+			return { value: [xy[0]!, xy[1]!, zw[0]!, zw[1]!] };
+		}
+	};
+}
+
+function combinePrimitives(): NodePrimitive[] {
+	return [
+		combineVec2fF32Primitive(),
+		combineVec3fF32Primitive(),
+		combineVec2fF32F32Primitive(),
+		combineVec2fVec2fPrimitive()
+	];
+}
+
 function vectorMathPrimitives(): NodePrimitive[] {
 	const primitives: NodePrimitive[] = [];
 	for (const { type, size } of VECTOR_SPECS) {
@@ -320,6 +440,7 @@ const primitives = [
 	componentPrimitive('vector.vec4f.y', 'vec4f', 'y', 1),
 	componentPrimitive('vector.vec4f.z', 'vec4f', 'z', 2),
 	componentPrimitive('vector.vec4f.w', 'vec4f', 'w', 3),
+	...combinePrimitives(),
 	...vectorMathPrimitives()
 ];
 
