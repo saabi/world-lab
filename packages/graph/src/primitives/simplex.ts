@@ -137,6 +137,11 @@ const simplex: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'noise.simplex', entry: 'simplex3d' },
+	metadata: {
+		help: 'Simplex noise in 3D — faster and less directional bias than Perlin.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
 		const value = evalSimplex3d(position[0], position[1], position[2]);

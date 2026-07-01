@@ -18,7 +18,10 @@ const fineTextureNoise: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.fineTextureNoise', entry: 'fineTextureNoise' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'High-frequency noise for fine planetary surface detail.'
+	}
 };
 
 registerPrimitive(fineTextureNoise);

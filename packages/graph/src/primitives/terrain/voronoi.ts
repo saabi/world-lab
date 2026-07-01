@@ -19,7 +19,10 @@ const voronoi: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.voronoi', entry: 'voronoi' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: '3D Voronoi feature on unit-sphere direction for terrain macro structure.'
+	}
 };
 
 registerPrimitive(voronoi);

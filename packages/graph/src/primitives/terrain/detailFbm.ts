@@ -17,7 +17,10 @@ const detailFbm: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.detailFbm', entry: 'detailFbm' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'Detail-scale FBM layer for fine surface texture.'
+	}
 };
 
 registerPrimitive(detailFbm);

@@ -39,7 +39,10 @@ const biomeMaterial: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.biomeMaterial', entry: 'biomeMaterial' },
-	metadata: { keywords: ['Domain', 'Material'] }
+	metadata: {
+		keywords: ['Domain', 'Material'],
+		help: 'Biome-driven albedo and roughness from height, slope, and noise samples.'
+	}
 };
 
 registerPrimitive(biomeMaterial);

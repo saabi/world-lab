@@ -21,6 +21,11 @@ const gain: NodePrimitive = {
 		gain: quantity('none', { default: 0.5, min: 0.001, max: 0.999 })
 	}),
 	wgsl: { moduleId: 'math.gain', entry: 'gain' },
+	metadata: {
+		help: 'Perlin gain curve — increases or decreases contrast around 0.5.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		const amount = ctx.params.gain as number;

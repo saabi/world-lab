@@ -16,7 +16,12 @@ const srgbToLinear: NodePrimitive = {
 	outputs: [{ name: 'linear', dataType: 'vec3f' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'color.srgbToLinear', entry: 'srgbToLinear' },
-	metadata: { keywords: ['Effects', 'Colour'], pure: true, deterministic: true },
+	metadata: {
+		keywords: ['Effects', 'Colour'],
+		pure: true,
+		deterministic: true,
+		help: 'Fast sRGB gamma decode (power 2.2) to linear RGB.'
+	},
 	evalCPU(ctx) {
 		const srgb = ctx.inputs.srgb as number[];
 		return { linear: evalSrgbToLinear(srgb as [number, number, number]) };

@@ -18,7 +18,10 @@ const polarTerm: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.polarTerm', entry: 'polarTerm' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'Polar-cap latitude shaping term for planetary height.'
+	}
 };
 
 registerPrimitive(polarTerm);

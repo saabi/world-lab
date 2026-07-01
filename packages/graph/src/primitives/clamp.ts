@@ -13,6 +13,11 @@ const clamp: NodePrimitive = {
 		max: quantity('none', { default: 1 })
 	}),
 	wgsl: { moduleId: 'math.clamp', entry: 'clamp' },
+	metadata: {
+		help: 'Clamp x to the [min, max] interval.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		const min = ctx.params.min as number;

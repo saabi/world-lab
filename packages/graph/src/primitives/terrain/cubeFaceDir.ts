@@ -40,7 +40,10 @@ const cubeFaceDir: NodePrimitive = {
 		face: Type.Integer({ minimum: 0, maximum: 5, default: 0 })
 	}),
 	wgsl: { moduleId: 'surface.cubeFaceDir', entry: 'cubeFaceDir' },
-	metadata: { keywords: ['Domain', 'Surface'] },
+	metadata: {
+		keywords: ['Domain', 'Surface'],
+		help: 'Unit direction on the sphere for a cube-face index and UV.'
+	},
 	evalCPU(ctx) {
 		const uv = ctx.inputs.uv as number[];
 		const face = ctx.params.face as number;

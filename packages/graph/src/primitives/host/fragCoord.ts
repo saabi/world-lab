@@ -10,7 +10,10 @@ const fragCoord: NodePrimitive = {
 	outputs: [{ name: 'coord', dataType: 'vec2f', metadata: { semantic: 'pixel' } }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'host.fragCoord', entry: 'frag_coord' },
-	metadata: { keywords: ['Inputs', 'ShaderToy'] },
+	metadata: {
+		keywords: ['Inputs', 'ShaderToy'],
+		help: 'Fragment pixel coordinates (ShaderToy fragCoord / iMouse.xy).'
+	},
 	evalCPU(ctx) {
 		const coord = ctx.procedural?.fragCoord;
 		if (!coord) {

@@ -91,6 +91,11 @@ const perlin3dPrimitive: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'noise.perlin3d', entry: 'perlin3d' },
+	metadata: {
+		help: 'Classic gradient Perlin noise in 3D.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
 		const value = evalPerlin3d(position[0], position[1], position[2]);

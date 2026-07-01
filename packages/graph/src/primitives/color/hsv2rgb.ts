@@ -44,7 +44,12 @@ const hsv2rgb: NodePrimitive = {
 		v: quantity('none', { default: 1, min: 0, max: 1 })
 	}),
 	wgsl: { moduleId: 'color.hsv2rgb', entry: 'hsv2rgb' },
-	metadata: { keywords: ['Effects', 'Colour'], pure: true, deterministic: true },
+	metadata: {
+		keywords: ['Effects', 'Colour'],
+		pure: true,
+		deterministic: true,
+		help: 'Convert HSV (h,s,v each 0–1) to RGB.'
+	},
 	evalCPU(ctx) {
 		const h = ctx.params.h as number;
 		const s = ctx.params.s as number;

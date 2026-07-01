@@ -15,6 +15,11 @@ const remap: NodePrimitive = {
 		outMax: quantity('none', { default: 1 })
 	}),
 	wgsl: { moduleId: 'math.remap', entry: 'remap' },
+	metadata: {
+		help: 'Linearly map x from [inMin, inMax] to [outMin, outMax].',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		const inMin = ctx.params.inMin as number;

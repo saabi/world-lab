@@ -10,6 +10,9 @@ const metricPosition: NodePrimitive = {
 	outputs: [{ name: 'position', dataType: 'vec3f', space: 'none' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'procedural.metricPosition', entry: 'metricPosition' },
+	metadata: {
+		help: 'World/metric position from the procedural evaluation context.'
+	},
 	evalCPU(ctx) {
 		const position = ctx.procedural?.metricPosition;
 		if (position === undefined || !Array.isArray(position) || position.length < 3) {

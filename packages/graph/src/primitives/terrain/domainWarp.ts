@@ -17,7 +17,10 @@ const domainWarp: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.domainWarp', entry: 'domainWarp' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'Domain-warp terrain coordinates by offset noise.'
+	}
 };
 
 registerPrimitive(domainWarp);

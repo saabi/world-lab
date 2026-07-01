@@ -24,7 +24,10 @@ const normalEstimator: NodePrimitive = {
 		erosion: Type.Number({ default: 1 })
 	}),
 	wgsl: { moduleId: 'terrain.normalEstimator', entry: 'normalEstimator' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'Estimate surface normal from neighboring height samples.'
+	}
 };
 
 registerPrimitive(normalEstimator);

@@ -13,6 +13,11 @@ const plane: NodePrimitive = {
 	],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'surface.plane', entry: 'plane' },
+	metadata: {
+		help: 'Map UV to a flat Z-facing plane position and normal in [-1,1]².',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const uv = ctx.inputs.uv as number[];
 		const u = uv[0];

@@ -13,7 +13,10 @@ const worldNormal: NodePrimitive = {
 	outputs: [{ name: 'normal', dataType: 'vec3f', space: 'world_dir' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'terrain.worldNormal', entry: 'worldNormal' },
-	metadata: { keywords: ['Domain', 'Terrain'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'World-space shading normal derived from body direction.'
+	}
 };
 
 registerPrimitive(worldNormal);

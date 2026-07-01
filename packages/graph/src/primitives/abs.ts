@@ -10,6 +10,11 @@ const abs: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'math.abs', entry: 'abs' },
+	metadata: {
+		help: 'Absolute value |x|.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		return { value: Math.abs(x) };

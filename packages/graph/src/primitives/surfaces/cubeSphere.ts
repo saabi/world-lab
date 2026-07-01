@@ -45,6 +45,11 @@ const cubeSphere: NodePrimitive = {
 		face: Type.Integer({ minimum: 0, maximum: 5, default: 0 })
 	}),
 	wgsl: { moduleId: 'surface.cubeSphere', entry: 'cubeSphere' },
+	metadata: {
+		help: 'Map UV on a cube face (0–5) to a normalized sphere position and normal.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const uv = ctx.inputs.uv as number[];
 		const face = ctx.params.face as number;

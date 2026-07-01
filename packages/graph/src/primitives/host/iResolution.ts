@@ -10,7 +10,10 @@ const iResolution: NodePrimitive = {
 	outputs: [{ name: 'resolution', dataType: 'vec2f', metadata: { semantic: 'target-resolution' } }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'host.iResolution', entry: 'i_resolution' },
-	metadata: { keywords: ['Inputs', 'ShaderToy'] },
+	metadata: {
+		keywords: ['Inputs', 'ShaderToy'],
+		help: 'Render target resolution in pixels (ShaderToy iResolution).'
+	},
 	evalCPU(ctx) {
 		const resolution = ctx.procedural?.iResolution;
 		if (!resolution) {

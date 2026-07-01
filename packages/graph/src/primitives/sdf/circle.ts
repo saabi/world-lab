@@ -16,7 +16,12 @@ const circle: NodePrimitive = {
 		radius: quantity('none', { default: 1 })
 	}),
 	wgsl: { moduleId: 'sdf.circle', entry: 'sdfCircle' },
-	metadata: { keywords: ['Geometry', 'SDF'], pure: true, deterministic: true },
+	metadata: {
+		keywords: ['Geometry', 'SDF'],
+		pure: true,
+		deterministic: true,
+		help: '2D signed distance to a circle; radius param sets radius.'
+	},
 	evalCPU(ctx) {
 		const p = ctx.inputs.p as number[];
 		const radius = ctx.params.radius as number;

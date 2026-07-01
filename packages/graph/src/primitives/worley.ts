@@ -45,6 +45,11 @@ const worley: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'noise.worley', entry: 'worley' },
+	metadata: {
+		help: '3D Worley/cellular distance noise.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
 		const value = evalWorley3d(position[0], position[1], position[2]);

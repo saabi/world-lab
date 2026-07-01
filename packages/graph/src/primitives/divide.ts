@@ -13,6 +13,11 @@ const divide: NodePrimitive = {
 	outputs: [{ name: 'value', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'math.divide', entry: 'divide' },
+	metadata: {
+		help: 'Quotient of two scalars: a / b.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const a = ctx.inputs.a as number;
 		const b = ctx.inputs.b as number;

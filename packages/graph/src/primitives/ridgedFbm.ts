@@ -43,6 +43,11 @@ const ridgedFbm: NodePrimitive = {
 		offset: quantity('none', { default: 1.0, min: 0, max: 2 })
 	}),
 	wgsl: { moduleId: 'noise.ridgedFbm', entry: 'ridgedFbm' },
+	metadata: {
+		help: 'Ridged multifractal FBM — sharp ridges suited to terrain features.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
 		const octaves = ctx.params.octaves as number;

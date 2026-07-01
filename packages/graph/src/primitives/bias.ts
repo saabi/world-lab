@@ -17,6 +17,11 @@ const bias: NodePrimitive = {
 		bias: quantity('none', { default: 0.5, min: 0.001, max: 0.999 })
 	}),
 	wgsl: { moduleId: 'math.bias', entry: 'bias' },
+	metadata: {
+		help: 'Perlin bias curve — shifts values toward 0 or 1.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		const amount = ctx.params.bias as number;

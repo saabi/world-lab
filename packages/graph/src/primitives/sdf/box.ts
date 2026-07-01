@@ -19,7 +19,12 @@ const box: NodePrimitive = {
 		halfY: quantity('none', { default: 0.5 })
 	}),
 	wgsl: { moduleId: 'sdf.box', entry: 'sdfBox' },
-	metadata: { keywords: ['Geometry', 'SDF'], pure: true, deterministic: true },
+	metadata: {
+		keywords: ['Geometry', 'SDF'],
+		pure: true,
+		deterministic: true,
+		help: '2D signed distance to an axis-aligned box; halfX/halfY set half-extents.'
+	},
 	evalCPU(ctx) {
 		const p = ctx.inputs.p as number[];
 		return {

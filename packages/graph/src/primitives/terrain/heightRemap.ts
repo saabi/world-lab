@@ -45,7 +45,10 @@ const heightRemap: NodePrimitive = {
 		radius: planetRadiusParam
 	}),
 	wgsl: { moduleId: 'terrain.heightRemap', entry: 'heightRemap' },
-	metadata: { keywords: ['Domain', 'Terrain'] },
+	metadata: {
+		keywords: ['Domain', 'Terrain'],
+		help: 'Combine Voronoi macro height and detail noise into world radius with water level and erosion.'
+	},
 	evalCPU(ctx) {
 		const vor = ctx.inputs.vor as number[];
 		const detail = ctx.inputs.detail as number;

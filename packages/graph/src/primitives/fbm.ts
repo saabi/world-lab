@@ -36,6 +36,11 @@ const fbm: NodePrimitive = {
 		lacunarity: quantity('none', { default: 2.0, min: 1, max: 4 })
 	}),
 	wgsl: { moduleId: 'noise.fbm', entry: 'fbm' },
+	metadata: {
+		help: 'Fractional Brownian motion — stacked Perlin octaves with persistence and lacunarity.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const position = ctx.inputs.position as number[];
 		const octaves = ctx.params.octaves as number;

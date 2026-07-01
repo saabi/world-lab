@@ -13,6 +13,11 @@ const smoothstep: NodePrimitive = {
 		edge1: quantity('none', { default: 1 })
 	}),
 	wgsl: { moduleId: 'math.smoothstep', entry: 'smoothstep' },
+	metadata: {
+		help: 'Hermite smoothstep between edge0 and edge1.',
+		pure: true,
+		deterministic: true
+	},
 	evalCPU(ctx) {
 		const x = ctx.inputs.x as number;
 		const edge0 = ctx.params.edge0 as number;

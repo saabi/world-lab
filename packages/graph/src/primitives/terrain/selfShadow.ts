@@ -27,7 +27,10 @@ const selfShadow: NodePrimitive = {
 		step_count: Type.Number({ default: 16 })
 	}),
 	wgsl: { moduleId: 'terrain.selfShadow', entry: 'selfShadow' },
-	metadata: { keywords: ['Domain', 'Terrain', 'Effects'] }
+	metadata: {
+		keywords: ['Domain', 'Terrain', 'Effects'],
+		help: 'Cheap self-shadowing term from light direction and surface normal.'
+	}
 };
 
 registerPrimitive(selfShadow);

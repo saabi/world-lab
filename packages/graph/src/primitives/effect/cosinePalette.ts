@@ -22,7 +22,12 @@ const cosinePalette: NodePrimitive = {
 			{ name: 'iTime', source: 'input' }
 		]
 	},
-	metadata: { keywords: ['Effects', 'ShaderToy'], pure: true, deterministic: false },
+	metadata: {
+		keywords: ['Effects', 'ShaderToy'],
+		pure: true,
+		deterministic: false,
+		help: 'Inigo Quilez cosine gradient palette driven by fragCoord, resolution, and time.'
+	},
 	evalCPU(ctx) {
 		const fragCoord = ctx.inputs.fragCoord as number[];
 		const iResolution = ctx.inputs.iResolution as number[];

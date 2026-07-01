@@ -20,6 +20,12 @@ describe('@virtual-planet/graph-editor primitiveSources', () => {
 		resetUserPrimitives();
 	});
 
+	it('includes help in synthesized frontmatter when metadata provides it', () => {
+		const source = getDefaultPrimitiveSource('math.min');
+		expect(source).toContain('help:');
+		expect(source).toContain('SDF union');
+	});
+
 	it('shows real math.remap WGSL from procedural-wgsl, not a fabricated stub', () => {
 		const source = getDefaultPrimitiveSource('math.remap');
 		expect(source).toContain('fn remap(');

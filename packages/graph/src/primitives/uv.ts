@@ -10,6 +10,9 @@ const uv: NodePrimitive = {
 	outputs: [{ name: 'uv', dataType: 'vec2f', space: 'none' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'procedural.uv', entry: 'uv' },
+	metadata: {
+		help: 'Surface UV coordinates supplied by the procedural evaluation context.'
+	},
 	evalCPU(ctx) {
 		const uvValue = ctx.procedural?.uv;
 		if (uvValue === undefined) {

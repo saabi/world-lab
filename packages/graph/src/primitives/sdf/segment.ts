@@ -33,7 +33,12 @@ const segment: NodePrimitive = {
 	outputs: [{ name: 'distance', dataType: 'f32' }],
 	params: Type.Object({}),
 	wgsl: { moduleId: 'sdf.segment', entry: 'sdfSegment' },
-	metadata: { keywords: ['Geometry', 'SDF'], pure: true, deterministic: true },
+	metadata: {
+		keywords: ['Geometry', 'SDF'],
+		pure: true,
+		deterministic: true,
+		help: '2D signed distance from point p to line segment a→b.'
+	},
 	evalCPU(ctx) {
 		const p = ctx.inputs.p as number[];
 		const a = ctx.inputs.a as number[];

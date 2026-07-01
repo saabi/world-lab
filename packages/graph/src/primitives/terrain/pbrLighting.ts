@@ -21,7 +21,10 @@ const pbrLighting: NodePrimitive = {
 		exposure: Type.Number({ default: 1 })
 	}),
 	wgsl: { moduleId: 'material.pbrLighting', entry: 'pbrLighting' },
-	metadata: { keywords: ['Domain', 'Material', 'Effects'] }
+	metadata: {
+		keywords: ['Domain', 'Material', 'Effects'],
+		help: 'PBR sun/sky lighting term for terrain shading.'
+	}
 };
 
 registerPrimitive(pbrLighting);

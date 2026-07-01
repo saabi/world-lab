@@ -43,6 +43,14 @@ function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string
 		lines.push(`description: ${JSON.stringify(primitive.metadata.description)}`);
 	}
 
+	if (primitive.metadata?.help) {
+		lines.push(`help: ${JSON.stringify(primitive.metadata.help)}`);
+	}
+
+	if (primitive.metadata?.usage) {
+		lines.push(`usage: ${JSON.stringify(primitive.metadata.usage)}`);
+	}
+
 	if (primitive.inputs.length > 0) {
 		lines.push('inputs:');
 		for (const port of primitive.inputs) {
