@@ -11,25 +11,64 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
-		"./Section.svelte": "./src/Section.svelte",
-		"./Subsection.svelte": "./src/Subsection.svelte",
-		"./VerticalTabs.svelte": "./src/VerticalTabs.svelte",
-		"./TabIcon.svelte": "./src/TabIcon.svelte",
-		"./controls/SliderRow.svelte": "./src/controls/SliderRow.svelte",
-		"./controls/Range.svelte": "./src/controls/Range.svelte",
-		"./controls/LogRange.svelte": "./src/controls/LogRange.svelte",
-		"./controls/CheckBox.svelte": "./src/controls/CheckBox.svelte",
-		"./controls/sliderList.css": "./src/controls/sliderList.css"
+		".": {
+			"types": "./dist/index.d.ts",
+			"development": "./src/index.ts",
+			"import": "./dist/index.js"
+		},
+		"./Section.svelte": {
+			"types": "./dist/Section.svelte.d.ts",
+			"development": "./src/Section.svelte",
+			"svelte": "./dist/Section.svelte"
+		},
+		"./Subsection.svelte": {
+			"types": "./dist/Subsection.svelte.d.ts",
+			"development": "./src/Subsection.svelte",
+			"svelte": "./dist/Subsection.svelte"
+		},
+		"./VerticalTabs.svelte": {
+			"types": "./dist/VerticalTabs.svelte.d.ts",
+			"development": "./src/VerticalTabs.svelte",
+			"svelte": "./dist/VerticalTabs.svelte"
+		},
+		"./TabIcon.svelte": {
+			"types": "./dist/TabIcon.svelte.d.ts",
+			"development": "./src/TabIcon.svelte",
+			"svelte": "./dist/TabIcon.svelte"
+		},
+		"./controls/SliderRow.svelte": {
+			"types": "./dist/controls/SliderRow.svelte.d.ts",
+			"development": "./src/controls/SliderRow.svelte",
+			"svelte": "./dist/controls/SliderRow.svelte"
+		},
+		"./controls/Range.svelte": {
+			"types": "./dist/controls/Range.svelte.d.ts",
+			"development": "./src/controls/Range.svelte",
+			"svelte": "./dist/controls/Range.svelte"
+		},
+		"./controls/LogRange.svelte": {
+			"types": "./dist/controls/LogRange.svelte.d.ts",
+			"development": "./src/controls/LogRange.svelte",
+			"svelte": "./dist/controls/LogRange.svelte"
+		},
+		"./controls/CheckBox.svelte": {
+			"types": "./dist/controls/CheckBox.svelte.d.ts",
+			"development": "./src/controls/CheckBox.svelte",
+			"svelte": "./dist/controls/CheckBox.svelte"
+		},
+		"./controls/sliderList.css": "./dist/controls/sliderList.css",
+		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"build": "svelte-package --input src --output dist && node ../../scripts/clean-package-dist-tests.mjs dist"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@sveltejs/package": "^2.5.8",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@testing-library/svelte": "^5.4.2",
 		"@testing-library/user-event": "^14.6.1",
@@ -37,5 +76,10 @@
 		"svelte": "^5.56.4",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
-	}
+	},
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"sideEffects": false
 }

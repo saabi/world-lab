@@ -1,6 +1,9 @@
 # @world-lab/subdivide
 
-Blender-style resizable pane layouts for Svelte 5. The layout tree engine is ported from [saabi/svelte-subdivide](https://github.com/saabi/svelte-subdivide) (LIL); Svelte components land in a follow-up phase.
+Blender-style resizable pane layouts for Svelte 5. The layout tree engine and Svelte
+components are both ported and extended from
+[saabi/svelte-subdivide](https://github.com/saabi/svelte-subdivide) (see that package's own
+`LICENSE` in this directory for its distinct attribution).
 
 ## Layout document
 
@@ -24,7 +27,7 @@ const roundTrip = serializeRuntime(root);
 
 `defaultSceneEditorLayout()` is a horizontal split: left column (~22%) stacks `outliner`, `properties`, and `renderSettings`; right column (~78%) is `viewport`.
 
-## Svelte components (planned)
+## Svelte components
 
 ```svelte
 <script>

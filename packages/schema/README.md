@@ -17,5 +17,3 @@ One schema then serves four jobs at once: **introspectable** (UI / form generati
 
 See `_docs/specs/scene-routing.md` and `_docs/specs/solar-system-model.md` for the
 design context.
-
-> **Status:** scaffold. The TypeBox layer + domain factories land next.

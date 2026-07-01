@@ -9,6 +9,7 @@
 		"verbatimModuleSyntax": true,
 		"isolatedModules": true,
 		"types": ["@webgpu/types", "node"],
+		"customConditions": ["development"]
 	},
 	"include": [
 		"src/**/*"

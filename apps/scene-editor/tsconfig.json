@@ -10,7 +10,12 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		// Resolve @world-lab/* workspace packages via their "development" export
+		// condition (live src/, matching vite.config.ts's resolve.conditions) rather
+		// than "types" -> dist/*.d.ts. Without this, `npm run check` requires
+		// packages/*/dist to already be built — but CI runs check before build.
+		"customConditions": ["development"]
 	},
 	"include": [
 		".svelte-kit/ambient.d.ts",

@@ -1,12 +1,20 @@
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 import { glslify } from './vite-glslify';
 import { wgsl } from './vite-wgsl';
 
 export default defineConfig({
 	envPrefix: ['VITE_', 'PUBLIC_'],
+	// This app always consumes @world-lab/* workspace packages via live TS source
+	// (the "development" export condition), in both dev and production builds —
+	// never the published dist/ output. Otherwise `vite build` would switch to
+	// the dist-based "import" condition (Vite's default 'development|production'
+	// pseudo-condition only resolves to 'development' in dev/test), requiring a
+	// packages/*/dist prebuild this app shouldn't depend on. See the same note in
+	// apps/webgputoy/vite.config.ts.
+	resolve: { conditions: ['development', ...defaultClientConditions] },
 	plugins: [
 		sveltekit({
 			// Transpile TS in node_modules .svelte (e.g. @xyflow) before Rolldown parses them.
@@ -33,6 +41,10 @@ export default defineConfig({
 	ssr: {
 		noExternal: [/^@world-lab\//],
 		// graph-editor imports xyflow; keep xyflow external so SSR does not parse .svelte as JS.
-		external: ['@xyflow/svelte', '@xyflow/system']
+		external: ['@xyflow/svelte', '@xyflow/system'],
+		// SSR resolution does NOT inherit the root `resolve.conditions` in practice
+		// (verified empirically) — must be set here explicitly too, or a production
+		// build fails to resolve @world-lab/* packages.
+		resolve: { conditions: ['development', ...defaultClientConditions] }
 	}
 });

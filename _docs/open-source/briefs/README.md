@@ -26,7 +26,7 @@ identity, app layout, release process, governance, and deployment documentation.
 | [OS1-world-lab-identity-and-app-layout.md](./OS1-world-lab-identity-and-app-layout.md) | ✅ Landed (`274f7f2`) | Rename/reorganize the app layout and update references. |
 | [OS2-release-changelog-and-versioning.md](./OS2-release-changelog-and-versioning.md) | ✅ Landed | Add changelogs, Changesets, and root workspace scripts. |
 | [OS3-public-readiness-governance-and-final-cleanup.md](./OS3-public-readiness-governance-and-final-cleanup.md) | ✅ Landed (incl. final cleanup: `c66617b`) | Add roadmap/governance docs, CI, license, and final cleanup. |
-| [OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md) | 🔄 Scope decided + rename landed; build/exports/dist/publish-readiness work still open | Choose a broad npm scope and make standalone packages consumable outside the monorepo. |
+| [OS4-package-publishing-readiness.md](./OS4-package-publishing-readiness.md) | ✅ Landed except the actual publish step (`private: true` intentionally still set on every package) | Choose a broad npm scope and make standalone packages consumable outside the monorepo. |
 
 ## Sequencing
 

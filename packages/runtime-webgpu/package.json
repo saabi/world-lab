@@ -12,24 +12,35 @@
 	"type": "module",
 	"dependencies": {
 		"@types/node": "^26.0.1",
-		"@world-lab/compiler": "*",
-		"@world-lab/graph": "*",
-		"@world-lab/procedural-wgsl": "*",
-		"@world-lab/schema": "*",
+		"@world-lab/compiler": "^0.0.0",
+		"@world-lab/graph": "^0.0.0",
+		"@world-lab/procedural-wgsl": "^0.0.0",
+		"@world-lab/schema": "^0.0.0",
 		"happy-dom": "^20.10.6",
 		"webgpu": "^0.4.0"
 	},
 	"exports": {
-		".": "./src/index.ts"
+		".": {
+			"types": "./dist/index.d.ts",
+			"development": "./src/index.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"build": "tsc -p tsconfig.build.json"
 	},
 	"devDependencies": {
 		"@world-lab/runtime-cpu": "*",
 		"@webgpu/types": "^0.1.71",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
-	}
+	},
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"sideEffects": false
 }

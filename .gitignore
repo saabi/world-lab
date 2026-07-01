@@ -23,3 +23,9 @@ screenshots/
 
 # TS incremental build cache
 **/tsconfig.tsbuildinfo
+
+# Package publish-readiness build output (see OS4 brief) — built from src/ on
+# demand via `npm run build:packages`, not committed.
+packages/*/dist
+# svelte-package's own temp working directory (packages/{graph-editor,editor-ui,subdivide})
+packages/*/.svelte-kit

@@ -17,39 +17,94 @@
 		"@codemirror/state": "^6.7.0",
 		"@codemirror/view": "^6.43.4",
 		"@lezer/highlight": "^1.2.3",
-		"@world-lab/compiler": "*",
-		"@world-lab/editor-ui": "*",
-		"@world-lab/graph": "*",
-		"@world-lab/procedural-wgsl": "*",
-		"@world-lab/runtime-cpu": "*",
-		"@world-lab/runtime-webgpu": "*",
-		"@world-lab/schema": "*",
-		"@world-lab/subdivide": "*",
+		"@world-lab/compiler": "^0.0.0",
+		"@world-lab/editor-ui": "^0.0.0",
+		"@world-lab/graph": "^0.0.0",
+		"@world-lab/procedural-wgsl": "^0.0.0",
+		"@world-lab/runtime-cpu": "^0.0.0",
+		"@world-lab/runtime-webgpu": "^0.0.0",
+		"@world-lab/schema": "^0.0.0",
+		"@world-lab/subdivide": "^0.0.0",
 		"@xyflow/svelte": "^1.6.1"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./GraphEditor.svelte": "./src/GraphEditor.svelte",
-		"./GraphCanvas.svelte": "./src/GraphCanvas.svelte",
-		"./InspectorPanel.svelte": "./src/InspectorPanel.svelte",
-		"./NodePalette.svelte": "./src/NodePalette.svelte",
-		"./ValidationPanel.svelte": "./src/ValidationPanel.svelte",
-		"./MarkupView.svelte": "./src/MarkupView.svelte",
-		"./CodeView.svelte": "./src/CodeView.svelte",
-		"./CpuPreviewPanel.svelte": "./src/CpuPreviewPanel.svelte",
-		"./GpuPreviewPanel.svelte": "./src/GpuPreviewPanel.svelte",
-		"./EffectPreviewPanel.svelte": "./src/EffectPreviewPanel.svelte",
-		"./MeshPreviewPanel.svelte": "./src/MeshPreviewPanel.svelte",
-		"./AudioPreviewPanel.svelte": "./src/AudioPreviewPanel.svelte"
+		".": {
+			"types": "./dist/index.d.ts",
+			"development": "./src/index.ts",
+			"import": "./dist/index.js"
+		},
+		"./GraphEditor.svelte": {
+			"types": "./dist/GraphEditor.svelte.d.ts",
+			"development": "./src/GraphEditor.svelte",
+			"svelte": "./dist/GraphEditor.svelte"
+		},
+		"./GraphCanvas.svelte": {
+			"types": "./dist/GraphCanvas.svelte.d.ts",
+			"development": "./src/GraphCanvas.svelte",
+			"svelte": "./dist/GraphCanvas.svelte"
+		},
+		"./InspectorPanel.svelte": {
+			"types": "./dist/InspectorPanel.svelte.d.ts",
+			"development": "./src/InspectorPanel.svelte",
+			"svelte": "./dist/InspectorPanel.svelte"
+		},
+		"./NodePalette.svelte": {
+			"types": "./dist/NodePalette.svelte.d.ts",
+			"development": "./src/NodePalette.svelte",
+			"svelte": "./dist/NodePalette.svelte"
+		},
+		"./ValidationPanel.svelte": {
+			"types": "./dist/ValidationPanel.svelte.d.ts",
+			"development": "./src/ValidationPanel.svelte",
+			"svelte": "./dist/ValidationPanel.svelte"
+		},
+		"./MarkupView.svelte": {
+			"types": "./dist/MarkupView.svelte.d.ts",
+			"development": "./src/MarkupView.svelte",
+			"svelte": "./dist/MarkupView.svelte"
+		},
+		"./CodeView.svelte": {
+			"types": "./dist/CodeView.svelte.d.ts",
+			"development": "./src/CodeView.svelte",
+			"svelte": "./dist/CodeView.svelte"
+		},
+		"./CpuPreviewPanel.svelte": {
+			"types": "./dist/CpuPreviewPanel.svelte.d.ts",
+			"development": "./src/CpuPreviewPanel.svelte",
+			"svelte": "./dist/CpuPreviewPanel.svelte"
+		},
+		"./GpuPreviewPanel.svelte": {
+			"types": "./dist/GpuPreviewPanel.svelte.d.ts",
+			"development": "./src/GpuPreviewPanel.svelte",
+			"svelte": "./dist/GpuPreviewPanel.svelte"
+		},
+		"./EffectPreviewPanel.svelte": {
+			"types": "./dist/EffectPreviewPanel.svelte.d.ts",
+			"development": "./src/EffectPreviewPanel.svelte",
+			"svelte": "./dist/EffectPreviewPanel.svelte"
+		},
+		"./MeshPreviewPanel.svelte": {
+			"types": "./dist/MeshPreviewPanel.svelte.d.ts",
+			"development": "./src/MeshPreviewPanel.svelte",
+			"svelte": "./dist/MeshPreviewPanel.svelte"
+		},
+		"./AudioPreviewPanel.svelte": {
+			"types": "./dist/AudioPreviewPanel.svelte.d.ts",
+			"development": "./src/AudioPreviewPanel.svelte",
+			"svelte": "./dist/AudioPreviewPanel.svelte"
+		},
+		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"build": "svelte-package --input src --output dist && node ../../scripts/clean-package-dist-tests.mjs dist"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@sveltejs/package": "^2.5.8",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@testing-library/svelte": "^5.4.2",
 		"@webgpu/types": "^0.1.71",
@@ -57,5 +112,10 @@
 		"svelte": "^5.56.4",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
-	}
+	},
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"sideEffects": false
 }

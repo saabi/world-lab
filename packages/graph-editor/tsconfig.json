@@ -9,7 +9,8 @@
 		"verbatimModuleSyntax": true,
 		"isolatedModules": true,
 		"forceConsistentCasingInFileNames": true,
-		"types": ["@webgpu/types"]
+		"types": ["@webgpu/types"],
+		"customConditions": ["development"]
 	},
 	"include": [
 		"src/**/*"

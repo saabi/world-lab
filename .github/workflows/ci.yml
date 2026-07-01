@@ -23,4 +23,8 @@ jobs:
 
       - run: npm run test --workspaces --if-present
 
-      - run: npm run build --workspaces --if-present
+      # Uses the root "build" script, not a raw --workspaces sweep: packages/*
+      # must build in dependency (topological) order for their own dist-based
+      # type resolution to succeed (a package's build needs its dependencies'
+      # dist/*.d.ts to already exist). See package.json's "build:packages".
+      - run: npm run build
