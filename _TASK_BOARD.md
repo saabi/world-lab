@@ -56,6 +56,20 @@ _(none claimed — add tasks below as briefs are pinned.)_
   add a consumer-coverage device test that catches the "string-valid but GPU-rejected" class
   (bit us 3×). Brief: `_docs/architecture/procedural-graph/briefs/M-device-compile-test-hardening.md`.
 
+- **Node color-coding by category/contract** (quick win) — tint nodes by `category` or
+  `swapFamily`, toggle in chrome. Owns `GraphNodeView.svelte` + a color-map module.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-node-color-coding.md`  ·  Claimed by: UNCLAIMED
+
+- **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
+  deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
+  (graph-editor) + sdf primitives (graph).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-help-tooltips.md`  ·  Claimed by: UNCLAIMED
+
+- **`geometry.plane` orientation + dimensions** (user-flagged) — add width/height + orientation
+  params (defaults reproduce the current fullscreen quad); WGSL + evalCPU parity. Owns
+  `geometry.plane` primitive (graph) + plane WGSL (procedural-wgsl).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-plane-orientation-dimensions.md`  ·  Claimed by: UNCLAIMED
+
 params-as-inputs editor+codegen follow-on · Tier 2 (frame-graph GPU executor, resource GPU
 binds, mesh-gen consumer, node-swap/groups/tooltips UX) · Tier 3 (transforms, colorlab
 remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-plan.md`.
