@@ -4,7 +4,7 @@
 `@virtual-planet/graph-editor` (`documentStorage.ts`, `samples.ts`, `GraphEditor.svelte`,
 new document-list UI) · **Depends on:** layout persistence ✅, samples ✅ · **Design
 authority:** `editor.md`, roadmap **M14** (document/session model) · **Contract author:**
-Opus · **Recommended executor:** Cursor (phase it) · **Status:** DONE `985d7d8`
+Opus · **Recommended executor:** Cursor (phase it) · **Status:** DONE `7cf7d0a`
 
 ## Problem (audit)
 
