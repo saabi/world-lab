@@ -11,12 +11,9 @@
 > Resolved (see `_TASK_BOARD.md` archive): preview rerender-on-edit, preview lists outputs
 > (buffer list), collapsible palette sections, node-swap UX, S0 pipeline render, unified named
 > document save/load + samples + layout (`M-document-system.md`, `7cf7d0a`), help/usage
-> tooltips + SDF alias removal (`5a17295`), node color-coding (`61b6359`). Do not re-add.
+> tooltips + SDF alias removal (`5a17295`), node color-coding (`61b6359`), primitive help
+> coverage (`af69aef`). Do not re-add.
 
-- **primitive help coverage gap** (follow-on to the tooltips work above): 62/112 primitives
-  (55%) still resolve to a blank inspector tooltip — only 9 have `help` authored. Unify
-  frontmatter as the display source, add a guaranteed non-empty fallback + guard test, backfill
-  real text by category. Brief: `M-primitive-help-coverage.md`.
 - **node groups UX** not built: "Save as group", zone framing, and collapse-to-node. The group *system* (`groupToFunction`/`buildGroupModule`) exists; the editor authoring/collapse UI does not. See `node-model-design-notes.md` §E.
 - **params-as-inputs not wireable in the editor**: promotable params (e.g. remap bounds) should appear as input ports and the form should show connected-vs-literal. Graph-core helpers exist (`paramInputPorts`/`resolveParamBindings`) and port-level defaults landed (`1f1bee4`); the editor + connected-override codegen is still pending. Brief: `M-params-as-inputs.md`.
 - Functions representing group nodes must be decomposable into its components and editable upon request. Built-in group functions such as remap must be inspectable as graphs (ideally a la touchdesigner by zooming in or similar gesture) and outomatically cloned and replaced if modified.
