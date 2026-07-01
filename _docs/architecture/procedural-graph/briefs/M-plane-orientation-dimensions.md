@@ -3,7 +3,7 @@
 **Type:** std-library gap (user-flagged) · **Packages:** `@virtual-planet/graph`
 (`geometry.plane` primitive), `@virtual-planet/procedural-wgsl` (plane WGSL) · **Depends on:**
 port defaults ✅ · **Design authority:** `node-model-design-notes.md` §B · **Contract author:**
-Opus · **Recommended executor:** Cursor.
+Opus · **Recommended executor:** Cursor · **Status:** DONE a55b8c2
 
 ## Problem
 

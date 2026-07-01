@@ -6,6 +6,11 @@
 [pipeline-as-graph.md](../pipeline-as-graph.md) (ShaderToy parity) · **Contract author:** Opus
 · **Recommended executor:** Cursor.
 
+> **✅ Previously fixed (2026-06-27)** — Do not route. User confirmed image preview renders
+> correctly. Root cause was addressed by unconnected vec4f **`w` defaulting to 1** (opaque
+> convention) in `1f1bee4`; a separate `putImageData` alpha-forcing change was not needed.
+> Keep this brief for history only.
+
 ## Problem
 
 A valid, exception-free pipeline renders **blank** in the Effect preview. Cause is the

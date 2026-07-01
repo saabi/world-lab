@@ -5,6 +5,8 @@ snippets), `@virtual-planet/graph-editor` (per-pane preview selection) · **Depe
 multi-target buffers ✅ · **Design authority:** `editor.md` · **Contract author:** Opus ·
 **Recommended executor:** Cursor.
 
+**Status:** DONE `b73e6b3`
+
 ## Problem
 
 Two preview panes can be open, but they **share one buffer selection** — changing the output

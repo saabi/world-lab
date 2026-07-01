@@ -7,6 +7,12 @@ Opus · **Recommended executor:** Cursor.
 
 ## Goal
 
+> **⛔ SUPERSEDED by `M-document-system.md`, landed `7cf7d0a`.** Do not route. This brief was
+> deferred (2026-06-27) as too narrow — layout-in-artifact needed to be part of a unified named
+> document save/load system, not a standalone slice. `M-document-system.md` delivered exactly
+> that (Part 4: layout in the `GraphArtifact`, load toggle default ON) plus named save/load and
+> samples-as-artifacts. Kept for history only.
+
 Persist the **pane divisor layout** (the `LayoutDocument` from `@virtual-planet/subdivide`)
 **with each saved graph**, and add a **toggle next to the Load button (default ON)**: on load,
 if ON and the graph has a saved layout, apply it; otherwise use the default layout.
