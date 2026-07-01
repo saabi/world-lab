@@ -29,7 +29,7 @@ _(none claimed — add tasks below as briefs are pinned.)_
   scalars (`vec3f,f32 → vec4f`, `vec2f,f32 → vec3f`, `vec2f,vec2f → vec4f`, `vec2f,f32,f32 →
   vec4f`); appended-scalar port defaults (z=0, w=1) double as promote-with-default. Owns the
   vector modules in `procedural-wgsl` + `graph` — disjoint, parallel-safe.
-  Brief: `_docs/architecture/procedural-graph/briefs/M-vector-combine-primitives.md`  ·  Claimed by: UNCLAIMED
+  Brief: `_docs/architecture/procedural-graph/briefs/M-vector-combine-primitives.md`  ·  Claimed by: Auto
 
 - **Port quick-connect (right-click a port → add compatible connected node)** — right-click an
   output port → menu of type-compatible consumers; input port → compatible producers; select →
@@ -38,6 +38,12 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `irAdapter.ts`, `GraphNodeView.svelte`, new menu — parallel-safe (coordinate `GraphNodeView`
   only if another editor task touches it).
   Brief: `_docs/architecture/procedural-graph/briefs/M-port-quick-connect.md`  ·  Claimed by: UNCLAIMED
+
+- **Save pane layout with each graph + load toggle** — persist the `LayoutDocument` in the
+  saved/downloaded graph artifact (wrapper, not in the pure `GraphDocument`); a toggle next to
+  Load (default ON) applies the graph's saved layout, else the default. Owns
+  `documentStorage.ts` + `GraphEditor.svelte` (+ chrome flag). Coordinate on `GraphEditor.svelte`.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-per-graph-layout.md`  ·  Claimed by: UNCLAIMED
 
 - **Image preview presents opaque RGB** — a valid pipeline renders blank because the fragment
   alpha (`constant.f32 → vec4f.w`, default 0) makes `putImageData` paint fully transparent.
