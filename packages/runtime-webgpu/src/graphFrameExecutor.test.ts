@@ -27,7 +27,7 @@ describe('GraphFrameExecutor', () => {
 			host: {
 				iTime: 1.25,
 				iFrame: 7,
-				pointers: { n_display: [0.5, 0.5, 0, 0] }
+				pointers: { image: [0.5, 0.5, 0, 0] }
 			}
 		});
 
@@ -51,8 +51,8 @@ describe('GraphFrameExecutor', () => {
 			height: 32,
 			host: { iTime: 0.5, iFrame: 1, pointers: {} }
 		});
-		expect(Object.keys(result.targets)).toEqual(['n_display']);
-		expect(result.targets.n_display?.length).toBe(32 * 32 * 4);
+		expect(Object.keys(result.targets)).toEqual(['image']);
+		expect(result.targets.image?.length).toBe(32 * 32 * 4);
 		device.destroy();
 	});
 });

@@ -99,14 +99,14 @@ function dualDisplayGraph(): GraphDocument {
 describe('graphFramePlan', () => {
 	it('plans one pass per independent pipeline display sink', () => {
 		const passes = planIndependentGraphFramePasses(dualDisplayGraph());
-		expect(passes.map((pass) => pass.targetId).sort()).toEqual(['n_display_a', 'n_display_b']);
+		expect(passes.map((pass) => pass.targetId).sort()).toEqual(['pipeline_image_n_display_a', 'pipeline_image_n_display_b']);
 		expect(passes[0]?.fieldOutput.node).toMatch(/^n_field_/);
 	});
 
 	it('builds a pass graph with no same-frame read edges between independent targets', () => {
 		const passes = planIndependentGraphFramePasses(dualDisplayGraph());
 		const order = buildPassOrder(buildIndependentPassGraph(passes));
-		expect(order.order.sort()).toEqual(['n_display_a', 'n_display_b']);
-		expect(order.feedbackTargets.sort()).toEqual(['n_display_a']);
+		expect(order.order.sort()).toEqual(['pipeline_image_n_display_a', 'pipeline_image_n_display_b']);
+		expect(order.feedbackTargets.sort()).toEqual(['pipeline_image_n_display_a']);
 	});
 });

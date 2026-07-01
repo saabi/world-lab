@@ -7,10 +7,12 @@ export interface GraphFramePass {
 	fieldOutput: PortRef;
 }
 
-/** Independent pipeline display sinks — one GPU pass each (no cross-target reads yet). */
+/** Independent pipeline display sinks — one GPU pass each (no cross-target reads yet).
+ *  `targetId` is the presentation's **output name** so it matches the preview buffer id
+ *  (`enumeratePreviewBuffers`) the pane looks up in the frame snapshot. */
 export function planIndependentGraphFramePasses(doc: GraphDocument): GraphFramePass[] {
 	return derivePipelinePresentations(doc).map((presentation) => ({
-		targetId: presentation.displayNodeId,
+		targetId: presentation.outputName,
 		fieldOutput: presentation.fieldOutput
 	}));
 }
