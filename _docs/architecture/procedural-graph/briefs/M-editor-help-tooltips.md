@@ -5,7 +5,7 @@
 on:** nothing · **Design authority:** `node-model-design-notes.md` §C · **Contract author:**
 Opus · **Recommended executor:** Cursor.
 
-**Status:** DONE `<hash>`
+**Status:** DONE `5a17295`
 
 ## Problem
 
