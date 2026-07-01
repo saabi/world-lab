@@ -8,7 +8,7 @@ multi-output compile ✅, stage-entrypoints ✅ · **Supersedes:** `M-shared-pre
 [M-unified-preview-execution.md](./M-unified-preview-execution.md),
 [M-pass-graph-executor.md](./M-pass-graph-executor.md) · **Contract author:** Opus.
 
-**Status:** DONE `<hash>`
+**Status:** DONE `4a7f43d`
 
 ## Objective
 
