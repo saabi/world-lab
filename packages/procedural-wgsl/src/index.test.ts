@@ -10,7 +10,12 @@ import {
 } from './index.js';
 
 /** Module ids resolved by the library but not registered as graph primitives. */
-const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = ['noise.hash2d', 'color.colorlabCommon'];
+const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = [
+	'noise.hash2d',
+	'color.colorlabCommon',
+	'sdf.opUnion',
+	'sdf.opIntersect'
+];
 
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {

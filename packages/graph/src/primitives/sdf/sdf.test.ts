@@ -9,16 +9,11 @@ import './index.js';
 describe('harvested SDF primitives', () => {
 	it('registers without id collisions', () => {
 		const ids = listPrimitives().map((primitive) => primitive.id);
-		for (const id of [
-			'sdf.circle',
-			'sdf.box',
-			'sdf.segment',
-			'sdf.opUnion',
-			'sdf.opSubtract',
-			'sdf.opIntersect'
-		]) {
+		for (const id of ['sdf.circle', 'sdf.box', 'sdf.segment', 'sdf.opSubtract']) {
 			expect(ids).toContain(id);
 		}
+		expect(ids).not.toContain('sdf.opUnion');
+		expect(ids).not.toContain('sdf.opIntersect');
 	});
 
 	it('sdf.circle returns negative distance inside a unit circle', () => {

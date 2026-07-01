@@ -32,11 +32,6 @@ _(none claimed — add tasks below as briefs are pinned.)_
   `EffectPreviewPanel.svelte`.
   Brief: `_docs/architecture/procedural-graph/briefs/M-shared-preview-clock.md`  ·  Claimed by: UNCLAIMED
 
-- **Help/usage tooltips + drop SDF alias primitives** — render `help`/`usage` in the inspector;
-  deregister `sdf.opUnion`/`opIntersect` (help-tip → `math.min`/`max`). Owns `InspectorPanel`
-  (graph-editor) + sdf primitives (graph).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-help-tooltips.md`  ·  Claimed by: UNCLAIMED
-
 - **`geometry.plane` orientation + dimensions** (user-flagged) — add width/height + orientation
   params (defaults reproduce the current fullscreen quad); WGSL + evalCPU parity. Owns
   `geometry.plane` primitive (graph) + plane WGSL (procedural-wgsl).

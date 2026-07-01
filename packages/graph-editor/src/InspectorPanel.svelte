@@ -4,6 +4,7 @@
 	import ParamForm from './ParamForm.svelte';
 	import PortBindingList from './PortBindingList.svelte';
 	import { applyEditIntent } from './irAdapter.js';
+	import { resolveNodeInspectorHelp } from './nodeInspectorHelp.js';
 	import { derivePortBindings } from './portBindings.js';
 
 	interface Props {
@@ -22,6 +23,7 @@
 		return { ...defaults, ...(node.params ?? {}) };
 	});
 	const bindings = $derived(nodeId ? derivePortBindings(graph, nodeId) : []);
+	const inspectorHelp = $derived(primitive ? resolveNodeInspectorHelp(primitive) : null);
 </script>
 
 <div class="inspector">
@@ -29,6 +31,12 @@
 		<p class="empty">Select a node to inspect parameters and inputs.</p>
 	{:else}
 		<h2 class="title">{primitive.id}</h2>
+		{#if inspectorHelp?.summary}
+			<p class="help">{inspectorHelp.summary}</p>
+		{/if}
+		{#if inspectorHelp?.usage}
+			<p class="usage">{inspectorHelp.usage}</p>
+		{/if}
 		<PortBindingList {bindings} />
 		<h3 class="heading">Parameters</h3>
 		<ParamForm
@@ -56,6 +64,19 @@
 		margin: 0;
 		font-size: 13px;
 		font-weight: 600;
+	}
+
+	.help,
+	.usage {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.45;
+		opacity: 0.85;
+	}
+
+	.usage {
+		opacity: 0.7;
+		font-style: italic;
 	}
 
 	.heading {

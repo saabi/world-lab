@@ -5,6 +5,8 @@
 on:** nothing · **Design authority:** `node-model-design-notes.md` §C · **Contract author:**
 Opus · **Recommended executor:** Cursor.
 
+**Status:** DONE `<hash>`
+
 ## Problem
 
 Primitives carry `help`/`usage`/`description` metadata, but the **inspector** doesn't render
