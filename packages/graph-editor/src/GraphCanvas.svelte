@@ -28,7 +28,7 @@
 		graph: GraphDocument;
 		selectedNodeId?: string | null;
 		selectedEdgeId?: string | null;
-		onchange?: (next: GraphDocument) => void;
+		onchange?: (next: GraphDocument, historyLabel?: string) => void;
 		onselectnode?: (nodeId: string | null) => void;
 		onselectedge?: (edgeId: string | null) => void;
 		onregisterfitview?: (api: { fitView: () => void }) => void;
@@ -51,7 +51,8 @@
 	setGraphCanvasContext({
 		onReplacePrimitive(nodeId, primitiveId) {
 			onchange?.(
-				applyEditIntent(graph, { kind: 'replace-node-primitive', nodeId, primitiveId })
+				applyEditIntent(graph, { kind: 'replace-node-primitive', nodeId, primitiveId }),
+				'Swap primitive'
 			);
 		},
 		onAddConnectedNode({ source, sourceDirection, primitiveId, position }) {
@@ -62,7 +63,8 @@
 					position,
 					source,
 					sourceDirection
-				})
+				}),
+				'Add connected node'
 			);
 		},
 		getNodeColorMode: () => nodeColorMode
@@ -128,7 +130,8 @@
 				kind: 'move-node',
 				nodeId: targetNode.id,
 				position: targetNode.position
-			})
+			}),
+			'Move node'
 		);
 	}
 
@@ -151,7 +154,7 @@
 		const validation = validateConnection(graph, from, to);
 		if (!validation.ok) return;
 
-		onchange?.(applyEditIntent(graph, { kind: 'add-edge', from, to }));
+		onchange?.(applyEditIntent(graph, { kind: 'add-edge', from, to }), 'Add edge');
 	}
 
 	function isValidConnection(connection: Connection) {

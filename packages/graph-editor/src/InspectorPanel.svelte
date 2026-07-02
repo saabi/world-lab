@@ -10,7 +10,7 @@
 	interface Props {
 		graph: GraphDocument;
 		nodeId: string | null;
-		onchange?: (next: GraphDocument) => void;
+		onchange?: (next: GraphDocument, historyLabel?: string) => void;
 	}
 
 	let { graph, nodeId, onchange }: Props = $props();
@@ -44,7 +44,10 @@
 			value={paramValue}
 			onchange={(next) => {
 				if (!nodeId) return;
-				onchange?.(applyEditIntent(graph, { kind: 'set-params', nodeId, params: next }));
+				onchange?.(
+					applyEditIntent(graph, { kind: 'set-params', nodeId, params: next }),
+					'Edit parameters'
+				);
 			}}
 		/>
 	{/if}

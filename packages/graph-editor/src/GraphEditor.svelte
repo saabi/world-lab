@@ -58,6 +58,7 @@
 	import { createZoneContextMenus } from './paneMenus.js';
 	import type { CodeViewActions } from './CodeView.svelte';
 	import type { MarkupViewActions } from './MarkupView.svelte';
+	import { createGraphHistory } from './history.svelte.js';
 
 	interface Props {
 		graph?: GraphDocument;
@@ -65,6 +66,8 @@
 	}
 
 	let { graph = $bindable(animatedWorleyPipelineGraph()), onchange }: Props = $props();
+
+	const history = createGraphHistory();
 
 	let selectedNodeId = $state<string | null>(null);
 	let selectedEdgeId = $state<string | null>(null);
@@ -269,7 +272,8 @@
 		}
 		selectedNodeId = null;
 		selectedEdgeId = null;
-		updateGraph(artifact.graph, false);
+		history.reset();
+		updateGraph(artifact.graph, { persist: false });
 		syncPreviewSelectionsForGraph(artifact.graph);
 		scheduleChromeSave();
 		storageMessage = artifact.meta?.sample ? `Example: ${artifact.name}` : `Loaded ${artifact.name}`;
@@ -307,7 +311,14 @@
 
 	let layout = $state<LayoutDocument>(defaultGraphEditorLayout());
 
-	function updateGraph(next: GraphDocument, persist = true) {
+	function updateGraph(
+		next: GraphDocument,
+		options: { persist?: boolean; historyLabel?: string } = {}
+	) {
+		const { persist = true, historyLabel } = options;
+		if (historyLabel) {
+			history.capture(graph, historyLabel);
+		}
 		graph = next;
 		markupParseError = null;
 		codeSaveError = null;
@@ -348,13 +359,26 @@
 		);
 	});
 
+	// Named, writable documents auto-save on every edit (see updateGraph's `persist` branch), so
+	// they're never at risk of being lost. Only these two states hold edits that exist nowhere
+	// but memory: a still-unnamed new graph, and a loaded sample (read-only, so edits never
+	// persist). Everywhere else, "unsaved changes" isn't a real concept here.
+	const hasUnsavedRisk = $derived((activeDocumentName === null || documentReadOnly) && history.canUndo);
+
+	function confirmDiscardIfNeeded(): boolean {
+		if (!hasUnsavedRisk) return true;
+		return confirm('This graph has unsaved changes that will be lost. Continue?');
+	}
+
 	function newGraph() {
+		if (!confirmDiscardIfNeeded()) return;
 		const next = animatedWorleyPipelineGraph();
 		activeDocumentName = null;
 		documentReadOnly = false;
 		setActiveDocumentName(null);
 		clearSelection();
-		updateGraph(next, false);
+		history.reset();
+		updateGraph(next, { persist: false });
 		storageMessage = 'New graph';
 	}
 
@@ -371,6 +395,7 @@
 	}
 
 	function loadSavedDocument(name: string) {
+		if (!confirmDiscardIfNeeded()) return;
 		const artifact = loadDocument(name);
 		if (!artifact) {
 			storageMessage = 'Document not found';
@@ -381,6 +406,7 @@
 	}
 
 	function loadSampleDocument(artifact: GraphArtifact) {
+		if (!confirmDiscardIfNeeded()) return;
 		applyArtifact(artifact);
 	}
 
@@ -416,6 +442,7 @@
 	}
 
 	function triggerUpload() {
+		if (!confirmDiscardIfNeeded()) return;
 		fileInput?.click();
 	}
 
@@ -447,7 +474,8 @@
 				kind: 'add-node',
 				primitiveId,
 				position: { x: 40 + offset, y: 40 + offset }
-			})
+			}),
+			{ historyLabel: 'Add node' }
 		);
 	}
 
@@ -458,12 +486,16 @@
 
 	function deleteSelection() {
 		if (selectedNodeId) {
-			updateGraph(applyEditIntent(graph, { kind: 'remove-node', nodeId: selectedNodeId }));
+			updateGraph(applyEditIntent(graph, { kind: 'remove-node', nodeId: selectedNodeId }), {
+				historyLabel: 'Delete node'
+			});
 			clearSelection();
 			return;
 		}
 		if (selectedEdgeId) {
-			updateGraph(applyEditIntent(graph, { kind: 'remove-edge', edgeId: selectedEdgeId }));
+			updateGraph(applyEditIntent(graph, { kind: 'remove-edge', edgeId: selectedEdgeId }), {
+				historyLabel: 'Delete edge'
+			});
 			clearSelection();
 		}
 	}
@@ -479,7 +511,7 @@
 			sourceNodeId: selectedNodeId,
 			position
 		});
-		updateGraph(next);
+		updateGraph(next, { historyLabel: 'Duplicate node' });
 		const duplicate = next.nodes[next.nodes.length - 1];
 		selectedNodeId = duplicate?.id ?? null;
 		selectedEdgeId = null;
@@ -509,10 +541,24 @@
 				});
 			}
 		}
-		updateGraph(withParams);
+		updateGraph(withParams, { historyLabel: 'Paste node' });
 		const pasted = withParams.nodes[withParams.nodes.length - 1];
 		selectedNodeId = pasted?.id ?? null;
 		selectedEdgeId = null;
+	}
+
+	function undo() {
+		const previous = history.undo(graph);
+		if (!previous) return;
+		clearSelection();
+		updateGraph(previous);
+	}
+
+	function redo() {
+		const next = history.redo(graph);
+		if (!next) return;
+		clearSelection();
+		updateGraph(next);
 	}
 
 	function isEditableTarget(target: EventTarget | null): boolean {
@@ -533,6 +579,26 @@
 
 		const mod = event.ctrlKey || event.metaKey;
 		if (!mod) return;
+
+		if (event.key === 'z' || event.key === 'Z') {
+			if (event.shiftKey) {
+				if (!history.canRedo) return;
+				event.preventDefault();
+				redo();
+			} else {
+				if (!history.canUndo) return;
+				event.preventDefault();
+				undo();
+			}
+			return;
+		}
+
+		if (event.key === 'y' || event.key === 'Y') {
+			if (!history.canRedo) return;
+			event.preventDefault();
+			redo();
+			return;
+		}
 
 		if (event.key === 'd' || event.key === 'D') {
 			if (!selectedNodeId) return;
@@ -566,7 +632,7 @@
 		{selectedNodeId}
 		{selectedEdgeId}
 		{nodeColorMode}
-		onchange={updateGraph}
+		onchange={(next, historyLabel) => updateGraph(next, { historyLabel })}
 		onregisterfitview={(api) => {
 			canvasFitView = () => api.fitView();
 		}}
@@ -596,7 +662,11 @@
 {/snippet}
 
 {#snippet inspector(_paneId)}
-	<InspectorPanel {graph} nodeId={selectedNodeId} onchange={updateGraph} />
+	<InspectorPanel
+		{graph}
+		nodeId={selectedNodeId}
+		onchange={(next, historyLabel) => updateGraph(next, { historyLabel })}
+	/>
 {/snippet}
 
 {#snippet validation(_paneId)}
@@ -617,7 +687,7 @@
 {#snippet markup(_paneId)}
 	<MarkupView
 		{graph}
-		onchange={updateGraph}
+		onchange={(next) => updateGraph(next, { historyLabel: 'Edit via markup' })}
 		registerActions={(actions) => {
 			markupViewActions = actions;
 		}}
@@ -635,7 +705,7 @@
 		registerActions={(actions) => {
 			codeViewActions = actions;
 		}}
-		onchange={updateGraph}
+		onchange={(next) => updateGraph(next, { historyLabel: 'Edit via code' })}
 		onerror={(message) => {
 			codeSaveError = message;
 		}}
@@ -654,9 +724,16 @@
 			activeName={activeDocumentName}
 			readOnly={documentReadOnly}
 			loadLayout={loadDocumentLayout}
+			dirty={hasUnsavedRisk}
 			{savedDocuments}
 			{sampleDocuments}
 			statusMessage={storageMessage}
+			canUndo={history.canUndo}
+			canRedo={history.canRedo}
+			undoLabel={history.undoLabel}
+			redoLabel={history.redoLabel}
+			onUndo={undo}
+			onRedo={redo}
 			actions={{
 				onNew: newGraph,
 				onSave: saveCurrentDocument,
