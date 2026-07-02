@@ -17,7 +17,18 @@
 - **node groups UX** not built: "Save as group", zone framing, and collapse-to-node. The group *system* (`groupToFunction`/`buildGroupModule`) exists; the editor authoring/collapse UI does not. See `node-model-design-notes.md` §E.
 - **params-as-inputs not wireable in the editor**: promotable params (e.g. remap bounds) should appear as input ports and the form should show connected-vs-literal. Graph-core helpers exist (`paramInputPorts`/`resolveParamBindings`) and port-level defaults landed (`1f1bee4`); the editor + connected-override codegen is still pending. Brief: `M-params-as-inputs.md`.
 - Functions representing group nodes must be decomposable into its components and editable upon request. Built-in group functions such as remap must be inspectable as graphs (ideally a la touchdesigner by zooming in or similar gesture) and outomatically cloned and replaced if modified.
-- The document load/save and samples UX is not well polished and possibly has no versioning. I would like to do something similar to what I have in the https://github.com/saabi/colorlab repo, including undo/redo functionality.
+- ~~The document load/save and samples UX is not well polished... including undo/redo functionality~~
+  ✅ done (2026-07-01) — undo/redo landed (`history.svelte.ts`, a past/future `GraphDocument`
+  stack hooked into the existing `applyEditIntent`/`updateGraph` choke point; per-action labels;
+  Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y + toolbar buttons; history resets on document load/new, not
+  persisted, matching the pattern in `saabi/colorlab`). Polish: delete-confirmation dialog,
+  `updatedAt` timestamp shown per saved document, and a discard-changes confirm for the two
+  states where edits aren't auto-saved (new/unnamed graph, loaded read-only sample — every
+  other document already auto-saves on edit, so "unsaved changes" wasn't a real risk elsewhere).
+  Schema/artifact versioning was explicitly out of scope (owner: existing `GraphArtifactVersion`
+  migration path is sufficient). Not yet exercised in a real browser — no browser-automation
+  tool available in this environment; verified via check/test/build gates + a dev-server
+  boot-and-serve check only.
 
 
 ## Engine — compiler / runtime (not built)
@@ -52,3 +63,124 @@
 ## Process / verification
 
 - **Visual & GPU gates need a human eyeball** — headless green ≠ it renders. Device-compile coverage now runs in Node when the `webgpu` binding is available (`94d0629`); canvas integration tests still skip without a browser WebGPU canvas. See `packages/runtime-webgpu/README.md`.
+- **`npm run check` can silently drift stale once `packages/*/dist` exists on disk.** OS4's
+  `"customConditions": ["development"]` fix (each package's base `tsconfig.json`, added so
+  `check`/`svelte-check` resolve `@world-lab/*` siblings via live `src/` instead of requiring a
+  prebuild) only works reliably when `dist/` **doesn't exist yet**. Discovered 2026-07-01: after
+  running the OS4 consumer-smoke-test / a full `npm run build`, `dist/` is left on disk (it's
+  gitignored, so this never shows up in git, only locally), and a subsequent `npm run check`
+  for `apps/webgputoy` silently resolved through `dist/*.d.ts` instead of source — same file-
+  count drop (983 → 615) as the original bug, but now happening *because* `dist/` physically
+  exists, not because it's missing. `customConditions` evidently doesn't fully override the
+  special-cased `"types"` condition lookup once a matching `dist/*.d.ts` is actually present.
+  Practical mitigation for now: clear `packages/*/dist` before trusting a `check` run if you've
+  built locally in between (`rm -rf packages/*/dist`). Needs a real fix — options include
+  reordering/renaming exports conditions, a `.gitignore`+pretest hook that clears `dist/` before
+  `check`, or finding the actual TS resolution rule that's overriding `customConditions` here.
+
+## Accessibility (not built — reference: `saabi/colorlab`'s `_docs/accessibility-controls-handoff.md`)
+
+Colorlab's a11y work split into two kinds — a **required, structural keyboard/focus baseline**
+(not opt-in, needed by any keyboard/AT user) and an **opt-in text-readability preferences**
+layer (font scale, contrast, line-height; default appearance unchanged). Verified against
+World Lab's actual current state (2026-07-01), not assumed — the gaps below are confirmed, not
+guessed:
+
+- **Zero landmark roles or skip-link, almost everywhere.** Only one `<nav aria-label="Main">`
+  exists in the whole codebase (`apps/scene-editor`'s `AppHeader.svelte`); no `<aside>`/`<main>`/
+  `<footer>` landmarks anywhere, and `apps/webgputoy`/`packages/graph-editor` have none at all.
+  No skip-to-content link in either app.
+- **No focus trap anywhere** (`grep` for `focusTrap`/`trapFocus` across the whole repo: zero
+  hits). Every modal-ish dialog — `DocumentList.svelte`'s Save-As/Rename/Delete dialogs (this
+  session), `NodeSwapMenu.svelte`, `PortConnectMenu.svelte` — lets Tab leak out, and none
+  returns focus to the trigger element on close. Colorlab's `focusTrap` Svelte action
+  (`fe/src/lib/actions/focusTrap.ts`, ~40 lines: capture focusables, cycle Tab/Shift+Tab, save
+  + restore `activeElement`) is a direct, portable pattern.
+- **Existing a11y-linter warnings, already flagged by `vite-plugin-svelte` but not fixed:**
+  `NodeSwapMenu.svelte:58` and `PortConnectMenu.svelte:58` — "Elements with the 'dialog'
+  interactive role must have a tabindex value" (surfaced during this session's test runs,
+  pre-existing, not caused by it). Should be fixed properly alongside the focus-trap work
+  above (add `tabindex` *and* trap focus), not with a bare attribute patch.
+- **Undocumented keyboard shortcuts.** `packages/graph-editor` now has a real shortcut set
+  (Ctrl+Z/Shift+Z/Y undo-redo, Ctrl+D duplicate, Ctrl+C/V copy-paste, Delete/Backspace) with
+  zero in-app discoverability — no shortcut reference, no hint in any `aria-label`. Colorlab's
+  pattern: a "Keyboard" tab in its gesture-reference popover, `<dl>` two-column shortcut table.
+- **Pointer-only custom controls.** The graph canvas (`GraphCanvas.svelte`, `@xyflow/svelte`)
+  has no keyboard-only path to move a node or make a connection — a keyboard/AT user can select
+  a node (arrow-key selection may already exist via xyflow's own defaults, unverified) but
+  cannot reposition or connect it without a pointer. Colorlab's equivalent gap (G5: color
+  plane/bar canvases) was fixed with `tabindex="0"` + arrow-key adjustment + an `aria-live`
+  announce region — the same shape of fix likely applies here, scoped to whatever xyflow
+  already exposes vs. what needs custom wiring.
+- **Text readability: 100% hardcoded `px` font sizes, zero `rem`.** Confirmed by grep: 17
+  `font-size: Npx` rules in just `GraphEditor.svelte` + `DocumentList.svelte` alone (6 + 11),
+  zero `rem` usage anywhere in `packages/graph-editor`. Same root cause colorlab hit — a root
+  `font-size` scale preference has no effect until sizes cascade from `rem`/`em`. This is the
+  same class of dense-small-text-for-power-users tradeoff colorlab explicitly chose to keep as
+  *default* while adding an **opt-in**, localStorage-persisted font-scale/contrast/line-height
+  preference (not saved in documents) — worth the same opt-in framing here rather than changing
+  default density.
+
+**Suggested phasing** (mirroring colorlab's, likely similar effort shape — hours not days per
+phase): **A** structural/no-behavior (landmarks, skip link, tabindex fixes) → **B** focus trap
+action + apply to existing dialogs → **C** keyboard operability for the graph canvas → **D**
+in-app keyboard-shortcut reference → **E** opt-in text-readability preferences (rem conversion
+is the prerequisite step; same mechanical unit-refactor colorlab did across `app.css` and
+component `<style>` blocks).
+
+## Umami — behavior tracking (cookieless analytics)
+
+Self-hosted Umami is already deployed for usage stats. World Lab has **partial** integration today;
+expand to consistent, privacy-conscious behavior tracking across apps (reference implementation:
+[colorlab](https://github.com/saabi/colorlab) — custom `track()` events + disclosure in AppInfo).
+
+**Current state**
+
+- **`apps/scene-editor`:** env-gated script inject in `+layout.svelte` (`PUBLIC_UMAMI_SRC` +
+  `PUBLIC_UMAMI_WEBSITE_ID`, build-time); `lib/analytics/umami.ts` exposes `injectUmami` /
+  `track`, but almost no custom events are wired yet — page views only when env is set.
+- **`apps/webgputoy`:** no Umami integration.
+- **Root / PM2:** `ecosystem.config.cjs` documents Umami vars for scene-editor production; each
+  app needs its own Umami **website ID** if tracked separately.
+
+**To do**
+
+- **Shared helper (optional):** extract or duplicate the colorlab `umami.ts` pattern into a small
+  shared module (e.g. `packages/editor-ui` or a tiny `@world-lab/analytics` package) so both apps
+  use the same inject + `track` API and typing (`app.d.ts` `window.umami`).
+- **`apps/webgputoy`:** add env vars, layout inject, `.env.example` + README; separate website ID
+  in Umami dashboard.
+- **Custom events:** instrument high-signal interactions (document save/load, graph compile,
+  preview mode, scene navigation, flight mode, etc.) — not every click; follow colorlab's named-
+  event style (`track('event_name', { key: value })`).
+- **Privacy / consent:** disclose Umami in an in-app info or settings surface (colorlab
+  `AppInfo.svelte` pattern); analytics remain **opt-in via env at deploy time** and should stay
+  cookieless; do not conflate with future error-reporting consent (see separate error-monitoring
+  backlog if added).
+- **Deploy checklist:** document per-app `PUBLIC_UMAMI_*` + `PUBLIC_SITE_URL` in PM2 / build CI;
+  leave unset in dev for zero tracking.
+
+## `packages/subdivide` — extract to standalone repo
+
+- **Move `@world-lab/subdivide` out of the monorepo** into the standalone repo at
+  [`/home/ushif/repos/svelte-subdivide`](../../svelte-subdivide) (upstream history:
+  `sveltejs/svelte-subdivide`, Svelte 2). World Lab's current port lives in
+  `packages/subdivide/` (Svelte 5 runes, layout-tree engine, tests) and should become the
+  canonical source there — then consume it from world-lab as an external dependency (like
+  colorlab does for reusable libs).
+- ~~**Branch audit before merge**~~ ✅ done (2026-07-01) — compared `master`, `child-props`,
+  and `v3` on `saabi/svelte-subdivide`. **Nothing left to port.** `v3` branches off partway
+  through `child-props` and its two commits are byte-for-byte identical to commits already
+  later in `child-props` — a dead end, safe to ignore. `child-props`' two real bugfixes
+  (layout-on-instantiation, SSR-safe Mac/PC platform detection) are already present in
+  `packages/subdivide`'s Svelte 5 port; the rest of that branch is either Svelte-3-lifecycle
+  idioms (`beforeUpdate`/`tick()`) superseded by the runes rewrite, or its final commit — the
+  author's own "temporary arbitrary child property change handling" experiment — which
+  world-lab deliberately replaced with the `zone: string` + host-registry design (see this
+  package's README). Whenever extraction happens, no reconciliation step is needed; the
+  Svelte 5 port can move as-is.
+- **npm publish name:** do **not** assume `subdivide` or `@sveltejs/svelte-subdivide` is
+  available. Check registry ownership before publishing; if the name is taken or conflicts
+  with the historical package, publish under a distinct scope/name (e.g. keep
+  `@world-lab/subdivide` or another unused name). Document the chosen name in the extracted
+  repo's `package.json` and update world-lab workspace deps accordingly.
