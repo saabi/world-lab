@@ -94,17 +94,11 @@
     with more than one `render()` call per file (existing tests in `graph-editor` avoided it by
     scoping to their own returned `container`). Fixed via
     `setupFiles: ['@testing-library/svelte/vitest']` in all three.
-- **Divider hit/visual size** (`packages/subdivide/src/Divider.svelte`): currently a flat
-  `thickness = '1px'` (default, set via `--thickness` in `Subdivide.svelte`), same at rest and
-  under pointer. Make the resting visual **~2px wider**, and expand further on hover **without
-  affecting layout** (i.e. animate the `::before`/`::after` pseudo-element's visual size/opacity,
-  not the actual grid `--thickness` value that panes reflow around).
-- **No active/dragging visual state on the divider itself.** `Subdivide.svelte` already tracks
-  a `dragging` rune (`$state<DividerData | null>`) and uses it to drive a separate full-screen
-  cursor-hint overlay, but the `Divider.svelte` element being dragged gets no distinct style of
-  its own. Add a border highlight (e.g. a `.divider.active` class, or pass `dragging === divider`
-  as a prop) so it's visually obvious which divider is live while resizing.
-  Brief: `M-divider-visual-polish.md` (bundles both bullets above — same two files).
+- ~~Divider hit/visual size~~ / ~~No active/dragging visual state on the divider itself~~ ✅
+  done (2026-07-03, `4debfee`) — resting/hover widening is axis-aware (a horizontal divider's
+  bar grows only on Y, vertical only on X — better than what the brief specified); `active`
+  prop wired via `active={dragging === divider}` in `Subdivide.svelte`.
+  Brief: `M-divider-visual-polish.md`.
   ~~Corner-triangle resize affordance at divider intersections~~ — **retired** (owner decision,
   2026-07-03); considered and dropped, not deferred. Not to be confused with `PaneHeader.svelte`'s
   own, unrelated corner-triangle (the "change pane type" trigger), which was separately already
@@ -121,14 +115,13 @@
   synthetic output name) otherwise — the *underlying* output name/buffer `id` (the stable
   persistence key) is untouched, only the displayed label changes, so renaming a node doesn't
   churn a user's remembered buffer selection across reloads.
-- **No drag-and-drop node placement from the palette.** `NodePalette.svelte` is click-only today
-  (`onclick` → `onadd`); `GraphEditor.svelte::addPrimitive` stacks new nodes at a fixed offset
-  (`40 + n·24`, `40 + n·24`) regardless of where the user is looking on the canvas. Add
-  pointer drag from a palette primitive button, a canvas drop target on `GraphCanvas.svelte`
-  (screen → flow coords via xyflow's projection helpers), and place the new node at the drop
-  point — keep click-to-add as a fallback (e.g. center of viewport or current stack offset).
-  Consider a drag ghost/preview and `dataTransfer`/`effectAllowed` for HTML5 DnD parity across
-  palette → canvas boundaries inside the subdivide layout.
+- ~~No drag-and-drop node placement from the palette~~ ✅ done (2026-07-03, `9c758cc`) —
+  draggable palette primitives drop at the cursor's flow position via xyflow's
+  `screenToFlowPosition`; click-to-add unchanged. A new `CanvasPaletteDropBridge.svelte`
+  mounts inside `<SvelteFlow>`, mirroring the existing `CanvasFitViewBridge.svelte` pattern
+  rather than inventing a new one; drag payload uses a custom MIME type
+  (`application/x-world-lab-graph-primitive`) to avoid accidental drops from unrelated drag
+  sources. Brief: `M-palette-drag-drop.md`.
 - ~~WebGPUToy has no visible header/branding at all~~ ✅ done (2026-07-02) — real logo landed:
   `WebGpuToyLogo.svelte` (isotype + wordmark, theme-aware, `packages`-style SVG path data in
   `webGpuToyLogo.ts`), rendered into `GraphEditor.svelte`'s new `toolbarStart` snippet slot from
@@ -138,19 +131,12 @@
   `AppHeader.svelte`, the mark lives inside the editor's own toolbar rather than a separate
   app-level header bar — reasonable for a full-screen single-purpose editor that shouldn't spend
   vertical space on a redundant nav bar.
-- **App header toolbar layout** (`GraphEditor.svelte` `.toolbar`):
-  - **Node delete button is in the wrong place.** The selection-delete control currently lives
-    in the app header alongside document/file actions — it belongs with canvas/selection UX, not
-    the file chrome. Target placement TBD (e.g. canvas context menu, floating panel, or a
-    selection toolbar on the graph pane).
-  - **Undo/Redo breaks file-action grouping.** Undo/Redo sits between the document name and the
-    New/Save/Load/More file buttons, splitting what should read as one coherent file cluster.
-    Move Undo/Redo to the left (with edit actions) or the right (with view/canvas actions) so
-    file controls stay grouped.
-  - **Remove the far-right sidebar toggle from the header.** A header button opens the canvas
-    sidebar (`sidebarOpen` / `handleFloatingPanelToggle('sidebar')`); drop it — the pane's own
-    `N`-key / reveal-tab affordance already covers open/close without duplicating it in the
-    toolbar.
+- ~~App header toolbar layout~~ ✅ done (2026-07-03, `b1c1409`) — all three sub-items
+  resolved: Undo/Redo regrouped with the file-action cluster in `DocumentList.svelte`; the
+  header's Delete button and the redundant `»` sidebar toggle both removed; Delete moved into
+  the canvas sidebar's own new "Selection" section (sibling to the existing "Display"/Node
+  tint section), reusing the floating-panel infrastructure rather than a new UI surface.
+  Brief: `M-toolbar-reorg.md`.
 
 - ~~Preview buffer selection resets on graph edit / recompile~~ ✅ done (2026-07-03, `80e13f4`)
   — root cause was exactly the suspected unstable buffer ids: `PreviewBuffer.id` gets
@@ -201,31 +187,26 @@
   live — the full chain from "what's missing to create graphs that displace geometry" is
   closed. Both bundled mesh samples (`displacedSphereMeshGraph`/`rotatedPlaneMeshGraph`) wire
   it this way already.
-  **Gap found via independent review (2026-07-03), confirmed by direct code reading, not
-  assumed:** the "GPU" mesh path silently, permanently falls back to CPU for any normal
-  editor graph, including both bundled samples — `assembleMeshGenShader` requires the
-  position port to already be declared in `graph.outputs` (throws otherwise), which
-  `deriveMeshTargets` never synthesizes (unlike `target.display`'s equivalent), and both
-  samples have `outputs: []`. The failure is completely silent — a bare `catch {}` in
-  `renderMeshGenPreview` swallows it with no logging. Separately, even once that's fixed, the
-  WGSL module slice is built only from `position`, never `normal` — if normal comes from a
-  genuinely different subgraph than position (exactly the shipped displaced-sphere sample's
-  own shape), the compiled shader could be missing functions it needs. Brief:
+  ~~**Gap found via independent review (2026-07-03):** the "GPU" mesh path silently,
+  permanently fell back to CPU for any normal editor graph~~ ✅ done (2026-07-03, `b16f0aa`) —
+  `augmentGraphForMeshGen` builds a local, synthetic-augmented copy of the graph (never
+  mutating `req.graph`) with output entries for whichever of position/normal aren't already
+  declared, then slices/merges **both** subgraphs (not just position's), fixing the
+  independent-normal-subgraph gap too; `renderMeshGenPreview`'s catch now `console.warn`s
+  before falling back to CPU. Also picked up the low-priority cleanup noted alongside this
+  (the wasted unconditional CPU eval for count metadata) — `executeMeshGen` now computes
+  `vertexCount`/`indices` directly instead. A necessary addition I hadn't anticipated:
+  `emitGraphEval.ts` needed per-output WGSL entry-point routing (`wgslEntryForOutput`) so a
+  multi-output primitive like `surface.cubeSphere` resolves the right function per output port
+  (`cubeSphere_normal` added alongside the existing `cubeSphere` entry). Brief:
   `M-mesh-gen-gpu-output-fix.md`.
-- **Mesh preview — wireframe display mode** (not built): `MeshPreviewPanel` /
-  `surfaceMeshPreview.ts` renders solid `triangle-list` geometry with a simple Lambert fragment
-  shader only — no way to inspect edge topology or see displacement structure as lines. Add a
-  preview-pane toggle (solid ↔ wireframe): either `GPUPrimitiveState.polygonMode: 'line'` where
-  the adapter supports it, a dedicated line-list edge pass, or equivalent — wireframe should
-  share the same mesh buffers and camera as the solid path, not a separate graph output.
-- **Mesh preview — orbit camera outside the graph** (not built, feasible): camera belongs in
-  preview chrome, not as graph nodes — orbit/dolly is editor/viewport state, independent of
-  `target.mesh` / procedural outputs. Today `viewProjection()` in `surfaceMeshPreview.ts`
-  hard-codes `lookAt([2.2, 1.6, 2.2], [0, 0, 0], …)`; the file comment says "orbit camera" but
-  there is no pointer input and `MeshPreviewPanel.svelte` has no controls. Implement
-  drag-to-orbit (± scroll/pinch dolly) on the preview canvas via a small helper
-  (`orbitCamera.ts` or similar) owned by `MeshPreviewPanel` / `graph-editor`, feeding an updated
-  `viewProj` uniform each frame while the graph still only supplies position/normal fields.
+- **Mesh preview — wireframe display mode** (not built) and **orbit camera outside the
+  graph** (not built, feasible — camera belongs in preview chrome, not as graph nodes;
+  confirmed `viewProjection()` in `surfaceMeshPreview.ts` hard-codes a fixed `lookAt`, the
+  file's own naming says "orbit camera" but there's no pointer input at all). Bundled into one
+  brief (same two files): `M-mesh-preview-ux.md`. **Sequenced, not parallel** — both touch
+  `surfaceMeshPreview.ts`, which the active GPU-fallback fix (above) is touching right now;
+  queued behind it, not routable in parallel.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 
@@ -316,13 +297,14 @@ guessed:
   (Ctrl+Z/Shift+Z/Y undo-redo, Ctrl+D duplicate, Ctrl+C/V copy-paste, Delete/Backspace) with
   zero in-app discoverability — no shortcut reference, no hint in any `aria-label`. Colorlab's
   pattern: a "Keyboard" tab in its gesture-reference popover, `<dl>` two-column shortcut table.
-- **Pointer-only custom controls.** The graph canvas (`GraphCanvas.svelte`, `@xyflow/svelte`)
-  has no keyboard-only path to move a node or make a connection — a keyboard/AT user can select
-  a node (arrow-key selection may already exist via xyflow's own defaults, unverified) but
-  cannot reposition or connect it without a pointer. Colorlab's equivalent gap (G5: color
-  plane/bar canvases) was fixed with `tabindex="0"` + arrow-key adjustment + an `aria-live`
-  announce region — the same shape of fix likely applies here, scoped to whatever xyflow
-  already exposes vs. what needs custom wiring.
+- **Pointer-only custom controls — scope narrowed by verification (2026-07-03).** Select and
+  arrow-key move are **already fully working**, confirmed by reading `@xyflow/svelte`'s own
+  source directly (`NodeWrapper.svelte`'s `onKeyDown` already handles both, with an
+  `aria-live` announce message on move) — `GraphCanvas.svelte` never disables this, so it's
+  free, not a gap. The real, confirmed gap is narrower: **ports have zero keyboard affordance**
+  — `GraphNodeView.svelte`'s port divs have no `tabindex`/`onkeydown`, so the only way to open
+  the existing right-click quick-connect menu (`PortConnectMenu.svelte`) is a pointer. Brief
+  (Phase C): `M-editor-a11y-phase-c.md`.
 - **Text readability: 100% hardcoded `px` font sizes, zero `rem`.** Confirmed by grep: 17
   `font-size: Npx` rules in just `GraphEditor.svelte` + `DocumentList.svelte` alone (6 + 11),
   zero `rem` usage anywhere in `packages/graph-editor`. Same root cause colorlab hit — a root
@@ -334,10 +316,11 @@ guessed:
 
 **Suggested phasing** (mirroring colorlab's, likely similar effort shape — hours not days per
 phase): ~~**A** structural/no-behavior (landmarks, skip link, tabindex fixes)~~ ✅ done →
-~~**B** focus trap action + apply to existing dialogs~~ ✅ done → **C** keyboard operability
-for the graph canvas (next) → **D** in-app keyboard-shortcut reference → **E** opt-in
-text-readability preferences (rem conversion is the prerequisite step; same mechanical
-unit-refactor colorlab did across `app.css` and component `<style>` blocks).
+~~**B** focus trap action + apply to existing dialogs~~ ✅ done → **C** keyboard port
+connection (pinned: `M-editor-a11y-phase-c.md`; node select/move already free via xyflow's
+own defaults) → **D** in-app keyboard-shortcut reference → **E** opt-in text-readability
+preferences (rem conversion is the prerequisite step; same mechanical unit-refactor colorlab
+did across `app.css` and component `<style>` blocks).
 
 ## Umami — behavior tracking (cookieless analytics)
 
