@@ -171,6 +171,27 @@
   update; add emission/death recycling, atomic append or compaction, indirect draw counts,
   multiple emitters, collisions, and terrain interaction afterward. Planet-scale use must
   simulate in body-local or camera-relative coordinates to preserve `f32` precision.
+  **Reframed (2026-07-03) as three separately-motivated, already-partially-built capabilities
+  rather than one particle-specific vertical** — each has working precedent elsewhere in the
+  codebase, just siloed: (1) **instanced draw** — already working in `vegetationPreview.ts`
+  (per-instance buffer + `stepMode: 'instance'` + `drawIndexed(indexCount, instanceCount)`);
+  extraction pinned: `M-instanced-mesh-draw-extraction.md`. The render half is shared with
+  particles' needs; the instance-buffer *population* half isn't — vegetation's buffer is
+  CPU-written once (`GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST`), particles need
+  `STORAGE` added so a compute pass can write it every frame, which is a separate concern
+  (capability 2). (2) **graph-driven compute dispatch** — `meshGen.ts`'s grid-sweep compute
+  path already shares its underlying codegen (`emitGraphVec3Eval`/`buildParamsStructWgsl`) with
+  the image pipeline's `emitGraphEval.ts`; a particle-update dispatch (N-particles-from-buffer,
+  not grid-sweep) would be a sibling consumer reusing the same utilities, not a generalization
+  of `meshGen.ts` itself. Not yet briefed. (3) **feedback/ping-pong** — the frame-graph pure
+  core (`frameGraph/order.ts`) already models cross-frame feedback generically
+  (`ChannelRead.previousFrame` is explicitly excluded from cycle detection;
+  `RenderTarget.persistent`/`collectFeedbackTargets` already identify feedback targets) — only
+  the type model (`RenderTarget.format: GPUTextureFormat`) and `resolveTargetSizes` are
+  texture-specific; generalizing to a texture/storage-buffer union would let particle state
+  reuse the same, already-correct cycle-detection algorithm this package's own multibuffer/S0.5
+  work already needs. Not yet briefed. Particles become an integration brief once all three
+  land, not the reason any one of them gets built.
 - ~~graph-driven mesh-gen consumer~~ ✅ done (2026-07-03, `82f5a8b`) — `evaluateMeshGenCpu`/
   `executeMeshGen` + `MeshGenRequest` replace the hardcoded `surfaceMesh.ts::buildSurfaceMesh`
   CPU loop; `surface.cubeFace → transform.spherify` reproduces `surface.cubeSphere`'s own

@@ -27,20 +27,27 @@ is still open.
 
 ## Active
 
-File ownership verified disjoint between these two (different packages, no overlap) — both
-genuinely parallel-startable now that the mesh-gen GPU-fix (which `M-mesh-preview-ux.md` was
-queued behind) has landed.
+File ownership verified disjoint across these three (different packages/files, no overlap) —
+all parallel-startable.
 
 - **Editor accessibility Phase C** (keyboard port connection — node select/move already free
   via xyflow's own defaults, verified; only ports have zero keyboard affordance)
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-c.md`
   Owns: `packages/graph-editor/src/GraphNodeView.svelte`
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 - **Mesh preview UX: wireframe toggle + orbit camera**
   Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
   Owns: `packages/graph-editor/src/MeshPreviewPanel.svelte`,
   `packages/runtime-webgpu/src/consumers/surfaceMeshPreview.ts`
+  Claimed by: — · Status: unclaimed
+
+- **Extract a reusable instanced-mesh-draw consumer** (step 1 of 3 toward a generic,
+  primitive-based particle-system methodology — see the brief's own "Context" section for the
+  other two)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-instanced-mesh-draw-extraction.md`
+  Owns: `packages/runtime-webgpu/src/consumers/instancedMeshDraw.ts` (new),
+  `packages/runtime-webgpu/src/consumers/vegetationPreview.ts`
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
