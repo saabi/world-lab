@@ -186,26 +186,6 @@
 	</div>
 
 	<div class="actions">
-		<button
-			type="button"
-			class="icon-btn"
-			disabled={!canUndo}
-			aria-label="Undo"
-			title={undoLabel ? `Undo ${undoLabel}` : 'Undo'}
-			onclick={onUndo}
-		>
-			&#8630;
-		</button>
-		<button
-			type="button"
-			class="icon-btn"
-			disabled={!canRedo}
-			aria-label="Redo"
-			title={redoLabel ? `Redo ${redoLabel}` : 'Redo'}
-			onclick={onRedo}
-		>
-			&#8631;
-		</button>
 		<button type="button" onclick={actions.onNew}>New</button>
 		<button type="button" disabled={readOnly} onclick={actions.onSave}>Save</button>
 
@@ -272,6 +252,26 @@
 				</div>
 			{/if}
 		</div>
+		<button
+			type="button"
+			class="icon-btn"
+			disabled={!canUndo}
+			aria-label="Undo"
+			title={undoLabel ? `Undo ${undoLabel}` : 'Undo'}
+			onclick={onUndo}
+		>
+			&#8630;
+		</button>
+		<button
+			type="button"
+			class="icon-btn"
+			disabled={!canRedo}
+			aria-label="Redo"
+			title={redoLabel ? `Redo ${redoLabel}` : 'Redo'}
+			onclick={onRedo}
+		>
+			&#8631;
+		</button>
 	</div>
 
 	{#if statusMessage}

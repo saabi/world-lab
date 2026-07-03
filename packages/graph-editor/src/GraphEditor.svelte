@@ -666,6 +666,16 @@
 				<option value="off">Off</option>
 			</select>
 		</label>
+		<h3>Selection</h3>
+		<button
+			type="button"
+			class="selection-delete"
+			data-testid="canvas-selection-delete"
+			disabled={!selectedNodeId && !selectedEdgeId}
+			onclick={deleteSelection}
+		>
+			Delete
+		</button>
 	</div>
 {/snippet}
 
@@ -799,22 +809,6 @@
 				onLoadLayoutChange: onLoadDocumentLayoutChange
 			}}
 		/>
-		<button
-			type="button"
-			disabled={!selectedNodeId && !selectedEdgeId}
-			onclick={deleteSelection}
-		>
-			Delete
-		</button>
-		<button
-			type="button"
-			class="sidebar-toggle"
-			aria-pressed={sidebarOpen}
-			title={sidebarOpen ? 'Close sidebar (N)' : 'Open sidebar (N)'}
-			onclick={() => handleFloatingPanelToggle('sidebar')}
-		>
-			&raquo;
-		</button>
 	</header>
 	<input
 		bind:this={fileInput}
@@ -926,10 +920,6 @@
 		color: inherit;
 	}
 
-	.sidebar-toggle {
-		font-weight: bold;
-	}
-
 	.sidebar-panel {
 		display: flex;
 		flex-direction: column;
@@ -960,6 +950,21 @@
 		border-radius: 4px;
 		background: #1a1f30;
 		color: inherit;
+	}
+
+	.sidebar-panel .selection-delete {
+		font-size: 11px;
+		padding: 4px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: #1a1f30;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.sidebar-panel .selection-delete:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.status {

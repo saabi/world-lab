@@ -34,14 +34,14 @@ depends on another; neither touches anything in the just-landed batch above).
   the canvas sidebar's own "Selection" section)
   Brief: `_docs/architecture/procedural-graph/briefs/M-toolbar-reorg.md`
   Owns: `packages/graph-editor/src/GraphEditor.svelte`, `packages/graph-editor/src/DocumentList.svelte`
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 - **Umami analytics for webgputoy** (parity port of scene-editor's existing integration)
   Brief: `_docs/architecture/procedural-graph/briefs/M-webgputoy-umami.md`
   Owns: `apps/webgputoy/src/lib/analytics/umami.ts` (new), `apps/webgputoy/src/routes/+layout.svelte`
   (additive only — this file already has a11y Phase A's skip-link/`<main>` landmark from
   `5b64448`; don't rewrite it), `apps/webgputoy/.env.example`
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 - **Geometry transforms, Slice A** (`math.normalize` + `transform.spherify` +
   `transform.normalDisplace`, as node groups over existing/new elemental math ops)
@@ -51,6 +51,10 @@ depends on another; neither touches anything in the just-landed batch above).
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Toolbar reorg** — undo/redo grouped with file actions; header Delete + `»` toggle removed;
+  canvas sidebar gains a Selection section with Delete.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-toolbar-reorg.md`
 
 - **Colorlab harvest Slice B (`color.chromaticAdapt`)** — `522e31a` · Bradford von Kries
   adaptation primitive with D65/D50 input defaults, evalCPU + WGSL parity vs colorlab.
