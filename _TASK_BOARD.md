@@ -27,7 +27,28 @@ is still open.
 
 ## Active
 
-(none)
+Three tasks pinned 2026-07-03, file ownership verified disjoint (no package overlap; neither
+depends on another; neither touches anything in the just-landed batch above).
+
+- **Toolbar reorg** (undo/redo grouping, remove redundant `»` sidebar toggle, move Delete into
+  the canvas sidebar's own "Selection" section)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-toolbar-reorg.md`
+  Owns: `packages/graph-editor/src/GraphEditor.svelte`, `packages/graph-editor/src/DocumentList.svelte`
+  Claimed by: — · Status: unclaimed
+
+- **Umami analytics for webgputoy** (parity port of scene-editor's existing integration)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-webgputoy-umami.md`
+  Owns: `apps/webgputoy/src/lib/analytics/umami.ts` (new), `apps/webgputoy/src/routes/+layout.svelte`
+  (additive only — this file already has a11y Phase A's skip-link/`<main>` landmark from
+  `5b64448`; don't rewrite it), `apps/webgputoy/.env.example`
+  Claimed by: — · Status: unclaimed
+
+- **Geometry transforms, Slice A** (`math.normalize` + `transform.spherify` +
+  `transform.normalDisplace`, as node groups over existing/new elemental math ops)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-a.md`
+  Owns: new module(s) under `packages/procedural-wgsl/src/modules/math/`, `packages/graph/src`
+  primitive + group registration for the three new ops (additive registry entries only)
+  Claimed by: — · Status: unclaimed
 
 ## Done (recent)
 

@@ -152,16 +152,13 @@
     `N`-key / reveal-tab affordance already covers open/close without duplicating it in the
     toolbar.
 
-- **Preview buffer selection resets on graph edit / recompile.** Editing the graph (which triggers
-  shader recompile and preview refresh) currently jumps the preview pane's selected output back to
-  the first buffer in the list. Preferred behavior: **keep the user's buffer selection** across
-  edits and recompiles whenever that output still exists; only fall back to the first/default
-  buffer when the edit removes or invalidates the previously selected output (e.g. deleted display
-  sink, removed declared output, or buffer id no longer in `enumeratePreviewBuffers`). Note:
-  `previewPaneSelection.ts::syncSelectionsForGraphChange` and `GraphEditor.svelte::updateGraph`
-  already attempt this by buffer id — the reset-on-edit behavior suggests either unstable buffer
-  ids across re-derivation or another code path overwriting `previewBuffersByPane`; fix should
-  verify end-to-end in the preview tab bar (`PreviewZone.svelte`), not just the sync helper.
+- ~~Preview buffer selection resets on graph edit / recompile~~ ✅ done (2026-07-03, `80e13f4`)
+  — root cause was exactly the suspected unstable buffer ids: `PreviewBuffer.id` gets
+  re-derived from the enumeration each time and can churn, so `previewPaneSelection.ts` now
+  also stores a stable `sourceKey` (`node:port` or `sink:<displayNodeId>`, from
+  `previewBufferSourceKey`) per pane and resolves by that when the id no longer matches; sync
+  only re-runs when the enumerated buffer *set* actually changes (a signature/equality check),
+  not on every `updateGraph` call.
 
 
 ## Engine — compiler / runtime (not built)
