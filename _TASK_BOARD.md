@@ -30,12 +30,6 @@ is still open.
 File ownership verified disjoint across these three (different packages/files, no overlap) —
 all parallel-startable.
 
-- **Editor accessibility Phase C** (keyboard port connection — node select/move already free
-  via xyflow's own defaults, verified; only ports have zero keyboard affordance)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-c.md`
-  Owns: `packages/graph-editor/src/GraphNodeView.svelte`
-  Claimed by: Cursor · Status: in progress
-
 - **Mesh preview UX: wireframe toggle + orbit camera**
   Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
   Owns: `packages/graph-editor/src/MeshPreviewPanel.svelte`,
@@ -51,6 +45,10 @@ all parallel-startable.
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Editor accessibility Phase C** — `009f97f` · `tabindex` + `aria-label` on input/output
+  ports; Enter/Space opens existing `PortConnectMenu` (same matches as right-click).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-c.md`
 
 - **Fix mesh-gen GPU path silent CPU fallback** — `b16f0aa` · synthetic `graph.outputs` for
   mesh-gen module slicing; dual position/normal subgraph merge; `console.warn` before CPU
