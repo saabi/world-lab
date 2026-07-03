@@ -27,21 +27,6 @@ is still open.
 
 ## Active
 
-Two tasks pinned 2026-07-03, file ownership verified disjoint from each other (no package
-overlap; neither depends on another).
-
-- **Geometry transforms, Slice B** (`transform.translate`/`scale`/`rotate` — the two former
-  compose over already-registered `vector.add.vec3f`/`vector.mulScalar.vec3f`, no new atomic
-  math needed; `rotate` extracts the existing Euler-XYZ math already used by
-  `geometry.plane`'s orientation feature, reading `planeGrid.ts` as reference without
-  modifying it)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-b.md`
-  Owns: new module(s) under `packages/procedural-wgsl/src/modules/transform/`,
-  `packages/graph/src` primitive + group registration for the three new transforms (additive
-  registry entries only — do not touch `planeGrid.ts` or any existing `vector.*`/`transform.*`
-  primitive)
-  Claimed by: Cursor · Status: in progress
-
 - **Editor accessibility Phase B** (focus trap action + apply to the four existing modal-ish
   dialogs)
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-b.md`
@@ -51,6 +36,11 @@ overlap; neither depends on another).
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Geometry transforms, Slice B** — `f56f309` · `transform.translate`/`scale` as vector-op groups;
+  `transform.rotate` extracts `planeGridEulerRotate` + WGSL parity; **Mesh — Rotated plane**
+  sample for visual gate.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-b.md`
 
 - **`target.mesh` sink + live graph-driven mesh preview** — `704e1d1` · `target.mesh` primitive
   (`meshTarget` role), `deriveMeshTargets`/`resolveMeshPreviewRequest`, mesh preview pane reads
