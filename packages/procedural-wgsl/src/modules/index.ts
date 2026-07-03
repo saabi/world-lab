@@ -38,6 +38,7 @@ import {
 	HOST_IRESOLUTION_MODULE,
 	HOST_ITIME_MODULE
 } from './host/index.js';
+import { SURFACE_CUBE_FACE_MODULE } from './surface/cubeFace.js';
 import { SURFACE_CUBE_SPHERE_MODULE } from './surface/cubeSphere.js';
 import { SURFACE_PLANE_MODULE } from './surface/plane.js';
 import {
@@ -182,6 +183,7 @@ export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[MATH_BIAS_MODULE.id]: copyModule(MATH_BIAS_MODULE),
 	[MATH_GAIN_MODULE.id]: copyModule(MATH_GAIN_MODULE),
 	[SURFACE_PLANE_MODULE.id]: copyModule(SURFACE_PLANE_MODULE),
+	[SURFACE_CUBE_FACE_MODULE.id]: copyModule(SURFACE_CUBE_FACE_MODULE),
 	[SURFACE_CUBE_SPHERE_MODULE.id]: copyModule(SURFACE_CUBE_SPHERE_MODULE),
 	[TERRAIN_DOMAIN_WARP_MODULE.id]: copyModule(TERRAIN_DOMAIN_WARP_MODULE),
 	[TERRAIN_VORONOI_MODULE.id]: copyModule(TERRAIN_VORONOI_MODULE),
@@ -272,6 +274,7 @@ export {
 	SDF_OP_SUBTRACT_MODULE,
 	SDF_OP_UNION_MODULE,
 	SDF_SEGMENT_MODULE,
+	SURFACE_CUBE_FACE_MODULE,
 	SURFACE_CUBE_SPHERE_MODULE,
 	SURFACE_PLANE_MODULE,
 	TERRAIN_BIOME_MATERIAL_MODULE,
@@ -347,6 +350,7 @@ export {
 	HOST_IRESOLUTION_SOURCE,
 	HOST_ITIME_SOURCE
 } from './host/index.js';
+export { SURFACE_CUBE_FACE_SOURCE } from './surface/cubeFace.js';
 export { SURFACE_CUBE_SPHERE_SOURCE } from './surface/cubeSphere.js';
 export { SURFACE_PLANE_SOURCE } from './surface/plane.js';
 export {

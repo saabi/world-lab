@@ -12,6 +12,7 @@ export * from './device.js';
 export * from './moduleResolver.js';
 export * from './emitGraphEval.js';
 export { emitGraphVec3Eval } from './emitGraphVec3Eval.js';
+export * from './consumers/meshGen.js';
 export * from './consumers/planeScalarPreview.js';
 export * from './consumers/surfaceMeshPreview.js';
 export * from './consumers/vegetationCandidates.js';

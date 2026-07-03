@@ -37,6 +37,8 @@ export interface EmitGraphEvalOptions {
 	fragCoordExpr?: string;
 	iResolutionExpr?: string;
 	iTimeExpr?: string;
+	/** WGSL expression for per-invocation `face` param (mesh-gen); overrides uniform binding. */
+	faceExpr?: string;
 }
 
 function sanitizeId(id: string): string {
@@ -275,6 +277,10 @@ function emitGraphEval(
 		let loopCallExpr = '';
 
 		for (const binding of inferArguments(doc, node, primitive.wgsl.arguments)) {
+			if (binding.source === 'param' && binding.name === 'face' && opts?.faceExpr) {
+				argValues.push(`i32(${opts.faceExpr})`);
+				continue;
+			}
 			if (binding.source === 'param') {
 				const incoming = doc.edges.filter((edge) => edge.to.node === node.id);
 				const paramBindings = resolveParamBindings(node, primitive, incoming);

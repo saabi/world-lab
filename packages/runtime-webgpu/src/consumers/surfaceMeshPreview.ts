@@ -1,10 +1,18 @@
-import { buildSurfaceMesh, type SurfaceMesh, type SurfacePrimitiveId } from '../surfaceMesh.js';
+import {
+	evaluateMeshGenCpu,
+	executeMeshGen,
+	meshGenRequestForLegacySurface,
+	type GeneratedMesh,
+	type LegacySurfaceId
+} from '../consumers/meshGen.js';
 
 export interface SurfaceMeshPreviewInput {
 	device: GPUDevice;
 	canvas: HTMLCanvasElement;
-	surfaceId: SurfacePrimitiveId;
+	surfaceId: LegacySurfaceId;
 	gridSize?: number;
+	/** Use `surface.cubeFace → transform.spherify` for cube-sphere (graph decomposition proof). */
+	decomposedCubeSphere?: boolean;
 }
 
 type Mat4 = Float32Array;
@@ -135,7 +143,7 @@ function viewProjection(aspect: number): Mat4 {
 	return mat4Multiply(proj, view);
 }
 
-function packInterleavedVertices(mesh: SurfaceMesh): Float32Array {
+function packInterleavedVertices(mesh: GeneratedMesh): Float32Array {
 	const data = new Float32Array(mesh.vertexCount * 6);
 	for (let i = 0; i < mesh.vertexCount; i++) {
 		const src = i * 3;
@@ -178,9 +186,9 @@ function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat): GPUR
 	});
 }
 
-/** Render a CPU-built surface mesh into a WebGPU canvas (orbit camera, flat shading). */
+/** Render a graph-generated surface mesh into a WebGPU canvas (orbit camera, flat shading). */
 export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): Promise<void> {
-	const { device, canvas, surfaceId, gridSize = 16 } = input;
+	const { device, canvas, surfaceId, gridSize = 16, decomposedCubeSphere = false } = input;
 	const context = canvas.getContext('webgpu');
 	if (!context) {
 		throw new Error('WebGPU canvas context unavailable');
@@ -189,7 +197,15 @@ export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): 
 	const format = navigator.gpu.getPreferredCanvasFormat();
 	context.configure({ device, format, alphaMode: 'opaque' });
 
-	const mesh = buildSurfaceMesh(surfaceId, gridSize);
+	const request = meshGenRequestForLegacySurface(surfaceId, gridSize, {
+		decomposedCubeSphere: surfaceId === 'surface.cubeSphere' && decomposedCubeSphere
+	});
+	let mesh: GeneratedMesh;
+	try {
+		mesh = await executeMeshGen(device, request);
+	} catch {
+		mesh = evaluateMeshGenCpu(request);
+	}
 	const pipeline = createRenderPipeline(device, format);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 

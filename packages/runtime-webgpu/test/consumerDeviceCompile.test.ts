@@ -95,6 +95,17 @@ describe('consumer device-compile coverage', () => {
 			}
 		},
 		{
+			name: 'mesh-gen compute (decomposed cube-sphere)',
+			assemble: async () => {
+				const { assembleMeshGenShader, meshGenRequestForLegacySurface } = await import(
+					'../src/consumers/meshGen.js'
+				);
+				return assembleMeshGenShader(
+					meshGenRequestForLegacySurface('surface.cubeSphere', 4, { decomposedCubeSphere: true })
+				);
+			}
+		},
+		{
 			name: 'surface-mesh preview raster',
 			assemble: async () => SURFACE_MESH_PREVIEW_SHADER
 		}

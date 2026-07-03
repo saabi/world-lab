@@ -44,7 +44,8 @@
 					device,
 					canvas,
 					surfaceId,
-					gridSize: 24
+					gridSize: 24,
+					decomposedCubeSphere: surfaceId === 'surface.cubeSphere'
 				});
 				if (cancelled) return;
 				statusMessage = null;

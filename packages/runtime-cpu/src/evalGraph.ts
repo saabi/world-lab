@@ -14,6 +14,8 @@ import { Value } from '@world-lab/schema';
 export interface EvalGraphSample {
 	/** Procedural inputs for this sample (e.g. uv: [u, v]). */
 	procedural?: Record<string, CpuValue>;
+	/** Per-node param overrides for this sample (e.g. mesh-gen face sweep). */
+	nodeParams?: Record<string, Record<string, number | boolean>>;
 }
 
 export interface EvalGraphOptions {
@@ -39,7 +41,8 @@ function resolveParams(
 	doc: GraphDocument,
 	node: Node,
 	primitive: NodePrimitive,
-	nodeOutputs: Map<string, Record<string, CpuValue>>
+	nodeOutputs: Map<string, Record<string, CpuValue>>,
+	sample?: EvalGraphSample
 ): Record<string, number | boolean> {
 	const incoming = doc.edges.filter((edge) => edge.to.node === node.id);
 	const bindings = resolveParamBindings(node, primitive, incoming);
@@ -81,6 +84,15 @@ function resolveParams(
 		if (key in resolved) continue;
 		if (typeof value === 'number' || typeof value === 'boolean') {
 			resolved[key] = value;
+		}
+	}
+
+	const overrides = sample?.nodeParams?.[node.id];
+	if (overrides) {
+		for (const [key, value] of Object.entries(overrides)) {
+			if (typeof value === 'number' || typeof value === 'boolean') {
+				resolved[key] = value;
+			}
 		}
 	}
 
@@ -183,7 +195,7 @@ function evaluateNode(
 		);
 	}
 
-	const params = resolveParams(doc, node, primitive, nodeOutputs);
+	const params = resolveParams(doc, node, primitive, nodeOutputs, sample);
 	const raw = primitive.evalCPU({
 		inputs,
 		params,
@@ -255,4 +267,47 @@ export function evaluateGraphOutput(
 		);
 	}
 	return result;
+}
+
+export function evaluateGraphVec3Output(
+	doc: GraphDocument,
+	output: PortRef,
+	sample: EvalGraphSample,
+	options?: EvalGraphOptions
+): number[] {
+	const outputNode = doc.nodes.find((node) => node.id === output.node);
+	if (!outputNode) {
+		throw new Error(`Unknown output node: ${output.node}`);
+	}
+
+	const outputPort = findOutputPort(outputNode, output.port);
+	if (!outputPort || outputPort.direction !== 'out') {
+		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
+	}
+
+	if (outputPort.dataType !== 'vec3f') {
+		throw new Error(
+			`evaluateGraphVec3Output requires vec3f output; got ${outputPort.dataType}`
+		);
+	}
+
+	const nodeOutputs = new Map<string, Record<string, CpuValue>>();
+	for (const nodeId of topologicalSort(doc, output.node)) {
+		const node = doc.nodes.find((candidate) => candidate.id === nodeId);
+		if (!node) {
+			throw new Error(`Unknown node: ${nodeId}`);
+		}
+		nodeOutputs.set(nodeId, evaluateNode(doc, node, nodeOutputs, sample, options));
+	}
+
+	const result = nodeOutputs.get(output.node)?.[output.port];
+	if (result === undefined) {
+		throw new Error(`Missing output value: ${output.node}.${output.port}`);
+	}
+	if (!Array.isArray(result) || result.length !== 3) {
+		throw new Error(
+			`evaluateGraphVec3Output requires vec3f output; got ${Array.isArray(result) ? `array[${result.length}]` : typeof result}`
+		);
+	}
+	return result.map((component) => Number(component));
 }

@@ -27,20 +27,14 @@ is still open.
 
 ## Active
 
-One task pinned 2026-07-03 — pulled forward by owner decision (wanted a full graph-driven
-pipeline to test `transform.spherify` end-to-end, not a narrower one-off render or CPU-only
-check). Both listed prerequisites already landed; this was unblocked, just never routed.
-
-- **Graph-driven mesh-gen consumer** (replaces `surfaceMesh.ts`'s hardcoded CPU loop; includes
-  a new `surface.cubeFace` primitive + `surface.cubeFace → transform.spherify` composition as
-  the concrete decomposition proof, reproducing `surface.cubeSphere`'s own geometry)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-consumer.md`
-  Owns: `packages/runtime-webgpu/src/consumers/meshGen.ts` (new), `packages/runtime-webgpu/src/surfaceMesh.ts`,
-  `packages/graph/src/primitives/surfaces/cubeFace.ts` (new), `packages/graph-editor/src` mesh-preview
-  consumers of `buildSurfaceMesh` (migrate to `evaluateMeshGenCpu`/`executeMeshGen`)
-  Claimed by: — · Status: unclaimed · ⚠ has a visual gate
+(none)
 
 ## Done (recent)
+
+- **Graph-driven mesh-gen consumer** — `surface.cubeFace` primitive + `evaluateMeshGenCpu` /
+  `executeMeshGen`; `surface.cubeFace → transform.spherify` decomposition matches
+  `surface.cubeSphere`; mesh preview uses graph path (cube-sphere tab uses decomposed graph).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-consumer.md`
 
 - **Geometry transforms, Slice A** — `ec84b01` · `math.normalize` atomic primitive +
   `transform.spherify` / `transform.normalDisplace` group-backed transforms; evalCPU +
