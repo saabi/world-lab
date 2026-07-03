@@ -1,7 +1,7 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Revision:** 6 (2026-07-03) —
-incorporates five rounds of verified external review; see [Revision history](#revision-history) ·
+**Status:** proposed implementation plan, not yet approved · **Revision:** 7 (2026-07-03) —
+incorporates six rounds of verified external review; see [Revision history](#revision-history) ·
 **Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
@@ -26,6 +26,60 @@ is sequenced so the live planet renderer (`apps/scene-editor`, gated per `AGENTS
 already-shipped, already-tested graph-editor feature keep working throughout, not just at the end.
 
 ## Revision history
+
+**Revision 7** incorporates a sixth verified external review, of revision 6. Every finding was
+verified by directly triggering the exact code path in question:
+
+- **`SinkInvocation` still had no field for the resolved dependency.** The prose claimed
+  `deriveInvocation` "resolves the referenced output name... and that resolved port is what feeds
+  slicing," but `SinkInvocation<T>` only had `{ sinkKind, nodeId, payload }` — generic compiler code
+  can't reach a resolved port without interpreting a sink-specific, opaque `payload`. Added an
+  explicit `dependencies: PortRef[]` field so slicing can consume it generically.
+- **Per-node compatibility data (`{ type, stage, outputs }`) has no serialized home, and the
+  obvious guess is wrong.** `SinkDefinition` is *static* primitive metadata (part of
+  `PrimitiveImplementation`, registered once per primitive kind) — it cannot hold per-node data
+  that differs across every `legacy.consumerSink`/`preview.fieldSink` instance. Worse, verified
+  directly: `packages/graph-editor/src/irAdapter.ts:77-103`'s `replaceNodePrimitive` rebuilds
+  `node.params` by copying only keys declared in the primitive's TypeBox `params` schema — any data
+  stashed in `node.params` outside a real, declared schema is silently dropped on any primitive
+  swap/resync. Fixed by requiring `legacy.consumerSink`/`preview.fieldSink` to declare a concrete
+  TypeBox `params` schema for `type`/`stage`/`outputs`, storing this data in `node.params` like any
+  other primitive parameter — not implied to live somewhere in `SinkDefinition`.
+- **Calling `compileConsumers` once per legacy sink loses cross-consumer behavior, verified
+  directly.** `compileGraph`'s `moduleUseCount`/`sharedSeen`/`sharedModuleIds`
+  (`packages/compiler/src/compileGraph.ts:37-65`) are accumulated across *all* consumers within one
+  call — a module used by two different legacy sinks would never be detected as shared if each sink
+  triggers its own separate `compileConsumers(doc, [descriptor], resolver)` call. Fixed: collect
+  every legacy invocation across the whole document first, then call `compileConsumers` once with
+  the complete descriptor list, exactly matching today's batched behavior.
+- **The v1/v2 document boundary was never actually typed, and `deserializeGraph` doesn't migrate.**
+  Verified `deserializeGraph` (`packages/graph/src/serialize.ts:24-27`) is a bare
+  `JSON.parse(json) as GraphDocument` — an unchecked cast, no version awareness, no migration. A
+  single `GraphDocument` type cannot accurately describe both "requires `consumers`" (v1) and
+  "`consumers` removed" (v2). Defined `GraphDocumentV1`/`GraphDocumentV2` explicitly;
+  `deserializeGraph` now parses as `unknown`, branches on `version`, and returns a normalized,
+  always-v2 result — migration is not a function bolted on the side, it's in the actual load path.
+- **Output deletion must maintain compatibility-sink references, verified directly as an existing
+  mechanism that will silently break.** `pruneOutputsAndConsumers`
+  (`packages/graph-editor/src/irAdapter.ts:105-114`) already prunes `doc.consumers` entries
+  referencing a deleted output today — post-migration this exact mechanism needs an equivalent for
+  `preview.fieldSink`/`legacy.consumerSink` *nodes*, or routine node/port edits silently leave
+  broken execution roots. Added to F1.4a's fix and gate explicitly.
+- **Handler registration was asserted, never contracted.** "Runtime handlers are registered by
+  `sinkKind`" appeared three times with no interface, registry, collision policy, or injection
+  point ever defined. Defined a concrete `SinkHandlerRegistry`, and split it explicitly:
+  compiler-side sink adapters (translate a `SinkInvocation` into a compile descriptor, live in
+  `packages/compiler`) are a different registration from `runtime-webgpu` execution handlers
+  (actually draw/dispatch) — conflating them was part of why this stayed vague.
+- **The novel-sink-kind test contradicted F1.4a's own declared scope.** `PipelineGraphPlan` is
+  explicitly scoped (by this plan's own prior revisions) to *only* understand the one fixed
+  display-pipeline chain — it cannot "plan" an unfamiliar topology by design. Testing a novel sink
+  kind against it was self-contradictory. Introduced an explicit, generic `discoverExecutionRoots`
+  function (find every `kind: 'sink'` node, full stop) as the correctly-scoped target for that test;
+  `PipelineGraphPlan` keeps its narrower, already-correct job.
+- Added a requirement for an exhaustive `DataType → TypeRef` table (every value, including F1.1's
+  renamed tuple types and pipeline-resource aliases) rather than leaving "real structural shape for
+  everything else" as a vague aspiration implementers could fill in inconsistently.
 
 **Revision 6** incorporates a fifth verified external review, of revision 5. The two high findings
 are genuine architectural gaps in how the new sink-based execution model actually reconciles with
@@ -518,7 +572,10 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
    job; `legacy` keeps the F1.5 mapping honestly total in the meantime.
 2. Add a **one-directional-total, one-directional-partial** mapping, not a general bidirectional
    one: `DataType → TypeRef` is total (every existing `DataType` value has a canonical `TypeRef` —
-   `legacy` for underparameterized resource types, a real structural shape for everything else);
+   `legacy` for underparameterized resource types, a real structural shape for everything else) —
+   **pin this as an exhaustive table, every one of the 20+ `DataType` values (including F1.1's
+   renamed `tuple<T>` variants) named explicitly**, not "a real structural shape for everything
+   else" left as a description implementers fill in independently and inconsistently;
    `TypeRef → DataType` is a **partial, optional** "display alias" lookup that only succeeds for
    `TypeRef` values that happen to correspond to an existing `DataType` (a `TypeRef` describing an
    arbitrary struct, a parameterized buffer, or a specific texture format has no legacy string to
@@ -595,7 +652,10 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
    DataType` alias lookup correctly.
 6. A test proves `replacePrimitive` normalizes a `dataType`-only `NodePrimitiveInput` identically
    to `registerPrimitive` — both call the same `normalizePrimitiveInput`, not two copies.
-7. `check` and `test` green for every package, full workspace.
+7. An exhaustiveness test (`_exhaustive: never`-style) fails to compile if any current or future
+   `DataType` value is missing from the `DataType → TypeRef` table — proving it's a real, checked
+   mapping, not documentation implementers can drift from.
+8. `check` and `test` green for every package, full workspace.
 
 **Out of scope:** the full WebGPU capability/validation model (Foundation 2). Storage/texture
 usage-flag inference from edges (Foundation 2). Removing `DataType` — it stays as a convenience
@@ -718,7 +778,9 @@ with no WGSL function at all — without creating a package dependency cycle bet
    interface SinkInvocation<T = unknown> {
      sinkKind: string;
      nodeId: string;
-     payload: T; // shape owned by whichever runtime handler is registered for sinkKind
+     dependencies: PortRef[]; // generic — what this invocation needs, resolvable without
+                              // interpreting `payload`
+     payload: T; // shape owned by whichever handler is registered for sinkKind
    }
 
    interface SinkDefinition {
@@ -726,35 +788,75 @@ with no WGSL function at all — without creating a package dependency cycle bet
      deriveInvocation(doc: GraphDocument, node: Node): SinkInvocation | null;
    }
    ```
-   Runtime handlers are registered by `sinkKind`, so third-party/standard-library sink kinds can be
-   added without changing `SinkInvocation`'s shape. Migrate `target.display` to `kind: 'sink'` with
-   a `SinkDefinition` whose `deriveInvocation` is `derivePipelinePresentations`'s per-node logic,
-   ported (not reimplemented), with `payload` carrying today's presentation shape; migrate
-   `target.mesh` the same way, porting `deriveMeshTargets`'s existing position/normal/gridSize/
-   faceCount extraction into its `deriveInvocation`'s `payload`. Generic code walks
-   `implementation.kind === 'sink'` to *find* sink nodes; each sink's own `deriveInvocation` still
-   supplies its specific payload shape.
+   `dependencies` is the fix for a real gap: without it, generic code (slicing, compilation) would
+   need to interpret a sink-specific, opaque `payload` just to find out what a sink depends on,
+   defeating the point of a common `SinkInvocation` shape. `deriveInvocation` always populates it,
+   whether the dependency comes from a real incoming edge (ordinary sinks) or a resolved output-name
+   reference (compatibility sinks, below) — callers needing "what does this feed on" never touch
+   `payload` at all; only the registered handler for that `sinkKind` does.
+
+   **`SinkDefinition` is static, per-primitive metadata — it cannot hold per-node data, verified as
+   a real gap, not just a wording one.** `SinkDefinition` lives on `PrimitiveImplementation`,
+   registered once per primitive kind, exactly like `WgslSourceRef` today. `{ type, stage, outputs }`
+   (F1.4a's compatibility-sink payload) is different *per node instance* — it cannot live in
+   `SinkDefinition` at all. It must be **node-instance data**, stored in `node.params` like any
+   other primitive parameter, and — critically — declared through a **real TypeBox `params`
+   schema** for `preview.fieldSink`/`legacy.consumerSink`, not ad-hoc untyped keys. Verified why
+   this matters: `packages/graph-editor/src/irAdapter.ts:77-103`'s `replaceNodePrimitive` rebuilds
+   `node.params` by copying only keys present in the (possibly new) primitive's declared TypeBox
+   schema (`paramKeys(primitive.params)`) — anything stored outside a declared schema key is
+   silently dropped on any primitive swap or resync. `deriveInvocation` reads this data from
+   `node.params` (via the schema), not from anywhere in `SinkDefinition`.
+   
+   Migrate `target.display` to `kind: 'sink'` with a `SinkDefinition` whose `deriveInvocation` is
+   `derivePipelinePresentations`'s per-node logic, ported (not reimplemented), with `payload`
+   carrying today's presentation shape; migrate `target.mesh` the same way, porting
+   `deriveMeshTargets`'s existing position/normal/gridSize/faceCount extraction into its
+   `deriveInvocation`'s `payload`. Generic code walks `implementation.kind === 'sink'` to *find*
+   sink nodes; each sink's own `deriveInvocation` still supplies its specific payload shape and
+   populates `dependencies`.
 
    **Ordinary sinks vs. compatibility sinks — two different dependency-discovery mechanisms, not
    one.** `target.display`/`target.mesh` have real, statically-typed input *ports*; their
    dependency subgraph is found the normal way, by following incoming *edges* (the same backward
-   walk `sliceGraph` already does — `packages/compiler/src/slice.ts:13-37` — from a resolved port).
-   `preview.fieldSink` and `legacy.consumerSink` (F1.4a) are different: they carry a `payload` that
-   references a `GraphDocument.outputs` entry *by name*, with no incoming edge at all — there's no
-   such thing as a port that "accepts any type," which is what a real, edge-wired input on these
-   sinks would need to be. These two are **compatibility sinks**: their `deriveInvocation`
-   resolves the referenced output name directly (the same name-to-port resolution `sliceGraph`
-   already performs for `consumer.outputs` today), and *that* resolved port is what feeds slicing —
-   not an edge into the sink node itself. Root discovery still starts from `implementation.kind ===
-   'sink'`, but which mechanism supplies the dependency subgraph (edge-walk vs. `deriveInvocation`
-   name-resolution) is sink-kind-specific, and compatibility sinks are the only kind requiring the
-   latter.
-4. Give `buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` the explicit
+   walk `sliceGraph` already does — `packages/compiler/src/slice.ts:13-37` — from a resolved port),
+   and `deriveInvocation` populates `dependencies` from those edges. `preview.fieldSink` and
+   `legacy.consumerSink` (F1.4a) are different: their `node.params` (per the schema above) carries
+   an output name reference, with no incoming edge at all — there's no such thing as a port that
+   "accepts any type," which is what a real, edge-wired input on these sinks would need to be.
+   These two are **compatibility sinks**: their `deriveInvocation` resolves the referenced output
+   name directly (the same name-to-port resolution `sliceGraph` already performs for
+   `consumer.outputs` today), populating `dependencies` with the resolved port rather than reading
+   it off an edge. Root discovery still starts from `implementation.kind === 'sink'`; which
+   mechanism `deriveInvocation` uses to populate `dependencies` (edge-walk vs. params-based
+   name-resolution) is sink-kind-specific and invisible to generic callers.
+4. Define a concrete **sink-handler registration contract** — "handlers are registered by
+   `sinkKind`" was previously asserted with no interface, registry, collision policy, or injection
+   point. Split by concern, since compiling a sink's WGSL and actually executing/rendering it are
+   different responsibilities living in different packages:
+   ```ts
+   interface SinkCompilerAdapter {
+     sinkKind: string;
+     toConsumerDescriptor(invocation: SinkInvocation): ProceduralConsumer; // compiler-side
+   }
+   interface SinkHandlerRegistry<TAdapter> {
+     register(adapter: TAdapter): void; // throws on duplicate sinkKind, matching
+                                         // registerPrimitive's existing collision behavior
+     get(sinkKind: string): TAdapter | undefined;
+   }
+   ```
+   `SinkCompilerAdapter`s (compiler-side, in `packages/compiler`) translate a `SinkInvocation` into
+   a `ProceduralConsumer` descriptor for `compileConsumers` (F1.4a) — this is what
+   `legacy.consumerSink`'s bridge actually is. Runtime execution handlers (`runtime-webgpu`,
+   actually drawing/dispatching a resolved sink) are a *separate* registry, not the same mechanism —
+   conflating "compile this" and "execute this" under one registration was part of why this stayed
+   vague.
+5. Give `buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` the explicit
    `kind: 'legacy-structural'` marker instead of forcing them into `sink` or `command` — these
    three don't have a well-defined final kind until Foundation 2/3's resource/pass model exists.
    `stage.vertex` stays `kind: 'wgsl-function'` (excluded from this group, per the verified-state
    note above).
-5. Add a **`GroupResolver`** interface in `packages/graph`, mirroring the existing
+6. Add a **`GroupResolver`** interface in `packages/graph`, mirroring the existing
    `WgslModuleResolver`/`createStandardLibraryResolver` pattern (`packages/procedural-wgsl/src/resolver.ts`)
    exactly:
    ```ts
@@ -767,10 +869,10 @@ with no WGSL function at all — without creating a package dependency cycle bet
    resolver into compiler/editor contexts exactly as `WgslModuleResolver` already is — no global
    startup-order dependence, no new dependency direction (`graph` still doesn't import
    `procedural-wgsl`; `procedural-wgsl` implements `graph`'s interface, same as today).
-6. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl` field
+7. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl` field
    — do not remove `wgsl` yet. Make it optional and derive it from `implementation` for
    `wgsl-function`/`group` kinds, so the 3 dispatch files migrate one at a time.
-7. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on `implementation.kind`.
+8. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on `implementation.kind`.
 
 **Test gate:**
 1. Every existing `wgsl-function` and `group`-backed primitive compiles to byte-identical WGSL
@@ -788,7 +890,18 @@ with no WGSL function at all — without creating a package dependency cycle bet
    dependency-direction assertion (e.g. a lint/import-graph check), not just behavior.
 5. A new test proves `SinkDefinition.deriveInvocation` for `target.mesh` produces identical
    `MeshTargetDescriptor` output to today's `deriveMeshTargets` on every bundled mesh sample.
-6. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
+6. A test proves `deriveInvocation` always populates `SinkInvocation.dependencies` — for an
+   ordinary sink (`target.display`) from its real incoming edge, for a compatibility sink from its
+   resolved output-name reference — and that generic slicing code consumes `dependencies` directly
+   without ever inspecting `payload`.
+7. A test proves `preview.fieldSink`/`legacy.consumerSink` declare a real TypeBox `params` schema
+   for their `{ type, stage, outputs }` data, and that `replaceNodePrimitive`-style resync
+   (`packages/graph-editor/src/irAdapter.ts`) preserves this data across a primitive swap — the
+   concrete regression case for the static-`SinkDefinition`-vs-per-node-data fix above.
+8. A test proves `SinkHandlerRegistry.register` throws on a duplicate `sinkKind`, matching
+   `registerPrimitive`'s existing collision behavior, and that compiler-side `SinkCompilerAdapter`
+   registration is independent of any `runtime-webgpu` execution-handler registration.
+9. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
    workspace.
 
 **Out of scope:** designing `ResourceDescriptor`/`GpuCommandKind`/real kernel semantics
@@ -888,6 +1001,17 @@ only generic *root discovery* for today's one pipeline shape.
   level deeper.** It's defined in `packages/runtime-webgpu/src/pipelineVertex.ts:18`, but the
   `'image'` migration (below) needs to reference it when synthesizing a default `geometry.plane`
   node, from `graph`/`compiler`/`mcp-server` contexts that cannot depend on `runtime-webgpu`.
+- **The v1/v2 document boundary has never actually been typed, and today's load path doesn't
+  migrate anything, verified directly.** `deserializeGraph`
+  (`packages/graph/src/serialize.ts:24-27`) is `JSON.parse(json) as GraphDocument` — an unchecked
+  cast with no version branching. A single `GraphDocument` TypeScript type cannot accurately
+  describe both "requires `consumers`" (v1) and "`consumers` removed" (v2) at once.
+- **Output deletion already has a pruning mechanism today that must be extended, not just
+  replaced.** `pruneOutputsAndConsumers` (`packages/graph-editor/src/irAdapter.ts:105-114`) already
+  removes `doc.consumers` entries referencing a deleted output whenever a node's ports change.
+  Once `consumers` is retired, this exact editor mutation path needs an equivalent for
+  `preview.fieldSink`/`legacy.consumerSink` *nodes* — otherwise routine node/port edits silently
+  leave broken execution roots referencing a since-deleted output.
 
 **Fix:**
 1. Define the rule: **exports** (`GraphDocument.outputs`, unchanged) name reusable values.
@@ -914,12 +1038,40 @@ only generic *root discovery* for today's one pipeline shape.
    ```
    `compileGraph` (kept temporarily for pre-migration `doc.consumers` compatibility) becomes a thin
    wrapper: `compileConsumers(doc, opts.consumers ?? doc.consumers, resolver)`. The
-   `legacy.consumerSink` runtime handler — living in `packages/compiler`, not `packages/graph`, so
-   the dependency direction never reverses — translates a resolved `SinkInvocation`'s preserved
-   `{ type, stage, outputs }` payload into a `ProceduralConsumer` descriptor and calls
-   `compileConsumers(doc, [descriptor], resolver)` directly. Both the legacy `doc.consumers` path
-   and the new sink-based path delegate to the same underlying operation; neither calls the other.
-4. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function.
+   `legacy.consumerSink` compiler adapter (`SinkCompilerAdapter`, per F1.3) — living in
+   `packages/compiler`, not `packages/graph`, so the dependency direction never reverses —
+   translates each resolved `SinkInvocation`'s preserved `{ type, stage, outputs }` payload into a
+   `ProceduralConsumer` descriptor. **Critically, this collection happens once across the whole
+   document before compiling anything:** discover every `legacy.consumerSink`/`preview.fieldSink`
+   node, resolve each to a descriptor, collect them into one list, and call
+   `compileConsumers(doc, allDescriptors, resolver)` a single time — not once per sink. Calling it
+   per-sink would reset `compileConsumers`' shared-module bookkeeping (`moduleUseCount`/
+   `sharedModuleIds`) on every call, so a module used by two different legacy sinks would never be
+   detected as shared, a real behavioral regression from today's batched-all-consumers-together
+   `compileGraph`. Both the legacy `doc.consumers` path and the new sink-based path delegate to the
+   same underlying batched operation; neither calls the other.
+4. **Type the v1/v2 boundary explicitly — a single `GraphDocument` cannot describe both:**
+   ```ts
+   interface GraphDocumentV1 extends /* today's shape */ { version: '1'; consumers: ProceduralConsumer[] }
+   interface GraphDocumentV2 extends /* new shape */ { version: '2' } // no consumers field
+   type GraphDocument = GraphDocumentV2; // the canonical, forward-looking alias
+
+   function migrateGraphDocument(doc: GraphDocumentV1 | GraphDocumentV2): GraphDocumentV2;
+   ```
+   `deserializeGraph` stops being a bare cast — it parses as `unknown`, checks `version`, and
+   returns `migrateGraphDocument`'s normalized result:
+   ```ts
+   function deserializeGraph(json: string): GraphDocumentV2 {
+     const parsed = JSON.parse(json) as GraphDocumentV1 | GraphDocumentV2; // still needs runtime
+                                                                            // shape validation,
+                                                                            // not just a cast —
+                                                                            // out of scope here,
+                                                                            // tracked as existing debt
+     return migrateGraphDocument(parsed);
+   }
+   ```
+   Migration is in the actual load path now, not a function that exists but nothing calls.
+5. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function.
    Migrations return a patch, not bare nodes — a single node is insufficient for shapes needing
    wiring between multiple synthesized nodes:
    ```ts
@@ -972,7 +1124,15 @@ only generic *root discovery* for today's one pipeline shape.
    - Keep graph-schema versioning (`GraphDocument.version`) and artifact/serialization-format
      versioning as separate concerns — a schema-version bump does not imply every serialized
      artifact (e.g. exported markup) changes shape for unrelated reasons.
-5. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`;
+6. **Extend output-deletion pruning to compatibility-sink nodes.** `pruneOutputsAndConsumers`
+   (`packages/graph-editor/src/irAdapter.ts:105-114`) already prunes `doc.consumers` entries
+   referencing a deleted output whenever a node's ports change. Add the v2 equivalent to the same
+   mutation path: when an output a `preview.fieldSink`/`legacy.consumerSink` node's `params`
+   references is deleted, either update that node's reference (if a replacement is unambiguous) or
+   remove the node — never leave it silently referencing a name that no longer resolves. This is a
+   routine editor operation (deleting a port, swapping a primitive), not just a migration-time
+   concern; it must work correctly going forward, on every v2 document.
+7. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`;
    `'preview'` and genuinely-`vec4f` `'image'`/`'fragment'` (both get real structural synthesis);
    `'vertex-pass'`, non-`vec4f` `'fragment-pass'`, `'veg-compute'`, `'terrain-mesh'` (all get
    `legacy.consumerSink`); and at least one hand-written document with a deliberately-unknown
@@ -982,16 +1142,22 @@ only generic *root discovery* for today's one pipeline shape.
    *without* relying on `resolveVertexAssembly`'s try/catch fallback); for the `legacy.consumerSink`
    shapes, that `compileConsumers` (via the `legacy.consumerSink` bridge) still executes them
    identically to today's `compileGraph`.
-6. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
+8. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
    is proven — new documents are always v2, authored without `consumers`.
-7. Update the 6 files reading `.consumers` (including `compileGraph` itself, now a thin wrapper
+9. Update the 6 files reading `.consumers` (including `compileGraph` itself, now a thin wrapper
    over `compileConsumers` per step 3) to read post-migration v2 documents instead, one file at a
    time, with a parity test per file.
-8. Narrow planner change only: teach `PipelineGraphPlan` to discover today's fixed pipeline shape
-   (geometry → persist → vertex → fragment → display) by walking `implementation.kind` tags
-   instead of hardcoded primitive-id strings. **Do not** attempt to generalize the planner beyond
-   this one shape — a planner for arbitrary sink/kernel topologies needs the resource/hazard model
-   Foundation 2/3 don't provide yet. That generalization is Foundation 4, explicitly out of scope.
+10. Add an explicit, generic **`discoverExecutionRoots(doc: GraphDocument): Node[]`** function —
+    find every `kind: 'sink'` node, full stop, independent of what pipeline shape (if any) they
+    participate in. This is deliberately separate from `PipelineGraphPlan`.
+11. Narrow planner change only: teach `PipelineGraphPlan` to discover today's fixed pipeline shape
+    (geometry → persist → vertex → fragment → display) by walking `implementation.kind` tags
+    instead of hardcoded primitive-id strings — using `discoverExecutionRoots` for the sink-finding
+    part, then applying its own, still-fixed-shape logic on top. **Do not** attempt to generalize
+    `PipelineGraphPlan` beyond this one shape — a planner for arbitrary sink/kernel topologies needs
+    the resource/hazard model Foundation 2/3 don't provide yet; that generalization is Foundation 4.
+    `discoverExecutionRoots` itself is already fully generic — it's `PipelineGraphPlan`'s *planning*
+    step, not root discovery, that stays scoped to the one known shape.
 
 **Test gate:**
 1. Every already-shipped feature depending on `consumers`/`outputs`/role-detection — image-pipeline
@@ -1006,30 +1172,43 @@ only generic *root discovery* for today's one pipeline shape.
    `'fragment-pass'`, `'veg-compute'`, `'terrain-mesh'`, unknown types) still execute correctly via
    the bridge to `compileConsumers`; the `image`/`fragment` fixture specifically proves
    `PipelineGraphPlan` succeeds without needing `resolveVertexAssembly`'s try/catch fallback.
-3. A test proves `compileGraph` (pre-migration `doc.consumers` path) and the `legacy.consumerSink`
-   bridge (post-migration sink-based path) both call `compileConsumers` and produce identical
-   `GraphCompileResult`s for the same descriptor — proving the extraction removed the recursion
-   risk without changing either path's behavior.
-4. A test proves a document with a real `target.display` sink *and* a separate, unrelated
+3. A test with at least two `legacy.consumerSink`-routed entries sharing a common upstream module
+   proves that module is correctly detected as shared (`sharedModuleIds`) after migration — the
+   concrete regression case for the batched-`compileConsumers` fix above; calling it per-sink would
+   fail this test.
+4. A test proves `compileGraph` (pre-migration `doc.consumers` path) and the `legacy.consumerSink`
+   bridge (post-migration sink-based path, called once with the complete descriptor list) both call
+   `compileConsumers` and produce identical `GraphCompileResult`s for the same descriptor set —
+   proving the extraction removed the recursion risk without changing either path's behavior.
+5. A test proves a document with a real `target.display` sink *and* a separate, unrelated
    `legacy.consumerSink`-routed entry migrates both correctly — neither entry is dropped because
    the other's real node already existed, the concrete regression case for the per-entry-processing
    fix above.
-5. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
+6. A test proves `deserializeGraph` correctly branches on `version` and returns a normalized
+   `GraphDocumentV2` for both v1 and v2 input, and that `GraphDocumentV1`/`GraphDocumentV2` are
+   distinct enough at the type level that code assuming v2's shape (no `consumers`) doesn't
+   type-check against a v1 value without going through `migrateGraphDocument` first.
+7. A test proves deleting an output referenced by a `preview.fieldSink`/`legacy.consumerSink`
+   node's `params` updates or removes that node (mirroring `pruneOutputsAndConsumers`'s existing
+   behavior for `doc.consumers`) rather than leaving a dangling reference — exercised as a routine
+   editor mutation, not just a migration-time concern.
+8. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
    **rehomed**, not deleted outright — their logic now lives inside the corresponding
    `SinkDefinition.deriveInvocation` implementations from F1.3 (`deriveMeshTargets`'s exact
    position/normal/gridSize/faceCount extraction becomes `target.mesh`'s `deriveInvocation`), and
    the standalone reconciliation functions are removed once nothing calls them directly anymore.
-6. A new test wires a novel sink kind (invented for the test, with its own trivial
-   `SinkDefinition`) and proves `PipelineGraphPlan`'s discovery step finds it via
-   `implementation.kind` alone — proving root *discovery* is generic, while acknowledging (per
-   scope above) the planner's *shape* is still the one fixed chain.
-7. Loading an old v1 saved document still opens and behaves identically after migration.
-8. **Migration determinism and idempotence:** migrating the same v1 document twice (independently,
-   not caching the first result) produces identical node/edge IDs and identical serialized output
-   both times; migrating an already-v2 document is a no-op (byte-identical output); synthesized
-   node/edge IDs are proven collision-free against every existing ID in the document being
-   migrated (using the relocated `packages/graph` ID facility from step 2 above).
-9. `check` and `test` green for every package, full workspace, with special attention to
+9. A new test wires a novel sink kind (invented for the test, with its own trivial
+   `SinkDefinition`) and proves **`discoverExecutionRoots`** finds it via `implementation.kind`
+   alone — not `PipelineGraphPlan`, which by its own declared scope only understands the one fixed
+   display-pipeline shape and cannot "plan" an unfamiliar topology. This proves root *discovery* is
+   generic without asking the fixed-shape planner to do something outside its scope.
+10. Loading an old v1 saved document still opens and behaves identically after migration.
+11. **Migration determinism and idempotence:** migrating the same v1 document twice (independently,
+    not caching the first result) produces identical node/edge IDs and identical serialized output
+    both times; migrating an already-v2 document is a no-op (byte-identical output); synthesized
+    node/edge IDs are proven collision-free against every existing ID in the document being
+    migrated (using the relocated `packages/graph` ID facility from step 2 above).
+12. `check` and `test` green for every package, full workspace, with special attention to
    `graph-editor`.
 
 **Out of scope:** the generic resource/pass/hazard-validation model (Foundation 2). Generalizing
