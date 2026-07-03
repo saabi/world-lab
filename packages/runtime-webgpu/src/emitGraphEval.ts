@@ -2,7 +2,9 @@ import {
 	getPrimitive,
 	dataTypeToWgsl,
 	formatPortDefaultWgsl,
+	promotableParams,
 	resolveInputPortDefault,
+	resolveParamBindings,
 	type DataType,
 	type GraphDocument,
 	type Node,
@@ -107,7 +109,11 @@ function resolveParams(node: Node): Record<string, number | boolean> {
 	return { ...defaults, ...authored } as Record<string, number | boolean>;
 }
 
-function inferArguments(node: Node, bindings?: WgslArgumentBinding[]): WgslArgumentBinding[] {
+function inferArguments(
+	doc: GraphDocument,
+	node: Node,
+	bindings?: WgslArgumentBinding[]
+): WgslArgumentBinding[] {
 	if (bindings && bindings.length > 0) {
 		return bindings;
 	}
@@ -116,12 +122,11 @@ function inferArguments(node: Node, bindings?: WgslArgumentBinding[]): WgslArgum
 		throw new Error(`Unknown primitive: ${node.primitive}`);
 	}
 	const args: WgslArgumentBinding[] = [];
-	for (const input of node.inputs) {
+	for (const input of primitive.inputs) {
 		args.push({ name: input.name, source: 'input' });
 	}
-	const params = resolveParams(node);
-	for (const key of Object.keys(params)) {
-		args.push({ name: key, source: 'param' });
+	for (const name of promotableParams(primitive)) {
+		args.push({ name, source: 'param' });
 	}
 	return args;
 }
@@ -133,8 +138,13 @@ function collectParamFields(doc: GraphDocument, nodeIds: string[]): GraphParamFi
 	for (const nodeId of nodeIds) {
 		const node = doc.nodes.find((candidate) => candidate.id === nodeId);
 		if (!node) continue;
+		const primitive = getPrimitive(node.primitive);
+		if (!primitive) continue;
+		const incoming = doc.edges.filter((edge) => edge.to.node === nodeId);
+		const bindings = resolveParamBindings(node, primitive, incoming);
 		const params = resolveParams(node);
 		for (const [paramName, value] of Object.entries(params)) {
+			if (bindings[paramName]?.kind === 'edge') continue;
 			if (typeof value !== 'number') continue;
 			const field = paramField(nodeId, paramName);
 			if (seen.has(field)) continue;
@@ -264,9 +274,31 @@ function emitGraphEval(
 		let loopIndexName = '';
 		let loopCallExpr = '';
 
-		for (const binding of inferArguments(node, primitive.wgsl.arguments)) {
+		for (const binding of inferArguments(doc, node, primitive.wgsl.arguments)) {
 			if (binding.source === 'param') {
-				argValues.push(`params.${paramField(node.id, binding.name)}`);
+				const incoming = doc.edges.filter((edge) => edge.to.node === node.id);
+				const paramBindings = resolveParamBindings(node, primitive, incoming);
+				const paramBinding = paramBindings[binding.name];
+				if (paramBinding?.kind === 'edge') {
+					const upstreamNode = doc.nodes.find(
+						(candidate) => candidate.id === paramBinding.from.node
+					);
+					if (!upstreamNode) {
+						throw new Error(`Unknown upstream node: ${paramBinding.from.node}`);
+					}
+					const upstreamPort = findOutputPort(upstreamNode, paramBinding.from.port);
+					if (!upstreamPort) {
+						throw new Error(
+							`Unknown upstream port: ${paramBinding.from.node}.${paramBinding.from.port}`
+						);
+					}
+					const expr = portVar(paramBinding.from.node, paramBinding.from.port);
+					const paramPort = node.inputs.find((port) => port.id === binding.name);
+					const targetType = paramPort?.dataType ?? 'f32';
+					argValues.push(promoteExpr(expr, upstreamPort.dataType, targetType));
+				} else {
+					argValues.push(`params.${paramField(node.id, binding.name)}`);
+				}
 				continue;
 			}
 

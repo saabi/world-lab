@@ -1,4 +1,4 @@
-import { getPrimitive, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
+import { getPrimitive, paramInputPorts, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
 import { emitGraphScalarEval, emitGraphVec4Eval } from './emitGraphEval.js';
@@ -25,7 +25,10 @@ function snapshotNode(
 	return {
 		id,
 		primitive: primitiveId,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
+		inputs: [
+			...instantiatePorts(primitive.inputs, 'in'),
+			...instantiatePorts(paramInputPorts(primitive), 'in')
+		],
 		outputs: instantiatePorts(primitive.outputs, 'out'),
 		...(params !== undefined ? { params } : {})
 	};
@@ -65,6 +68,44 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		expect(body).toContain('perlin3d(');
 		expect(body).toContain('remap(');
 		expect(emitted.resultExpr).toBe('v_n_remap_value');
+		expect(emitted.params.some((field) => field.paramName === 'inMin')).toBe(true);
+	});
+
+	it('emits upstream expression for edge-driven promotable params', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [
+				snapshotNode('n_uv', 'procedural.uv'),
+				snapshotNode('n_const', 'constant.f32', { value: 10 }),
+				snapshotNode('n_perlin', 'noise.perlin3d'),
+				snapshotNode('n_remap', 'math.remap', { inMin: 0, inMax: 1, outMin: 0, outMax: 1 })
+			],
+			edges: [
+				{
+					id: 'e_uv_perlin',
+					from: { node: 'n_uv', port: 'uv' },
+					to: { node: 'n_perlin', port: 'position' }
+				},
+				{
+					id: 'e_perlin_remap',
+					from: { node: 'n_perlin', port: 'value' },
+					to: { node: 'n_remap', port: 'x' }
+				},
+				{
+					id: 'e_const_inMax',
+					from: { node: 'n_const', port: 'value' },
+					to: { node: 'n_remap', port: 'inMax' }
+				}
+			],
+			outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
+			consumers: [{ type: 'preview', outputs: ['field'] }]
+		};
+
+		const emitted = emitGraphScalarEval(graph, { node: 'n_remap', port: 'value' });
+		const body = emitted.body.join('\n');
+		expect(body).toContain('v_n_const_value');
+		expect(body).toMatch(/remap\([^)]*v_n_const_value/);
+		expect(emitted.params.some((field) => field.paramName === 'inMax')).toBe(false);
 		expect(emitted.params.some((field) => field.paramName === 'inMin')).toBe(true);
 	});
 

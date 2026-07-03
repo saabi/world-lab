@@ -1,10 +1,12 @@
 import {
 	getPrimitive,
 	resolveInputPortDefault,
+	resolveParamBindings,
 	type CpuValue,
 	type DataType,
 	type GraphDocument,
 	type Node,
+	type NodePrimitive,
 	type PortRef
 } from '@world-lab/graph';
 import { Value } from '@world-lab/schema';
@@ -34,12 +36,55 @@ function coerceInputValue(value: CpuValue, fromType: DataType, toType: DataType)
 }
 
 function resolveParams(
+	doc: GraphDocument,
 	node: Node,
-	primitiveParams: Parameters<typeof Value.Create>[0]
+	primitive: NodePrimitive,
+	nodeOutputs: Map<string, Record<string, CpuValue>>
 ): Record<string, number | boolean> {
-	const defaults = Value.Create(primitiveParams) as Record<string, unknown>;
+	const incoming = doc.edges.filter((edge) => edge.to.node === node.id);
+	const bindings = resolveParamBindings(node, primitive, incoming);
+	const resolved: Record<string, number | boolean> = {};
+	const defaults = Value.Create(primitive.params) as Record<string, unknown>;
 	const authored = node.params ?? {};
-	return { ...defaults, ...authored } as Record<string, number | boolean>;
+
+	for (const [key, binding] of Object.entries(bindings)) {
+		if (binding.kind === 'edge') {
+			const fromNode = doc.nodes.find((candidate) => candidate.id === binding.from.node);
+			if (!fromNode) {
+				throw new Error(`Unknown upstream node: ${binding.from.node}`);
+			}
+			const fromPort = findOutputPort(fromNode, binding.from.port);
+			if (!fromPort) {
+				throw new Error(`Unknown upstream port: ${binding.from.node}.${binding.from.port}`);
+			}
+			const upstreamOutputs = nodeOutputs.get(binding.from.node);
+			if (!upstreamOutputs || !(binding.from.port in upstreamOutputs)) {
+				throw new Error(`Missing upstream value: ${binding.from.node}.${binding.from.port}`);
+			}
+			const value = coerceInputValue(
+				upstreamOutputs[binding.from.port]!,
+				fromPort.dataType,
+				'f32'
+			);
+			if (typeof value !== 'number' && typeof value !== 'boolean') {
+				throw new Error(`Param ${key} requires scalar upstream value`);
+			}
+			resolved[key] = value;
+			continue;
+		}
+		if (binding.kind === 'literal') {
+			resolved[key] = binding.value;
+		}
+	}
+
+	for (const [key, value] of Object.entries({ ...defaults, ...authored })) {
+		if (key in resolved) continue;
+		if (typeof value === 'number' || typeof value === 'boolean') {
+			resolved[key] = value;
+		}
+	}
+
+	return resolved;
 }
 
 function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
@@ -138,7 +183,7 @@ function evaluateNode(
 		);
 	}
 
-	const params = resolveParams(node, primitive.params);
+	const params = resolveParams(doc, node, primitive, nodeOutputs);
 	const raw = primitive.evalCPU({
 		inputs,
 		params,

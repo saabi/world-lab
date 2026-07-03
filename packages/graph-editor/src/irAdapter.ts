@@ -7,13 +7,13 @@ import {
 	type Node,
 	type Port,
 	type PortRef,
-	type PortSpec,
 	type ValidationIssue,
 	type ValidationResult
 } from '@world-lab/graph';
 import { Value, type TSchema } from '@world-lab/schema';
 import { collectEdgeIds, collectNodeIds, mintEdgeId, mintNodeId } from './graphIds.js';
 import { inputHandleId, outputHandleId } from './portHandles.js';
+import { instantiateNodeInputs, instantiateNodeOutputs } from './nodePortUtils.js';
 
 export interface FlowNodeData {
 	nodeId: string;
@@ -57,15 +57,16 @@ function findOutputPort(node: Node, portId: string): Port | undefined {
 	return node.outputs.find((port) => port.id === portId);
 }
 
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
-	return specs.map((spec) => ({
-		id: spec.name,
-		name: spec.name,
-		direction,
-		dataType: spec.dataType,
-		...(spec.space !== undefined ? { space: spec.space } : {}),
-		...(spec.default !== undefined ? { default: spec.default } : {})
-	}));
+function syncNodePortLists(node: Node, primitiveId: string): Node {
+	const primitive = getPrimitive(primitiveId);
+	if (!primitive) {
+		throw new Error(`Unknown primitive: ${primitiveId}`);
+	}
+	return {
+		...node,
+		inputs: instantiateNodeInputs(primitive),
+		outputs: instantiateNodeOutputs(primitive)
+	};
 }
 
 function paramKeys(schema: TSchema): string[] {
@@ -91,13 +92,14 @@ function replaceNodePrimitive(node: Node, primitiveId: string): Node {
 	const keys = paramKeys(primitive.params);
 	const { params: _previousParams, ...rest } = node;
 
-	return {
-		...rest,
-		primitive: primitiveId,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
-		outputs: instantiatePorts(primitive.outputs, 'out'),
-		...(keys.length > 0 ? { params: merged } : {})
-	};
+	return syncNodePortLists(
+		{
+			...rest,
+			primitive: primitiveId,
+			...(keys.length > 0 ? { params: merged } : {})
+		},
+		primitiveId
+	);
 }
 
 function pruneOutputsAndConsumers(
@@ -130,13 +132,16 @@ function createNode(doc: GraphDocument, primitiveId: string, position: { x: numb
 	}
 
 	const usedIds = collectNodeIds(doc);
-	return {
-		id: mintNodeId(usedIds, primitiveId),
-		primitive: primitiveId,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
-		outputs: instantiatePorts(primitive.outputs, 'out'),
-		position
-	};
+	return syncNodePortLists(
+		{
+			id: mintNodeId(usedIds, primitiveId),
+			primitive: primitiveId,
+			position,
+			inputs: [],
+			outputs: []
+		},
+		primitiveId
+	);
 }
 
 /** Canvas/inspector label for a node — custom name or primitive id. */

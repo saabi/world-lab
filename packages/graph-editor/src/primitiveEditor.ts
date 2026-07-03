@@ -12,6 +12,7 @@ import {
 } from '@world-lab/graph';
 import { Value, type TSchema } from '@world-lab/schema';
 import { resyncGraphPortMetadata } from './graphSync.js';
+import { instantiateNodeInputs, instantiateNodeOutputs } from './nodePortUtils.js';
 import { isBuiltinPrimitive } from './primitiveSources.js';
 import { registerUserPrimitiveFromSource } from './userPrimitives.js';
 
@@ -53,8 +54,8 @@ function rippleNode(node: Node, primitive: NodePrimitive): Node {
 
 	return {
 		...node,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
-		outputs: instantiatePorts(primitive.outputs, 'out'),
+		inputs: instantiateNodeInputs(primitive),
+		outputs: instantiateNodeOutputs(primitive),
 		...(keys.length > 0 ? { params: merged } : {})
 	};
 }

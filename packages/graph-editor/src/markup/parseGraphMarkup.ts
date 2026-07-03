@@ -9,6 +9,8 @@ import {
 	type ProceduralConsumer
 } from '@world-lab/graph';
 
+import { resyncGraphPortMetadata } from '../graphSync.js';
+
 export class MarkupParseError extends Error {
 	readonly line?: number;
 	readonly column?: number;
@@ -306,5 +308,5 @@ export function parseGraphMarkup(source: string): GraphDocument {
 		throw new MarkupParseError('Markup must contain exactly one root element', 1, 1);
 	}
 
-	return parseRoot(elements[0]!);
+	return resyncGraphPortMetadata(parseRoot(elements[0]!));
 }

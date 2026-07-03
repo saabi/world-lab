@@ -1,29 +1,20 @@
-import { getPrimitive, type GraphDocument, type Node, type NodePrimitive, type Port, type PortSpec } from '@world-lab/graph';
+import { getPrimitive, type GraphDocument, type Node, type NodePrimitive } from '@world-lab/graph';
 
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
-	return specs.map((spec) => ({
-		id: spec.name,
-		name: spec.name,
-		direction,
-		dataType: spec.dataType,
-		space: spec.space ?? 'none',
-		...(spec.default !== undefined ? { default: spec.default } : {})
-	}));
-}
+import { instantiateNodeInputs, instantiateNodeOutputs } from './nodePortUtils.js';
 
 function syncNodePorts(node: Node, primitive: NodePrimitive): Node {
 	return {
 		...node,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
-		outputs: instantiatePorts(primitive.outputs, 'out')
+		inputs: instantiateNodeInputs(primitive),
+		outputs: instantiateNodeOutputs(primitive)
 	};
 }
 
-function findInputPort(node: Node, portId: string): Port | undefined {
+function findInputPort(node: Node, portId: string) {
 	return node.inputs.find((port) => port.id === portId);
 }
 
-function findOutputPort(node: Node, portId: string): Port | undefined {
+function findOutputPort(node: Node, portId: string) {
 	return node.outputs.find((port) => port.id === portId);
 }
 

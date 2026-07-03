@@ -4,10 +4,11 @@
 	interface Props {
 		schema: TSchema;
 		value: Record<string, unknown>;
+		drivenBy?: Readonly<Record<string, string>>;
 		onchange?: (next: Record<string, unknown>) => void;
 	}
 
-	let { schema, value, onchange }: Props = $props();
+	let { schema, value, drivenBy = {}, onchange }: Props = $props();
 
 	const fieldList = $derived(fields(schema));
 	const sectionList = $derived(sectionsOf(schema));
@@ -47,9 +48,12 @@
 </div>
 
 {#snippet fieldRow(field: (typeof fieldList)[number])}
-	<label class="field">
+	{@const driven = drivenBy[field.key]}
+	<label class="field" class:driven={!!driven}>
 		<span class="field-label">{field.key}{unitSuffix(field.annotations.unit)}</span>
-		{#if field.kind === 'boolean'}
+		{#if driven}
+			<span class="driven-label">driven by {driven}</span>
+		{:else if field.kind === 'boolean'}
 			<input
 				type="checkbox"
 				checked={!!value[field.key]}
@@ -134,6 +138,18 @@
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		border-radius: 4px;
 		padding: 2px 4px;
+	}
+
+	.field.driven {
+		opacity: 0.75;
+	}
+
+	.driven-label {
+		flex: 0 0 52%;
+		min-width: 0;
+		font-size: 11px;
+		font-style: italic;
+		opacity: 0.8;
 	}
 
 	.empty {

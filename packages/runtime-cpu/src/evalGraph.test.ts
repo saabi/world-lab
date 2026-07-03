@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument } from '@world-lab/graph';
+import { getPrimitive, paramInputPorts, type GraphDocument } from '@world-lab/graph';
 import { evaluateGraphOutput } from './evalGraph.js';
 
 function uvPerlinRemapGraph(): GraphDocument {
@@ -159,5 +159,70 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 		};
 
 		expect(evaluateGraphOutput(doc, { node: 'n_w', port: 'w' }, {})).toBe(1);
+	});
+
+	it('uses edge-driven promotable param values ahead of stored literals', () => {
+		const remapPrimitive = getPrimitive('math.remap')!;
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_x',
+					primitive: 'constant.f32',
+					params: { value: 0.5 },
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_inMax',
+					primitive: 'constant.f32',
+					params: { value: 10 },
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_remap',
+					primitive: 'math.remap',
+					params: { inMin: 0, inMax: 1, outMin: 0, outMax: 1 },
+					inputs: [
+						{ id: 'x', name: 'x', direction: 'in', dataType: 'f32' },
+						...paramInputPorts(remapPrimitive).map((port) => ({
+							id: port.name,
+							name: port.name,
+							direction: 'in' as const,
+							dataType: port.dataType
+						}))
+					],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [
+				{
+					id: 'e_x',
+					from: { node: 'n_x', port: 'value' },
+					to: { node: 'n_remap', port: 'x' }
+				},
+				{
+					id: 'e_inMax',
+					from: { node: 'n_inMax', port: 'value' },
+					to: { node: 'n_remap', port: 'inMax' }
+				}
+			],
+			outputs: [{ name: 'out', from: { node: 'n_remap', port: 'value' } }],
+			consumers: []
+		};
+
+		const wired = evaluateGraphOutput(doc, { node: 'n_remap', port: 'value' }, {});
+		expect(wired).toBeCloseTo(0.05);
+
+		const literalOnly = evaluateGraphOutput(
+			{
+				...doc,
+				edges: doc.edges.filter((edge) => edge.id !== 'e_inMax')
+			},
+			{ node: 'n_remap', port: 'value' },
+			{}
+		);
+		expect(literalOnly).toBeCloseTo(0.5);
 	});
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getPrimitive, type GraphDocument } from '@world-lab/graph';
+	import { getPrimitive, resolveParamBindings, type GraphDocument } from '@world-lab/graph';
 	import { Value } from '@world-lab/schema';
 	import ParamForm from './ParamForm.svelte';
 	import PortBindingList from './PortBindingList.svelte';
@@ -23,6 +23,18 @@
 		return { ...defaults, ...(node.params ?? {}) };
 	});
 	const bindings = $derived(nodeId ? derivePortBindings(graph, nodeId) : []);
+	const paramDrivenBy = $derived.by(() => {
+		if (!node || !primitive || !nodeId) return {};
+		const incoming = graph.edges.filter((edge) => edge.to.node === nodeId);
+		const resolved = resolveParamBindings(node, primitive, incoming);
+		const labels: Record<string, string> = {};
+		for (const [key, binding] of Object.entries(resolved)) {
+			if (binding.kind === 'edge') {
+				labels[key] = `${binding.from.node}.${binding.from.port}`;
+			}
+		}
+		return labels;
+	});
 	const inspectorHelp = $derived(primitive ? resolveNodeInspectorHelp(primitive) : null);
 </script>
 
@@ -62,6 +74,7 @@
 		<ParamForm
 			schema={primitive.params}
 			value={paramValue}
+			drivenBy={paramDrivenBy}
 			onchange={(next) => {
 				if (!nodeId) return;
 				onchange?.(

@@ -6,19 +6,10 @@ import {
 	type GraphDocument,
 	type Node,
 	type Port,
-	type PortRef,
-	type PortSpec
+	type PortRef
 } from '@world-lab/graph';
 
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
-	return specs.map((spec) => ({
-		id: spec.name,
-		name: spec.name,
-		direction,
-		dataType: spec.dataType,
-		space: spec.space ?? 'none'
-	}));
-}
+import { instantiateNodeInputs, instantiateNodeOutputs } from './nodePortUtils.js';
 
 function snapshotNode(
 	id: string,
@@ -34,8 +25,8 @@ function snapshotNode(
 		id,
 		primitive: primitiveId,
 		position,
-		inputs: instantiatePorts(primitive.inputs, 'in'),
-		outputs: instantiatePorts(primitive.outputs, 'out'),
+		inputs: instantiateNodeInputs(primitive),
+		outputs: instantiateNodeOutputs(primitive),
 		...(params !== undefined ? { params } : {})
 	};
 }

@@ -31,8 +31,19 @@ is still open.
 
 ## Done (recent)
 
-- **Preview buffer selection persistence across graph edits** — `579138b` · stable `sourceKey`
+- **Colorlab harvest Slice B (`color.chromaticAdapt`)** — `522e31a` · Bradford von Kries
+  adaptation primitive with D65/D50 input defaults, evalCPU + WGSL parity vs colorlab.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-colorlab-harvest-slice-b.md`
+
+- **Params-as-inputs, remainder** (Parts 3–4: evalCPU + WGSL codegen, editor form/ports) —
+  `585c110` · promotable params as input ports; edge > literal > default in evalCPU and
+  `emitGraphEval`; inspector shows read-only “driven by” for wired params.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-params-as-inputs-remainder.md`
+
+- **Preview buffer selection persistence across graph edits** — `80e13f4` · stable `sourceKey`
   per pane; sync only when buffer set changes; selection survives benign graph edits.
+  No linked brief (added directly to the board, not through the usual brief-first flow) —
+  reviewed independently below.
 
 - **Editor accessibility Phase A** — `5b64448` · skip link + `<main id="main-content">` landmark
   in webgputoy layout; `tabindex="-1"` on swap/connect dialog roots (dialog a11y-lint clean).
