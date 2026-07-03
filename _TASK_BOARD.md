@@ -36,7 +36,7 @@ is still open.
   Brief: `_docs/architecture/procedural-graph/briefs/M-colorlab-harvest-slice-b.md`
 
 - **Params-as-inputs, remainder** (Parts 3–4: evalCPU + WGSL codegen, editor form/ports) —
-  `585c110` · promotable params as input ports; edge > literal > default in evalCPU and
+  `fa9697d` · promotable params as input ports; edge > literal > default in evalCPU and
   `emitGraphEval`; inspector shows read-only “driven by” for wired params.
   Brief: `_docs/architecture/procedural-graph/briefs/M-params-as-inputs-remainder.md`
 
