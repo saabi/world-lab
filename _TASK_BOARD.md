@@ -31,7 +31,7 @@ is still open.
 
 ## Done (recent)
 
-- **Geometry transforms, Slice A** — `math.normalize` atomic primitive +
+- **Geometry transforms, Slice A** — `ec84b01` · `math.normalize` atomic primitive +
   `transform.spherify` / `transform.normalDisplace` group-backed transforms; evalCPU +
   WGSL parity tests; plane-grid spherify CPU gate.
   Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-a.md`
