@@ -166,7 +166,21 @@
 - **params-as-inputs follow-on**: codegen + `evalCPU` must use the wired upstream value when a promotable param is connected (graph-core `resolveParamBindings` exists; compiler/runtime-cpu/editor integration pending). `M-params-as-inputs.md`.
 - **frame-graph GPU executor**: pure core (`buildPassOrder`/`validatePassGraph`/`resolveTargetSizes`) ✅, and the **independent-output** GPU executor (`GraphFrameExecutor` — one shared loop, all live targets, shared uniforms) ✅ landed via `M-single-loop-preview.md` (`4a7f43d`+`c8dcceb`). **Remaining:** same-frame cross-target reads (render-target-as-texture GPU binding) + previous-frame **feedback** (ping-pong) for cyclic edges — needed for multibuffer + render-to-texture. See `M-unified-preview-execution.md` Part 3.
 - **render targets beyond single-pass**: `iResolution` per write-target and `iChannelResolution` per read-target; the current runner is single-target. `inputs-cpu-and-resources.md`, `pipeline-as-graph.md`.
-- **graph-driven mesh-gen consumer**: `runtime-webgpu/surfaceMesh.ts::buildSurfaceMesh` is still hardcoded to `surface.plane`/`cubeSphere` (CPU loop), not a `geometry.tessellate` compute consumer. Pulled forward and pinned to the task board 2026-07-03 (owner decision — wanted a full graph-driven pipeline to test `transform.spherify` end-to-end, not just a one-off render or a CPU-only check) — both listed prerequisites (`M-multi-output-compile`, `M-stage-entrypoints`) were already landed, so this was unblocked, just never routed. Brief now also specifies the concrete decomposition proof: a new `surface.cubeFace` primitive (raw cube-face UV mapping, extracted from `cubeSphere.ts`'s existing `cubeFaceUvToPosition`) wired into `transform.spherify`, reproducing `surface.cubeSphere`'s own geometry — the real test of both "graph-driven, not id-switched" and spherify's correctness together. `M-mesh-gen-consumer.md` (note: planet uses Mode-A vertex displacement, not Mode-B compute mesh — this brief is Mode B only).
+- ~~graph-driven mesh-gen consumer~~ ✅ done (2026-07-03, `82f5a8b`) — `evaluateMeshGenCpu`/
+  `executeMeshGen` + `MeshGenRequest` replace the hardcoded `surfaceMesh.ts::buildSurfaceMesh`
+  CPU loop; `surface.cubeFace → transform.spherify` reproduces `surface.cubeSphere`'s own
+  geometry as the decomposition proof.
+  **Gap found after landing:** the engine is genuinely graph-driven, but nothing in the editor
+  points at it — `MeshPreviewPanel.svelte` still doesn't take a `graph` prop at all, it's a
+  fixed demo toggling between two hardcoded built-ins, with zero connection to whatever the
+  user is actually authoring on the canvas. Confirmed while answering "what's missing to
+  create graphs that displace geometry": all the *math* already exists
+  (`noise.perlin3d(position) -> f32`, `transform.normalDisplace(position, normal, height) ->
+  position`, landed in Geometry Transforms Slice A) and the *engine* already accepts arbitrary
+  graphs — only the editor-side declaration/wiring is missing. Brief for the fix (a
+  `target.mesh` sink primitive, parallel to the existing `target.display`, plus wiring
+  `MeshPreviewPanel`/`PreviewZone` to the real graph instead of the demo toggle):
+  `M-mesh-target-sink.md`.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 

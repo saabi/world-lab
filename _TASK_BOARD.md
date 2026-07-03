@@ -27,7 +27,17 @@ is still open.
 
 ## Active
 
-(none)
+One task pinned 2026-07-03 — follow-on gap found while checking what's missing to author
+displacement graphs: the mesh-gen consumer (below) is genuinely graph-driven, but the editor's
+mesh preview still doesn't take a `graph` prop at all.
+
+- **`target.mesh` sink + live graph-driven mesh preview**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-target-sink.md`
+  Owns: `packages/graph/src/primitives/pipeline/` (new `target.mesh`), a new mesh-target
+  derivation file in `packages/graph/src` (parallel to `pipeline.ts`),
+  `packages/graph-editor/src/previewBuffers.ts`, `packages/graph-editor/src/MeshPreviewPanel.svelte`,
+  `packages/graph-editor/src/PreviewZone.svelte`
+  Claimed by: — · Status: unclaimed · ⚠ has a visual gate
 
 ## Done (recent)
 
