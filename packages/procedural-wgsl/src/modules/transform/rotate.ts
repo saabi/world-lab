@@ -47,5 +47,6 @@ fn rotate(position: vec3<f32>, rotationX: f32, rotationY: f32, rotationZ: f32) -
 
 export const TRANSFORM_ROTATE_MODULE = {
 	id: 'transform.rotate',
+	dependencies: [] as const,
 	source: TRANSFORM_ROTATE_SOURCE
 } as const;
