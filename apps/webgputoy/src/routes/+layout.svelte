@@ -1,7 +1,13 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import favicon from '$lib/assets/favicon.svg';
+	import { injectUmami } from '$lib/analytics/umami';
 
 	let { children } = $props();
+
+	$effect(() => {
+		if (browser) injectUmami();
+	});
 </script>
 
 <svelte:head>
