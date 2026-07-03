@@ -16,6 +16,7 @@
 		type PaletteMode
 	} from './nodePaletteModel.js';
 	import { loadPaletteState, savePaletteState } from './nodePaletteStorage.js';
+	import { writePaletteDragData } from './paletteDrag.js';
 
 	interface Props {
 		onadd?: (primitiveId: string) => void;
@@ -83,14 +84,21 @@
 	function subgroupDefaultOpen(key: string): boolean {
 		return searchActive || isGroupOpen(key);
 	}
+
+	function onPrimitiveDragStart(event: DragEvent, primitiveId: string) {
+		if (!event.dataTransfer) return;
+		writePaletteDragData(event.dataTransfer, primitiveId);
+	}
 </script>
 
 {#snippet primitiveButton(primitive: NodePrimitive)}
 	<button
 		class="item"
 		type="button"
+		draggable="true"
 		title={primitive.metadata?.help ?? primitive.metadata?.description ?? primitive.id}
 		onclick={() => onadd?.(primitive.id)}
+		ondragstart={(event) => onPrimitiveDragStart(event, primitive.id)}
 	>
 		<span class="name">{primitive.id}</span>
 		<span class="badge">{primitiveBadge(primitive, paletteMode)}</span>
@@ -283,9 +291,13 @@
 		border-radius: 4px;
 		background: #1a1f30;
 		color: inherit;
-		cursor: pointer;
+		cursor: grab;
 		text-align: left;
 		width: 100%;
+	}
+
+	.item:active {
+		cursor: grabbing;
 	}
 
 	.item:hover {

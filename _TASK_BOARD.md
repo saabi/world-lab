@@ -42,11 +42,15 @@ Three tasks pinned 2026-07-03 (divider polish landed); file ownership verified d
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
   Owns: `apps/webgputoy/src/routes/+layout.svelte`, `packages/graph-editor/src/NodeSwapMenu.svelte`,
   `packages/graph-editor/src/PortConnectMenu.svelte`
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 ## Done (recent)
 
-- **Divider visual polish** — axis-aligned hover/active bar, `active` prop while dragging.
+- **Palette drag-and-drop node placement** — draggable palette primitives drop onto the canvas
+  at the cursor flow position via `screenToFlowPosition`; click-to-add unchanged.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
+
+- **Divider visual polish** — `4debfee` · axis-aligned hover/active bar, `active` prop while dragging.
   Brief: `_docs/architecture/procedural-graph/briefs/M-divider-visual-polish.md`
 
 - **User-facing node names** — `c2eb302` · optional `Node.name`; inspector rename field;

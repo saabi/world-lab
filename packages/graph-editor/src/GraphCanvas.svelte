@@ -12,6 +12,7 @@
 	import type { GraphDocument } from '@world-lab/graph';
 	import GraphNodeView from './GraphNodeView.svelte';
 	import CanvasFitViewBridge from './CanvasFitViewBridge.svelte';
+	import CanvasPaletteDropBridge from './CanvasPaletteDropBridge.svelte';
 	import { setGraphCanvasContext } from './graphCanvasContext.js';
 	import type { NodeColorMode } from './nodeAccentColor.js';
 	import { inputHandleId, outputHandleId, portIdFromHandle } from './portHandles.js';
@@ -23,6 +24,7 @@
 		type FlowNodeData
 	} from './irAdapter.js';
 	import { buildValidationHighlightIndex, fullValidation } from './graphValidation.js';
+	import { resolvePaletteDrop } from './paletteDrag.js';
 
 	interface Props {
 		graph: GraphDocument;
@@ -175,6 +177,11 @@
 			{ node: connection.target, port: toPort }
 		).ok;
 	}
+
+	function onPaletteDrop(primitiveId: string, position: { x: number; y: number }) {
+		const result = resolvePaletteDrop(graph, primitiveId, position);
+		onchange?.(result.next, result.historyLabel);
+	}
 </script>
 
 <div class="canvas">
@@ -193,6 +200,7 @@
 		<Background />
 		<Controls />
 		<CanvasFitViewBridge onregister={onregisterfitview} />
+		<CanvasPaletteDropBridge ondrop={onPaletteDrop} />
 	</SvelteFlow>
 </div>
 
