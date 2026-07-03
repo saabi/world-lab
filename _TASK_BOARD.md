@@ -27,16 +27,6 @@ is still open.
 
 ## Active
 
-Three tasks pinned 2026-07-03 (divider polish landed); file ownership verified disjoint.
-
-- **Palette drag-and-drop node placement**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
-  Owns: `packages/graph-editor/src/NodePalette.svelte`, `packages/graph-editor/src/GraphCanvas.svelte`
-  (`GraphEditor.svelte`'s existing `addPrimitive`/`onchange` wiring is reused, not edited — if
-  that assumption turns out wrong mid-task, stop and flag it here rather than editing a file
-  another task might also touch)
-  Claimed by: Auto · Status: in progress
-
 - **Editor accessibility Phase A** (landmarks, skip link, fix the two existing a11y-lint
   warnings)
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
@@ -46,8 +36,8 @@ Three tasks pinned 2026-07-03 (divider polish landed); file ownership verified d
 
 ## Done (recent)
 
-- **Palette drag-and-drop node placement** — draggable palette primitives drop onto the canvas
-  at the cursor flow position via `screenToFlowPosition`; click-to-add unchanged.
+- **Palette drag-and-drop node placement** — `9c758cc` · draggable palette primitives drop onto
+  the canvas at the cursor flow position via `screenToFlowPosition`; click-to-add unchanged.
   Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
 
 - **Divider visual polish** — `4debfee` · axis-aligned hover/active bar, `active` prop while dragging.
