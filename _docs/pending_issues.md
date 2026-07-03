@@ -251,21 +251,20 @@ layer (font scale, contrast, line-height; default appearance unchanged). Verifie
 World Lab's actual current state (2026-07-01), not assumed — the gaps below are confirmed, not
 guessed:
 
-- **Zero landmark roles or skip-link, almost everywhere.** Only one `<nav aria-label="Main">`
-  exists in the whole codebase (`apps/scene-editor`'s `AppHeader.svelte`); no `<aside>`/`<main>`/
-  `<footer>` landmarks anywhere, and `apps/webgputoy`/`packages/graph-editor` have none at all.
-  No skip-to-content link in either app.
-- **No focus trap anywhere** (`grep` for `focusTrap`/`trapFocus` across the whole repo: zero
-  hits). Every modal-ish dialog — `DocumentList.svelte`'s Save-As/Rename/Delete dialogs (this
-  session), `NodeSwapMenu.svelte`, `PortConnectMenu.svelte` — lets Tab leak out, and none
-  returns focus to the trigger element on close. Colorlab's `focusTrap` Svelte action
-  (`fe/src/lib/actions/focusTrap.ts`, ~40 lines: capture focusables, cycle Tab/Shift+Tab, save
-  + restore `activeElement`) is a direct, portable pattern.
-- **Existing a11y-linter warnings, already flagged by `vite-plugin-svelte` but not fixed:**
-  `NodeSwapMenu.svelte:58` and `PortConnectMenu.svelte:58` — "Elements with the 'dialog'
-  interactive role must have a tabindex value" (surfaced during this session's test runs,
-  pre-existing, not caused by it). Should be fixed properly alongside the focus-trap work
-  above (add `tabindex` *and* trap focus), not with a bare attribute patch.
+- ~~Zero landmark roles or skip-link, almost everywhere~~ ✅ Phase A done (2026-07-03,
+  `5b64448`) — a focus-visible skip link + `<main id="main-content">` landmark in webgputoy's
+  layout.
+- ~~Existing a11y-linter warnings (`NodeSwapMenu.svelte:58`/`PortConnectMenu.svelte:58`,
+  "dialog" role needs a tabindex value)~~ ✅ Phase A done (`5b64448`, `tabindex="-1"`) — real
+  fix (not a bare attribute patch) landed alongside Phase B below.
+- ~~No focus trap anywhere~~ ✅ Phase B done (2026-07-03, `06e710b`) — new
+  `packages/graph-editor/src/focusTrap.ts` Svelte action (capture focusables, cycle
+  Tab/Shift+Tab with wraparound, focus the first focusable on mount, save + restore
+  `activeElement` on destroy, optional `onEscape`), applied to all four dialogs
+  (`DocumentList.svelte`'s Save-As/Rename and Delete, `NodeSwapMenu.svelte`,
+  `PortConnectMenu.svelte`) — the latter two had their old manual focus-`$effect`/Escape-
+  keydown handlers removed entirely in favor of the action, not layered on top. DocumentList's
+  two dialogs also close on Escape now (they didn't before).
 - **Undocumented keyboard shortcuts.** `packages/graph-editor` now has a real shortcut set
   (Ctrl+Z/Shift+Z/Y undo-redo, Ctrl+D duplicate, Ctrl+C/V copy-paste, Delete/Backspace) with
   zero in-app discoverability — no shortcut reference, no hint in any `aria-label`. Colorlab's
@@ -287,11 +286,11 @@ guessed:
   default density.
 
 **Suggested phasing** (mirroring colorlab's, likely similar effort shape — hours not days per
-phase): **A** structural/no-behavior (landmarks, skip link, tabindex fixes) → **B** focus trap
-action + apply to existing dialogs → **C** keyboard operability for the graph canvas → **D**
-in-app keyboard-shortcut reference → **E** opt-in text-readability preferences (rem conversion
-is the prerequisite step; same mechanical unit-refactor colorlab did across `app.css` and
-component `<style>` blocks).
+phase): ~~**A** structural/no-behavior (landmarks, skip link, tabindex fixes)~~ ✅ done →
+~~**B** focus trap action + apply to existing dialogs~~ ✅ done → **C** keyboard operability
+for the graph canvas (next) → **D** in-app keyboard-shortcut reference → **E** opt-in
+text-readability preferences (rem conversion is the prerequisite step; same mechanical
+unit-refactor colorlab did across `app.css` and component `<style>` blocks).
 
 ## Umami — behavior tracking (cookieless analytics)
 
