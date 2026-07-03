@@ -27,13 +27,15 @@ is still open.
 
 ## Active
 
+File ownership verified disjoint between these two (different packages, no overlap) — both
+genuinely parallel-startable now that the mesh-gen GPU-fix (which `M-mesh-preview-ux.md` was
+queued behind) has landed.
+
 - **Editor accessibility Phase C** (keyboard port connection — node select/move already free
   via xyflow's own defaults, verified; only ports have zero keyboard affordance)
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-c.md`
   Owns: `packages/graph-editor/src/GraphNodeView.svelte`
   Claimed by: — · Status: unclaimed
-
-## Ready to route (sequenced, not parallel)
 
 - **Mesh preview UX: wireframe toggle + orbit camera**
   Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
