@@ -27,9 +27,9 @@ is still open.
 
 ## Active
 
-- **F2.1 — generic resource type algebra** (Foundation 2, milestone 1 of 5; see
+- **F2.1 — generic resource type algebra** (Foundation 2, milestone 1 of 5; revision 2 — see
   `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — pure types +
-  inference only, no GPU allocation)
+  inference only, no GPU allocation; not claimed/routed while under review, per instruction)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.1-resource-type-algebra.md`
   Owns: `packages/graph/src/types.ts`, `packages/graph/src/implementation.ts`,
   and their test files
