@@ -27,7 +27,37 @@ is still open.
 
 ## Active
 
-_(none claimed — add tasks below as briefs are pinned.)_
+Four tasks pinned 2026-07-03, file ownership verified disjoint (no two tasks touch the same
+file, so all four are safe to run in parallel; none depends on another).
+
+- **Divider visual polish** (width/hover, active-drag highlight — corner-triangle affordance
+  considered and retired, not part of this task)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-divider-visual-polish.md`
+  Owns: `packages/subdivide/src/Divider.svelte`, `packages/subdivide/src/Subdivide.svelte`,
+  `packages/subdivide/src/floatingPanel.test.ts` (new test additions only)
+  Claimed by: — · Status: unclaimed
+
+- **User-facing node names**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-node-naming.md`
+  Owns: `packages/graph/src/types.ts`, `packages/graph/src/graph.test.ts` (or nearest existing
+  Node-serialization test file), `packages/graph-editor/src/irAdapter.ts`,
+  `packages/graph-editor/src/InspectorPanel.svelte`, `packages/graph-editor/src/GraphNodeView.svelte`
+  Claimed by: — · Status: unclaimed
+
+- **Palette drag-and-drop node placement**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
+  Owns: `packages/graph-editor/src/NodePalette.svelte`, `packages/graph-editor/src/GraphCanvas.svelte`
+  (`GraphEditor.svelte`'s existing `addPrimitive`/`onchange` wiring is reused, not edited — if
+  that assumption turns out wrong mid-task, stop and flag it here rather than editing a file
+  another task might also touch)
+  Claimed by: — · Status: unclaimed
+
+- **Editor accessibility Phase A** (landmarks, skip link, fix the two existing a11y-lint
+  warnings)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
+  Owns: `apps/webgputoy/src/routes/+layout.svelte`, `packages/graph-editor/src/NodeSwapMenu.svelte`,
+  `packages/graph-editor/src/PortConnectMenu.svelte`
+  Claimed by: — · Status: unclaimed
 
 ## Done (recent)
 

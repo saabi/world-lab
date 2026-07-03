@@ -85,15 +85,16 @@
   under pointer. Make the resting visual **~2px wider**, and expand further on hover **without
   affecting layout** (i.e. animate the `::before`/`::after` pseudo-element's visual size/opacity,
   not the actual grid `--thickness` value that panes reflow around).
-- **Corner-triangle resize affordance doesn't exist yet.** Searched `packages/subdivide/src/*`
-  for `triangle`/`corner`/`clip-path`: zero matches. This reads as a new, Blender-inspired
-  affordance to design and add at divider intersections (not a tweak to an existing element) —
-  sized small at rest, expanding on hover, matching the same "no layout impact" constraint above.
 - **No active/dragging visual state on the divider itself.** `Subdivide.svelte` already tracks
   a `dragging` rune (`$state<DividerData | null>`) and uses it to drive a separate full-screen
   cursor-hint overlay, but the `Divider.svelte` element being dragged gets no distinct style of
   its own. Add a border highlight (e.g. a `.divider.active` class, or pass `dragging === divider`
   as a prop) so it's visually obvious which divider is live while resizing.
+  Brief: `M-divider-visual-polish.md` (bundles both bullets above — same two files).
+  ~~Corner-triangle resize affordance at divider intersections~~ — **retired** (owner decision,
+  2026-07-03); considered and dropped, not deferred. Not to be confused with `PaneHeader.svelte`'s
+  own, unrelated corner-triangle (the "change pane type" trigger), which was separately already
+  replaced with a real square button — see "Pane header, restructured once already" above.
 - **Nodes can't be named.** `packages/graph`'s `Node` type (`types.ts`) has `id`/`primitive`/
   `params`/`inputs`/`outputs`/`position` only — no user-facing display name/label field. Nodes
   are only ever shown by their `id` or `primitive` type (e.g. `noise.perlin3d`) on the canvas and
