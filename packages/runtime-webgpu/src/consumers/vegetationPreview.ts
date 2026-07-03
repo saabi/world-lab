@@ -12,6 +12,7 @@ import {
 	executeVegetationCandidateCompute,
 	type VegetationCandidateComputeOptions
 } from './vegetationCandidates.js';
+import { renderInstancedMesh } from './instancedMeshDraw.js';
 import {
 	computeVegetationGridSize,
 	type VegetationCandidateConfig,
@@ -21,6 +22,14 @@ import {
 } from '../vegetationTypes.js';
 
 export type VegetationPreviewMode = 'none' | 'statistical' | 'impostor' | 'full';
+
+const VEGETATION_INSTANCE_LAYOUT = {
+	arrayStride: 16,
+	attributes: [
+		{ shaderLocation: 2, offset: 0, format: 'float32x3' as const },
+		{ shaderLocation: 3, offset: 12, format: 'float32' as const }
+	]
+};
 
 export interface VegetationPreviewInput {
 	device: GPUDevice;
@@ -776,7 +785,7 @@ export async function renderVegetationPreview(
 
 	// 5. Draw instanced components if candidates generated and in impostor/full modes
 	if ((mode === 'impostor' || mode === 'full') && candidateCount > 0) {
-		const { positions, normals, indices } = mode === 'impostor' ? buildQuadGeometry() : buildConeGeometry();
+		const template = mode === 'impostor' ? buildQuadGeometry() : buildConeGeometry();
 
 		const instanceData = new Float32Array(candidatesList.length * 4);
 		for (let i = 0; i < candidatesList.length; i++) {
@@ -787,79 +796,25 @@ export async function renderVegetationPreview(
 			instanceData[i * 4 + 3] = record.vigor;
 		}
 
-		const instVertexBuffer = device.createBuffer({
+		const instanceBuffer = device.createBuffer({
 			label: 'vegetation-preview-instances',
 			size: instanceData.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 		});
-		device.queue.writeBuffer(instVertexBuffer, 0, instanceData.buffer);
+		device.queue.writeBuffer(instanceBuffer, 0, instanceData.buffer);
 
-		const templateVertexBuffer = device.createBuffer({
-			label: 'vegetation-preview-template-vertices',
-			size: positions.byteLength + normals.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(templateVertexBuffer, 0, positions.buffer);
-		device.queue.writeBuffer(templateVertexBuffer, positions.byteLength, normals.buffer);
-
-		const templateIndexBuffer = device.createBuffer({
-			label: 'vegetation-preview-template-indices',
-			size: indices.byteLength,
-			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(templateIndexBuffer, 0, indices.buffer);
-
-		const instShaderModule = device.createShaderModule({
+		renderInstancedMesh({
+			device,
+			pass,
+			format,
 			label: 'vegetation-preview-instances',
-			code: mode === 'impostor' ? IMPOSTOR_SHADER : FULL_SHADER
+			shaderCode: mode === 'impostor' ? IMPOSTOR_SHADER : FULL_SHADER,
+			uniformBuffer: renderUniformBuffer,
+			template,
+			instanceBuffer,
+			instanceLayout: VEGETATION_INSTANCE_LAYOUT,
+			instanceCount: candidatesList.length
 		});
-
-		const instPipeline = device.createRenderPipeline({
-			label: 'vegetation-preview-instances',
-			layout: 'auto',
-			vertex: {
-				module: instShaderModule,
-				entryPoint: 'vs',
-				buffers: [
-					{
-						arrayStride: 12,
-						attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }]
-					},
-					{
-						arrayStride: 12,
-						attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x3' }]
-					},
-					{
-						arrayStride: 16,
-						stepMode: 'instance',
-						attributes: [
-							{ shaderLocation: 2, offset: 0, format: 'float32x3' },
-							{ shaderLocation: 3, offset: 12, format: 'float32' }
-						]
-					}
-				]
-			},
-			fragment: {
-				module: instShaderModule,
-				entryPoint: 'fs',
-				targets: [{ format }]
-			},
-			primitive: { topology: 'triangle-list', cullMode: 'none' },
-			depthStencil: { depthWriteEnabled: true, depthCompare: 'less', format: 'depth24plus' }
-		});
-
-		const instBindGroup = device.createBindGroup({
-			layout: instPipeline.getBindGroupLayout(0),
-			entries: [{ binding: 0, resource: { buffer: renderUniformBuffer } }]
-		});
-
-		pass.setPipeline(instPipeline);
-		pass.setBindGroup(0, instBindGroup);
-		pass.setVertexBuffer(0, templateVertexBuffer, 0, positions.byteLength);
-		pass.setVertexBuffer(1, templateVertexBuffer, positions.byteLength, normals.byteLength);
-		pass.setVertexBuffer(2, instVertexBuffer);
-		pass.setIndexBuffer(templateIndexBuffer, 'uint16');
-		pass.drawIndexed(indices.length, candidatesList.length);
 	}
 
 	pass.end();

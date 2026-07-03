@@ -27,18 +27,14 @@ is still open.
 
 ## Active
 
-File ownership verified disjoint across these three (different packages/files, no overlap) —
-all parallel-startable.
-
-- **Extract a reusable instanced-mesh-draw consumer** (step 1 of 3 toward a generic,
-  primitive-based particle-system methodology — see the brief's own "Context" section for the
-  other two)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-instanced-mesh-draw-extraction.md`
-  Owns: `packages/runtime-webgpu/src/consumers/instancedMeshDraw.ts` (new),
-  `packages/runtime-webgpu/src/consumers/vegetationPreview.ts`
-  Claimed by: — · Status: unclaimed
+_No unclaimed tasks._
 
 ## Done (recent)
+
+- **Extract a reusable instanced-mesh-draw consumer** — `97cd9ea` · new
+  `renderInstancedMesh` consumer with caller-owned instance buffers + configurable instance
+  layout; vegetation preview migrated with no behavior change.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-instanced-mesh-draw-extraction.md`
 
 - **Mesh preview UX: wireframe toggle + orbit camera** — `50f6849` · panel-owned
   orbit camera (drag/scroll/pinch) + wireframe toggle; runtime line-list wireframe pass
