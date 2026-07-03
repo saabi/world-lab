@@ -27,19 +27,35 @@ is still open.
 
 ## Active
 
-One task pinned 2026-07-03 — follow-on gap found while checking what's missing to author
-displacement graphs: the mesh-gen consumer (below) is genuinely graph-driven, but the editor's
-mesh preview still doesn't take a `graph` prop at all.
+Two tasks pinned 2026-07-03, file ownership verified disjoint from each other (no package
+overlap; neither depends on another).
 
-- **`target.mesh` sink + live graph-driven mesh preview**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-target-sink.md`
-  Owns: `packages/graph/src/primitives/pipeline/` (new `target.mesh`), a new mesh-target
-  derivation file in `packages/graph/src` (parallel to `pipeline.ts`),
-  `packages/graph-editor/src/previewBuffers.ts`, `packages/graph-editor/src/MeshPreviewPanel.svelte`,
-  `packages/graph-editor/src/PreviewZone.svelte`
-  Claimed by: — · Status: unclaimed · ⚠ has a visual gate
+- **Geometry transforms, Slice B** (`transform.translate`/`scale`/`rotate` — the two former
+  compose over already-registered `vector.add.vec3f`/`vector.mulScalar.vec3f`, no new atomic
+  math needed; `rotate` extracts the existing Euler-XYZ math already used by
+  `geometry.plane`'s orientation feature, reading `planeGrid.ts` as reference without
+  modifying it)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-b.md`
+  Owns: new module(s) under `packages/procedural-wgsl/src/modules/transform/`,
+  `packages/graph/src` primitive + group registration for the three new transforms (additive
+  registry entries only — do not touch `planeGrid.ts` or any existing `vector.*`/`transform.*`
+  primitive)
+  Claimed by: — · Status: unclaimed
+
+- **Editor accessibility Phase B** (focus trap action + apply to the four existing modal-ish
+  dialogs)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-b.md`
+  Owns: `packages/graph-editor/src/focusTrap.ts` (new), `packages/graph-editor/src/focusTrap.test.ts`
+  (new), `packages/graph-editor/src/DocumentList.svelte`, `packages/graph-editor/src/NodeSwapMenu.svelte`,
+  `packages/graph-editor/src/PortConnectMenu.svelte`
+  Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **`target.mesh` sink + live graph-driven mesh preview** — `704e1d1` · `target.mesh` primitive
+  (`meshTarget` role), `deriveMeshTargets`/`resolveMeshPreviewRequest`, mesh preview pane reads
+  the live graph via `MeshGenRequest` (empty state when unwired; legacy surface toggle removed).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-target-sink.md`
 
 - **Graph-driven mesh-gen consumer** — `82f5a8b` · `surface.cubeFace` primitive + `evaluateMeshGenCpu` /
   `executeMeshGen`; `surface.cubeFace → transform.spherify` decomposition matches
