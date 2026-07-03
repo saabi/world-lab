@@ -203,12 +203,12 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		expect(body).toContain('vec3fZ(v_n_norm_value)');
 	});
 
-	it('lowers list<T> inputs fed multiple scalar edges via static unroll', () => {
+	it('lowers tuple<T> inputs fed multiple scalar edges via static unroll', () => {
 		try {
 			registerPrimitive({
 				id: 'math.listSum',
 				category: 'math',
-				inputs: [{ name: 'vals', dataType: 'list<f32>' }],
+				inputs: [{ name: 'vals', dataType: 'tuple<f32>' }],
 				outputs: [{ name: 'out', dataType: 'f32' }],
 				params: Type.Object({}),
 				wgsl: { moduleId: 'math.listSum', entry: 'listSum' }
@@ -241,7 +241,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{
 					id: 'n_sum',
 					primitive: 'math.listSum',
-					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'list<f32>' }],
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'tuple<f32>' }],
 					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
 				}
 			],
@@ -261,7 +261,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		expect(body).toContain('listSum(array<f32, 3>(v_n_a_value, v_n_b_value, v_n_c_value))');
 	});
 
-	it('lowers list<T> inputs fed a storageBuffer via a dynamic for loop', () => {
+	it('lowers tuple<T> inputs fed a storageBuffer via a dynamic for loop', () => {
 		try {
 			registerPrimitive({
 				id: 'test.bufSource',
@@ -287,7 +287,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{
 					id: 'n_sum',
 					primitive: 'math.listSum',
-					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'list<f32>' }],
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'tuple<f32>' }],
 					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
 				}
 			],
@@ -305,6 +305,48 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		expect(body).toContain('arrayLength(&v_n_buf_buf)');
 		expect(body).toContain('for (var i_n_sum_vals: u32 = 0u;');
 		expect(body).toContain('listSum(v_n_buf_buf[i_n_sum_vals])');
+	});
+
+	it('keeps mixed multiple-edge tuple inputs on the static path', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_buf',
+					primitive: 'test.bufSource',
+					inputs: [],
+					outputs: [{ id: 'buf', name: 'buf', direction: 'out', dataType: 'storageBuffer' }]
+				},
+				{
+					id: 'n_scalar',
+					primitive: 'host.iTime',
+					inputs: [],
+					outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
+				},
+				{
+					id: 'n_sum',
+					primitive: 'math.listSum',
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'tuple<f32>' }],
+					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
+				}
+			],
+			edges: [
+				{ id: 'e1', from: { node: 'n_buf', port: 'buf' }, to: { node: 'n_sum', port: 'vals' } },
+				{
+					id: 'e2',
+					from: { node: 'n_scalar', port: 'value' },
+					to: { node: 'n_sum', port: 'vals' }
+				}
+			],
+			outputs: [{ name: 'result', from: { node: 'n_sum', port: 'out' } }],
+			consumers: []
+		};
+
+		// Dynamic iteration is selected only for exactly one storage-buffer edge. With
+		// multiple edges, static lowering still rejects the unpromotable buffer value.
+		expect(() => emitGraphScalarEval(graph, { node: 'n_sum', port: 'out' })).toThrow(
+			'Type mismatch: storageBuffer -> f32'
+		);
 	});
 
 	it('emits port defaults for unconnected vector.vec4f component inputs', () => {

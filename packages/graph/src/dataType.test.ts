@@ -14,7 +14,7 @@ describe('@world-lab/graph canonicalDataType', () => {
 		expect(canonicalDataType('vec2<f32>')).toBe('vec2f');
 		expect(canonicalDataType('vec2< f32 >')).toBe('vec2f');
 		expect(canonicalDataType('vec2f')).toBe('vec2f');
-		expect(canonicalDataType('list<vec3<f32>>')).toBe('list<vec3f>');
+		expect(canonicalDataType('tuple<vec3<f32>>')).toBe('tuple<vec3f>');
 	});
 
 	it('round-trips value types through dataTypeToWgsl', () => {

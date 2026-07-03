@@ -44,10 +44,10 @@ const ALL_DATA_TYPES: readonly DataType[] = [
 	'renderTarget',
 	'bindGroup',
 	'storageBuffer',
-	'list<f32>',
-	'list<vec2f>',
-	'list<vec3f>',
-	'list<vec4f>'
+	'tuple<f32>',
+	'tuple<vec2f>',
+	'tuple<vec3f>',
+	'tuple<vec4f>'
 ];
 
 function portKey(ref: PortRef): string {
@@ -144,10 +144,10 @@ export function previewFamily(dataType: DataType): PreviewFamily {
 		case 'vec3f':
 		case 'vec4f':
 		case 'bool':
-		case 'list<f32>':
-		case 'list<vec2f>':
-		case 'list<vec3f>':
-		case 'list<vec4f>':
+		case 'tuple<f32>':
+		case 'tuple<vec2f>':
+		case 'tuple<vec3f>':
+		case 'tuple<vec4f>':
 		case 'storageBuffer':
 		case 'bindGroup':
 			return 'data';

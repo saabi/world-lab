@@ -60,7 +60,7 @@ describe('@world-lab/graph validateGraph multiple-inputs', () => {
 		});
 	});
 
-	it('allows multiple incoming edges on list inputs', () => {
+	it('allows multiple incoming edges on tuple inputs', () => {
 		const doc: GraphDocument = {
 			version: '1',
 			nodes: [
@@ -79,7 +79,7 @@ describe('@world-lab/graph validateGraph multiple-inputs', () => {
 				{
 					id: 'n_sum',
 					primitive: 'test.listSum',
-					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'list<f32>' }],
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'tuple<f32>' }],
 					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
 				}
 			],

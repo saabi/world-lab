@@ -40,9 +40,9 @@ function formatScalar(value: number): string {
 export function canonicalDataType(raw: string): DataType {
 	const normalized = normalizeTypeString(raw);
 
-	if (normalized.startsWith('list<') && normalized.endsWith('>')) {
-		const inner = canonicalDataType(normalized.slice(5, -1));
-		return `list<${inner}>` as ListDataType;
+	if (normalized.startsWith('tuple<') && normalized.endsWith('>')) {
+		const inner = canonicalDataType(normalized.slice(6, -1));
+		return `tuple<${inner}>` as ListDataType;
 	}
 
 	const valueAlias = VALUE_TYPE_ALIASES[normalized];

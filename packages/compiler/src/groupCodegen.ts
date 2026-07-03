@@ -307,14 +307,14 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 				const inputPort = node.inputs.find((i) => i.name === binding.name || i.id === binding.name);
 				if (!inputPort) throw new Error(`Missing input port ${binding.name} on node ${node.id}`);
 
-				const isList = inputPort.dataType.startsWith('list<') && inputPort.dataType.endsWith('>');
+				const isTuple = inputPort.dataType.startsWith('tuple<') && inputPort.dataType.endsWith('>');
 
-				if (isList) {
+				if (isTuple) {
 					const edges = subgraph.edges.filter(
 						(e) => e.to.node === node.id && e.to.port === inputPort.id
 					);
 
-					const innerType = inputPort.dataType.slice(5, -1) as DataType;
+					const innerType = inputPort.dataType.slice(6, -1) as DataType;
 					const wgslType = dataTypeToWgsl(innerType);
 
 					if (edges.length === 1) {
@@ -332,7 +332,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 							loopCountName = `count_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 							loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 							
-							// The call inside the loop uses buf[i] instead of list argument
+							// The call inside the loop uses buf[i] instead of the tuple argument
 							loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
 							continue;
 						}
@@ -366,7 +366,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						}
 					}
 				} else {
-					// Non-list input
+					// Non-tuple input
 					const edge = subgraph.edges.find(
 						(e) => e.to.node === node.id && e.to.port === inputPort.id
 					);

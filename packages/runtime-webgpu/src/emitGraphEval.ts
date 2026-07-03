@@ -325,14 +325,14 @@ function emitGraphEval(
 				throw new Error(`Missing input port ${binding.name} on ${node.id}`);
 			}
 
-			const isList = inputPort.dataType.startsWith('list<') && inputPort.dataType.endsWith('>');
+			const isTuple = inputPort.dataType.startsWith('tuple<') && inputPort.dataType.endsWith('>');
 
-			if (isList) {
+			if (isTuple) {
 				const edges = doc.edges.filter(
 					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
 				);
 
-				const innerType = inputPort.dataType.slice(5, -1) as DataType;
+				const innerType = inputPort.dataType.slice(6, -1) as DataType;
 				const wgslType = dataTypeToWgsl(innerType);
 
 				if (edges.length === 1) {
@@ -350,7 +350,7 @@ function emitGraphEval(
 						loopCountName = `count_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 						loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 						
-						// The call inside the loop uses buf[i] instead of list argument
+						// The call inside the loop uses buf[i] instead of the tuple argument
 						loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
 						continue;
 					}
@@ -371,10 +371,10 @@ function emitGraphEval(
 				if (argExprs.length > 0) {
 					argValues.push(`array<${wgslType}, ${argExprs.length}>(${argExprs.join(', ')})`);
 				} else {
-					throw new Error(`Missing edge for list port ${node.id}.${inputPort.id}`);
+					throw new Error(`Missing edge for tuple port ${node.id}.${inputPort.id}`);
 				}
 			} else {
-				// Non-list input
+				// Non-tuple input
 				const edge = doc.edges.find(
 					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
 				);
@@ -403,7 +403,7 @@ function emitGraphEval(
 
 		const isValueType = (type: DataType) =>
 			['f32', 'vec2f', 'vec3f', 'vec4f', 'bool'].includes(type) ||
-			(type.startsWith('list<') && type.endsWith('>'));
+			(type.startsWith('tuple<') && type.endsWith('>'));
 
 		const valueOutputs = node.outputs.filter((o) => isValueType(o.dataType));
 

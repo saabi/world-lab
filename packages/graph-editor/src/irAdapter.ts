@@ -319,7 +319,7 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const toNode = doc.nodes.find((node) => node.id === intent.to.node);
 			const toPort = toNode?.inputs.find((port) => port.id === intent.to.port);
 			const edges =
-				toPort && !toPort.dataType.startsWith('list<')
+				toPort && !toPort.dataType.startsWith('tuple<')
 					? doc.edges.filter(
 							(edge) =>
 								!(edge.to.node === intent.to.node && edge.to.port === intent.to.port)
@@ -443,7 +443,7 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const toNode = nextDoc.nodes.find((candidate) => candidate.id === to.node);
 			const toPort = toNode?.inputs.find((port) => port.id === to.port);
 			const edges =
-				toPort && !toPort.dataType.startsWith('list<')
+				toPort && !toPort.dataType.startsWith('tuple<')
 					? nextDoc.edges.filter(
 							(edge) => !(edge.to.node === to.node && edge.to.port === to.port)
 						)

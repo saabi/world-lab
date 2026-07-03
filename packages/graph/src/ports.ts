@@ -8,9 +8,9 @@ export function compatibleDataTypes(from: DataType | string, to: DataType | stri
 	if (fromCanonical === toCanonical) return true;
 	if (fromCanonical === 'vec2f' && toCanonical === 'vec3f') return true;
 
-	// list<T> compatibility rules
-	if (toCanonical.startsWith('list<') && toCanonical.endsWith('>')) {
-		const innerType = toCanonical.slice(5, -1) as DataType;
+	// tuple<T> compatibility rules
+	if (toCanonical.startsWith('tuple<') && toCanonical.endsWith('>')) {
+		const innerType = toCanonical.slice(6, -1) as DataType;
 		if (compatibleDataTypes(fromCanonical, innerType)) return true;
 		if (fromCanonical === 'storageBuffer') return true;
 	}

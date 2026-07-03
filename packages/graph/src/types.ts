@@ -15,7 +15,7 @@ export type PipelineResourceType =
 	| 'renderTarget'
 	| 'bindGroup'
 	| 'storageBuffer';
-export type ListDataType = 'list<f32>' | 'list<vec2f>' | 'list<vec3f>' | 'list<vec4f>';
+export type ListDataType = 'tuple<f32>' | 'tuple<vec2f>' | 'tuple<vec3f>' | 'tuple<vec4f>';
 export type DataType = ValueDataType | ResourceDataType | PipelineResourceType | ListDataType;
 
 /** Coordinate space for spatial ports (see graph-and-compiler.md). 'none' = not spatial. */

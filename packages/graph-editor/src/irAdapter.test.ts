@@ -203,7 +203,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 		expect(doc.edges[0]?.to).toEqual({ node: second.id, port: 'x' });
 	});
 
-	it('keeps multiple edges on list inputs when adding connections', () => {
+	it('keeps multiple edges on tuple inputs when adding connections', () => {
 		let doc = emptyDoc();
 		doc = {
 			...doc,
@@ -223,7 +223,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 				{
 					id: 'n_sum',
 					primitive: 'test.listSum',
-					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'list<f32>' }],
+					inputs: [{ id: 'vals', name: 'vals', direction: 'in', dataType: 'tuple<f32>' }],
 					outputs: [{ id: 'out', name: 'out', direction: 'out', dataType: 'f32' }]
 				}
 			]
