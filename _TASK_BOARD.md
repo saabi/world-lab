@@ -31,7 +31,7 @@ is still open.
 
 ## Done (recent)
 
-- **Graph-driven mesh-gen consumer** — `surface.cubeFace` primitive + `evaluateMeshGenCpu` /
+- **Graph-driven mesh-gen consumer** — `82f5a8b` · `surface.cubeFace` primitive + `evaluateMeshGenCpu` /
   `executeMeshGen`; `surface.cubeFace → transform.spherify` decomposition matches
   `surface.cubeSphere`; mesh preview uses graph path (cube-sphere tab uses decomposed graph).
   Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-consumer.md`
