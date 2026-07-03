@@ -27,7 +27,21 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F1.3 — discriminated primitive-implementation union + group registry** (Foundation 1,
+  milestone 4 of 5; see
+  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
+  for this milestone only, do not re-open F1.1/F1.2/F1.5/F1.4a's design; review closely on landing)
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.3-primitive-implementation-union.md`
+  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
+  `packages/graph/src/registry.ts`, `packages/graph/src/pipeline.ts`,
+  `packages/graph/src/meshTarget.ts`,
+  `packages/procedural-wgsl/src/modules/pipeline/structural.ts`,
+  `packages/procedural-wgsl/src/modules/host/`, `packages/procedural-wgsl/src/modules/procedural/`,
+  `packages/procedural-wgsl/src/resolver.ts`, `packages/procedural-wgsl/src/groups/`,
+  `packages/compiler/src/codegen.ts`, `packages/compiler/src/groupCodegen.ts`,
+  `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  and their test files
+  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 
