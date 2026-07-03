@@ -103,7 +103,7 @@ runs what.
 | [M-port-quick-connect.md](./M-port-quick-connect.md) | Right-click port → add compatible wired node | ✅ landed | Cursor (done) |
 | [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Device-compile test hardening — Node WebGPU + consumer coverage | ✅ landed | Cursor (done) |
 | [M-primitive-help-coverage.md](./M-primitive-help-coverage.md) | Frontmatter-based help for every primitive — 62/112 (55%) resolved blank; unified frontmatter as the source, guaranteed non-empty fallback + guard test, backfilled all categories | ✅ landed (`af69aef`) | Cursor (done) |
-| [F1.1-tuple-rename.md](./F1.1-tuple-rename.md) | Foundation 1, milestone 1: rename static `list<T>` → `tuple<T>` (zero production callers, pure rename); defers the runtime storage-buffer path untouched | 📌 ready to route | Codex |
+| [F1.1-tuple-rename.md](./F1.1-tuple-rename.md) | Foundation 1, milestone 1: rename static `list<T>` → `tuple<T>` (zero production callers, pure rename); defers the runtime storage-buffer path untouched | ✅ landed (`b36f864`) | Codex (done) |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in the root

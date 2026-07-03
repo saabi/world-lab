@@ -375,7 +375,7 @@ needs — that model doesn't exist until Foundations 2 and 3 land.
 
 ---
 
-## F1.1 — Rename static collections; defer runtime buffers
+## F1.1 — Rename static collections; defer runtime buffers ✅ done (`b36f864`)
 
 **Goal:** stop conflating "unroll N statically-wired edges at compile time" with "loop over a
 runtime GPU storage buffer." Scope narrowed to the static half only — the runtime half needs a

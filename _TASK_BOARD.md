@@ -27,18 +27,18 @@ is still open.
 
 ## Active
 
-- **F1.1 — rename static `list<T>` to `tuple<T>`** (Foundation 1, milestone 1 of 5; see
-  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
-  for this milestone only, do not re-open F1.2–F1.4a's design)
-  Brief: `_docs/architecture/procedural-graph/briefs/F1.1-tuple-rename.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/dataType.ts`,
-  `packages/graph/src/ports.ts`, `packages/graph/src/validate.ts`,
-  `packages/compiler/src/groupCodegen.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.ts`, `packages/graph-editor/src/previewBuffers.ts`,
-  `packages/graph-editor/src/irAdapter.ts`, and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Codex (pure rename, clean failing-test gate)
+_No unclaimed tasks._
 
 ## Done (recent)
+
+- **F1.1 — rename static `list<T>` to `tuple<T>`** — `b36f864` · clean rename across all
+  brief-listed files plus two call sites Codex found beyond the brief's own list
+  (`validate.ts`'s `multiple-inputs` check, `emitGraphEval.ts`'s `isValueType` guard); slice
+  offsets correctly adjusted for the new 6-char prefix; new regression test proves mixed
+  storage-buffer + scalar edges into one `tuple<f32>` port still take the static path and
+  correctly reject the type mismatch (dispatch behavior unchanged, as required). Zero
+  remaining `list<` references confirmed by direct grep.
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.1-tuple-rename.md`
 
 - **Extract a reusable instanced-mesh-draw consumer** — `c5a5927` · new
   `renderInstancedMesh` consumer with caller-owned instance buffers + configurable instance
