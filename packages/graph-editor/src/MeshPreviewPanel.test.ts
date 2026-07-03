@@ -1,5 +1,5 @@
 import '@world-lab/graph';
-import { render, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import type { GraphDocument } from '@world-lab/graph';
 
@@ -12,6 +12,12 @@ const { renderMeshGenPreview, requestGpuDevice } = vi.hoisted(() => ({
 }));
 
 vi.mock('@world-lab/runtime-webgpu', () => ({
+	DEFAULT_MESH_PREVIEW_CAMERA: {
+		yaw: Math.atan2(2.2, 2.2),
+		pitch: Math.asin(1.6 / Math.hypot(2.2, 1.6, 2.2)),
+		distance: Math.hypot(2.2, 1.6, 2.2)
+	},
+	clampMeshPreviewPitch: (value: number) => value,
 	renderMeshGenPreview,
 	requestGpuDevice
 }));
@@ -45,7 +51,7 @@ describe('MeshPreviewPanel', () => {
 		requestGpuDevice.mockClear();
 		vi.stubGlobal('navigator', { ...navigator, gpu: {} });
 
-		render(MeshPreviewPanel, {
+		const { container } = render(MeshPreviewPanel, {
 			props: { graph: emptyGraph, meshRequest, refreshEpoch: 1 }
 		});
 
@@ -59,8 +65,45 @@ describe('MeshPreviewPanel', () => {
 						normal: meshRequest.normal,
 						gridSize: 12,
 						faceCount: 1
-					}
+					},
+					renderMode: 'solid',
+					camera: expect.objectContaining({
+						yaw: expect.any(Number),
+						pitch: expect.any(Number),
+						distance: expect.any(Number)
+					})
 				})
+			);
+		});
+
+		const calls = renderMeshGenPreview.mock.calls as unknown as Array<[Record<string, unknown>]>;
+		const initialCall = calls[calls.length - 1]?.[0];
+		expect(initialCall?.renderMode).toBe('solid');
+
+		const wireframeToggle = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		await fireEvent.change(wireframeToggle, { target: { checked: true } });
+		expect(wireframeToggle.checked).toBe(true);
+		await waitFor(() => {
+			const wireframeCalls =
+				renderMeshGenPreview.mock.calls as unknown as Array<[Record<string, unknown>]>;
+			const wireframeCall = wireframeCalls[wireframeCalls.length - 1]?.[0];
+			expect(wireframeCall?.renderMode).toBe('wireframe');
+		});
+
+		const canvas = container.querySelector('canvas') as HTMLCanvasElement;
+		await fireEvent.wheel(canvas, { deltaY: -120 });
+		await waitFor(() => {
+			const wheelCalls = renderMeshGenPreview.mock.calls as unknown as Array<
+				[
+					{
+						camera: { distance: number };
+					}
+				]
+			>;
+			const wheelCall = wheelCalls[wheelCalls.length - 1]?.[0];
+			expect(wheelCall?.camera.distance).toBeLessThan(
+				(initialCall as { camera?: { distance?: number } } | undefined)?.camera?.distance ??
+					Infinity
 			);
 		});
 

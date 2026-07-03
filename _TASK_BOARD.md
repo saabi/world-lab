@@ -30,12 +30,6 @@ is still open.
 File ownership verified disjoint across these three (different packages/files, no overlap) —
 all parallel-startable.
 
-- **Mesh preview UX: wireframe toggle + orbit camera**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
-  Owns: `packages/graph-editor/src/MeshPreviewPanel.svelte`,
-  `packages/runtime-webgpu/src/consumers/surfaceMeshPreview.ts`
-  Claimed by: — · Status: unclaimed
-
 - **Extract a reusable instanced-mesh-draw consumer** (step 1 of 3 toward a generic,
   primitive-based particle-system methodology — see the brief's own "Context" section for the
   other two)
@@ -45,6 +39,11 @@ all parallel-startable.
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Mesh preview UX: wireframe toggle + orbit camera** — `50f6849` · panel-owned
+  orbit camera (drag/scroll/pinch) + wireframe toggle; runtime line-list wireframe pass
+  with deduped edge indices and cached mesh buffers; default view unchanged until interaction.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
 
 - **Editor accessibility Phase C** — `009f97f` · `tabindex` + `aria-label` on input/output
   ports; Enter/Space opens existing `PortConnectMenu` (same matches as right-click).

@@ -14,15 +14,77 @@ export interface SurfaceMeshPreviewInput {
 	gridSize?: number;
 	/** Use `surface.cubeFace → transform.spherify` for cube-sphere (graph decomposition proof). */
 	decomposedCubeSphere?: boolean;
+	renderMode?: MeshPreviewRenderMode;
+	camera?: MeshPreviewCamera;
+}
+
+export type MeshPreviewRenderMode = 'solid' | 'wireframe';
+
+export interface MeshPreviewCamera {
+	yaw: number;
+	pitch: number;
+	distance: number;
 }
 
 export interface MeshGenPreviewInput {
 	device: GPUDevice;
 	canvas: HTMLCanvasElement;
 	request: MeshGenRequest;
+	renderMode?: MeshPreviewRenderMode;
+	camera?: MeshPreviewCamera;
 }
 
 type Mat4 = Float32Array;
+
+const DEFAULT_MESH_PREVIEW_EYE = [2.2, 1.6, 2.2] as const;
+const DEFAULT_MESH_PREVIEW_TARGET = [0, 0, 0] as const satisfies readonly [
+	number,
+	number,
+	number
+];
+const MAX_MESH_PREVIEW_PITCH = Math.PI / 2 - 0.05;
+
+type MeshPreviewBuffers = {
+	device: GPUDevice;
+	request: MeshGenRequest;
+	vertexBuffer: GPUBuffer;
+	vertexCount: number;
+	triangleIndexBuffer: GPUBuffer;
+	triangleIndexCount: number;
+	wireframeIndexBuffer: GPUBuffer;
+	wireframeIndexCount: number;
+};
+
+const meshPreviewBufferCache = new WeakMap<HTMLCanvasElement, MeshPreviewBuffers>();
+
+function cameraFromEye(eye: readonly [number, number, number]): MeshPreviewCamera {
+	const distance = Math.hypot(eye[0], eye[1], eye[2]) || 1;
+	return {
+		yaw: Math.atan2(eye[0], eye[2]),
+		pitch: Math.asin(eye[1] / distance),
+		distance
+	};
+}
+
+export const DEFAULT_MESH_PREVIEW_CAMERA = cameraFromEye(DEFAULT_MESH_PREVIEW_EYE);
+
+export function clampMeshPreviewPitch(pitch: number): number {
+	return Math.min(MAX_MESH_PREVIEW_PITCH, Math.max(-MAX_MESH_PREVIEW_PITCH, pitch));
+}
+
+export function meshPreviewCameraEye(
+	camera: MeshPreviewCamera,
+	target: readonly [number, number, number] = DEFAULT_MESH_PREVIEW_TARGET
+): [number, number, number] {
+	const pitch = clampMeshPreviewPitch(camera.pitch);
+	const radius = Math.max(0.05, camera.distance);
+	const planar = Math.cos(pitch) * radius;
+	return [
+		target[0] + Math.sin(camera.yaw) * planar,
+		target[1] + Math.sin(pitch) * radius,
+		target[2] + Math.cos(camera.yaw) * planar
+	];
+}
 
 export const SURFACE_MESH_PREVIEW_SHADER = `
 struct Uniforms {
@@ -144,10 +206,39 @@ function lookAt(
 	]);
 }
 
-function viewProjection(aspect: number): Mat4 {
-	const view = lookAt([2.2, 1.6, 2.2], [0, 0, 0], [0, 1, 0]);
+export function meshPreviewViewProjection(
+	aspect: number,
+	camera: MeshPreviewCamera = DEFAULT_MESH_PREVIEW_CAMERA
+): Mat4 {
+	const view = lookAt(meshPreviewCameraEye(camera), DEFAULT_MESH_PREVIEW_TARGET, [0, 1, 0]);
 	const proj = perspective((50 * Math.PI) / 180, aspect, 0.05, 20);
 	return mat4Multiply(proj, view);
+}
+
+export function buildWireframeIndices(triangleIndices: Uint32Array): Uint32Array {
+	const edges = new Set<string>();
+	const lines: number[] = [];
+
+	function addEdge(a: number, b: number) {
+		const lo = Math.min(a, b);
+		const hi = Math.max(a, b);
+		const key = `${lo}:${hi}`;
+		if (edges.has(key)) return;
+		edges.add(key);
+		lines.push(lo, hi);
+	}
+
+	for (let i = 0; i < triangleIndices.length; i += 3) {
+		const a = triangleIndices[i];
+		const b = triangleIndices[i + 1];
+		const c = triangleIndices[i + 2];
+		if (a === undefined || b === undefined || c === undefined) continue;
+		addEdge(a, b);
+		addEdge(b, c);
+		addEdge(c, a);
+	}
+
+	return new Uint32Array(lines);
 }
 
 function packInterleavedVertices(mesh: GeneratedMesh): Float32Array {
@@ -165,10 +256,14 @@ function packInterleavedVertices(mesh: GeneratedMesh): Float32Array {
 	return data;
 }
 
-function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat): GPURenderPipeline {
+function createRenderPipeline(
+	device: GPUDevice,
+	format: GPUTextureFormat,
+	renderMode: MeshPreviewRenderMode
+): GPURenderPipeline {
 	const module = device.createShaderModule({ label: 'surface-mesh-preview', code: SURFACE_MESH_PREVIEW_SHADER });
 	return device.createRenderPipeline({
-		label: 'surface-mesh-preview',
+		label: `surface-mesh-preview-${renderMode}`,
 		layout: 'auto',
 		vertex: {
 			module,
@@ -188,21 +283,45 @@ function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat): GPUR
 			entryPoint: 'fs',
 			targets: [{ format }]
 		},
-		primitive: { topology: 'triangle-list', cullMode: 'back' },
+		primitive:
+			renderMode === 'wireframe'
+				? { topology: 'line-list' }
+				: { topology: 'triangle-list', cullMode: 'back' },
 		depthStencil: { depthWriteEnabled: true, depthCompare: 'less', format: 'depth24plus' }
 	});
 }
 
-/** Render a graph-generated mesh into a WebGPU canvas (orbit camera, flat shading). */
-export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<void> {
-	const { device, canvas, request } = input;
-	const context = canvas.getContext('webgpu');
-	if (!context) {
-		throw new Error('WebGPU canvas context unavailable');
-	}
+function sameMeshRequest(a: MeshGenRequest, b: MeshGenRequest): boolean {
+	return (
+		a.graph === b.graph &&
+		a.position.node === b.position.node &&
+		a.position.port === b.position.port &&
+		a.normal?.node === b.normal?.node &&
+		a.normal?.port === b.normal?.port &&
+		a.gridSize === b.gridSize &&
+		a.faceCount === b.faceCount
+	);
+}
 
-	const format = navigator.gpu.getPreferredCanvasFormat();
-	context.configure({ device, format, alphaMode: 'opaque' });
+function destroyMeshPreviewBuffers(buffers: MeshPreviewBuffers): void {
+	buffers.vertexBuffer.destroy();
+	buffers.triangleIndexBuffer.destroy();
+	buffers.wireframeIndexBuffer.destroy();
+}
+
+async function ensureMeshPreviewBuffers(
+	device: GPUDevice,
+	canvas: HTMLCanvasElement,
+	request: MeshGenRequest
+): Promise<MeshPreviewBuffers> {
+	const cached = meshPreviewBufferCache.get(canvas);
+	if (cached && cached.device === device && sameMeshRequest(cached.request, request)) {
+		return cached;
+	}
+	if (cached) {
+		destroyMeshPreviewBuffers(cached);
+		meshPreviewBufferCache.delete(canvas);
+	}
 
 	let mesh: GeneratedMesh;
 	try {
@@ -211,8 +330,6 @@ export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<
 		console.warn('Mesh preview GPU path failed; falling back to CPU mesh generation.', error);
 		mesh = evaluateMeshGenCpu(request);
 	}
-	const pipeline = createRenderPipeline(device, format);
-	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
 	const vertexData = packInterleavedVertices(mesh);
 	const vertexBuffer = device.createBuffer({
@@ -222,21 +339,70 @@ export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<
 	});
 	device.queue.writeBuffer(vertexBuffer, 0, vertexData.buffer, vertexData.byteOffset, vertexData.byteLength);
 
-	const indexBuffer = device.createBuffer({
+	const triangleIndexBuffer = device.createBuffer({
 		label: 'surface-mesh-preview-indices',
 		size: mesh.indices.byteLength,
 		usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
 	});
 	device.queue.writeBuffer(
-		indexBuffer,
+		triangleIndexBuffer,
 		0,
 		mesh.indices.buffer,
 		mesh.indices.byteOffset,
 		mesh.indices.byteLength
 	);
 
+	const wireframeIndices = buildWireframeIndices(mesh.indices);
+	const wireframeIndexBuffer = device.createBuffer({
+		label: 'surface-mesh-preview-wireframe-indices',
+		size: wireframeIndices.byteLength,
+		usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+	});
+	device.queue.writeBuffer(
+		wireframeIndexBuffer,
+		0,
+		wireframeIndices.buffer,
+		wireframeIndices.byteOffset,
+		wireframeIndices.byteLength
+	);
+
+	const buffers: MeshPreviewBuffers = {
+		device,
+		request,
+		vertexBuffer,
+		vertexCount: mesh.vertexCount,
+		triangleIndexBuffer,
+		triangleIndexCount: mesh.indexCount,
+		wireframeIndexBuffer,
+		wireframeIndexCount: wireframeIndices.length
+	};
+	meshPreviewBufferCache.set(canvas, buffers);
+	return buffers;
+}
+
+/** Render a graph-generated mesh into a WebGPU canvas (orbit camera, flat shading). */
+export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<void> {
+	const {
+		device,
+		canvas,
+		request,
+		renderMode = 'solid',
+		camera = DEFAULT_MESH_PREVIEW_CAMERA
+	} = input;
+	const context = canvas.getContext('webgpu');
+	if (!context) {
+		throw new Error('WebGPU canvas context unavailable');
+	}
+
+	const format = navigator.gpu.getPreferredCanvasFormat();
+	context.configure({ device, format, alphaMode: 'opaque' });
+
+	const buffers = await ensureMeshPreviewBuffers(device, canvas, request);
+	const pipeline = createRenderPipeline(device, format, renderMode);
+	const bindGroupLayout = pipeline.getBindGroupLayout(0);
+
 	const aspect = canvas.width / Math.max(1, canvas.height);
-	const viewProj = viewProjection(aspect);
+	const viewProj = meshPreviewViewProjection(aspect, camera);
 	const uniformBuffer = device.createBuffer({
 		label: 'surface-mesh-preview-uniforms',
 		size: 64,
@@ -276,23 +442,34 @@ export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<
 	});
 	pass.setPipeline(pipeline);
 	pass.setBindGroup(0, bindGroup);
-	pass.setVertexBuffer(0, vertexBuffer);
-	pass.setIndexBuffer(indexBuffer, 'uint32');
-	pass.drawIndexed(mesh.indexCount);
+	pass.setVertexBuffer(0, buffers.vertexBuffer);
+	pass.setIndexBuffer(
+		renderMode === 'wireframe' ? buffers.wireframeIndexBuffer : buffers.triangleIndexBuffer,
+		'uint32'
+	);
+	pass.drawIndexed(
+		renderMode === 'wireframe' ? buffers.wireframeIndexCount : buffers.triangleIndexCount
+	);
 	pass.end();
 	device.queue.submit([encoder.finish()]);
 
-	vertexBuffer.destroy();
-	indexBuffer.destroy();
 	uniformBuffer.destroy();
 	depthTexture.destroy();
 }
 
 /** Render a graph-generated surface mesh into a WebGPU canvas (orbit camera, flat shading). */
 export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): Promise<void> {
-	const { device, canvas, surfaceId, gridSize = 16, decomposedCubeSphere = false } = input;
+	const {
+		device,
+		canvas,
+		surfaceId,
+		gridSize = 16,
+		decomposedCubeSphere = false,
+		renderMode,
+		camera
+	} = input;
 	const request = meshGenRequestForLegacySurface(surfaceId, gridSize, {
 		decomposedCubeSphere: surfaceId === 'surface.cubeSphere' && decomposedCubeSphere
 	});
-	await renderMeshGenPreview({ device, canvas, request });
+	await renderMeshGenPreview({ device, canvas, request, renderMode, camera });
 }
