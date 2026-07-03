@@ -19,8 +19,12 @@ import {
 	SDF_OP_SUBTRACT_MODULE,
 	TRANSFORM_NORMAL_DISPLACE_GROUP,
 	TRANSFORM_NORMAL_DISPLACE_MODULE,
+	TRANSFORM_SCALE_GROUP,
+	TRANSFORM_SCALE_MODULE,
 	TRANSFORM_SPHERIFY_GROUP,
-	TRANSFORM_SPHERIFY_MODULE
+	TRANSFORM_SPHERIFY_MODULE,
+	TRANSFORM_TRANSLATE_GROUP,
+	TRANSFORM_TRANSLATE_MODULE
 } from './index.js';
 import { MATH_ADD_MODULE } from '../modules/math/add.js';
 import { MATH_SUBTRACT_MODULE } from '../modules/math/subtract.js';
@@ -33,6 +37,7 @@ import {
 	VECTOR_ADD_VEC3F_MODULE,
 	VECTOR_MUL_SCALAR_VEC3F_MODULE
 } from '../modules/vector/index.js';
+import { TRANSFORM_ROTATE_MODULE } from '../modules/transform/rotate.js';
 
 function portNames(ports: PortSpec[]): string[] {
 	return ports.map((port) => port.name);
@@ -211,5 +216,85 @@ describe('canonical built-in groups', () => {
 	it('exports canonical GroupDefinitions for transform groups', () => {
 		expect(TRANSFORM_SPHERIFY_GROUP.id).toBe('transform.spherify');
 		expect(TRANSFORM_NORMAL_DISPLACE_GROUP.id).toBe('transform.normalDisplace');
+		expect(TRANSFORM_TRANSLATE_GROUP.id).toBe('transform.translate');
+		expect(TRANSFORM_SCALE_GROUP.id).toBe('transform.scale');
+	});
+
+	it('transform.translate group generates WGSL over vector.add.vec3f', () => {
+		expect(TRANSFORM_TRANSLATE_MODULE.id).toBe('transform.translate');
+		expect(TRANSFORM_TRANSLATE_MODULE.source).toContain(
+			'fn translate(position: vec3<f32>, offset: vec3<f32>)'
+		);
+		expect(TRANSFORM_TRANSLATE_MODULE.source).toContain('addVec3f(position, offset)');
+		expect(TRANSFORM_TRANSLATE_MODULE.dependencies).toEqual(['vector.add.vec3f']);
+	});
+
+	it('transform.scale group generates WGSL over vector.mulScalar.vec3f', () => {
+		expect(TRANSFORM_SCALE_MODULE.id).toBe('transform.scale');
+		expect(TRANSFORM_SCALE_MODULE.source).toContain(
+			'fn scale(position: vec3<f32>, factor: f32)'
+		);
+		expect(TRANSFORM_SCALE_MODULE.source).toContain('mulScalarVec3f(position, factor)');
+		expect(TRANSFORM_SCALE_MODULE.dependencies).toEqual(['vector.mulScalar.vec3f']);
+	});
+
+	it('parity: transform.translate graph registration matches generated loader contract', () => {
+		assertMechanicalParity('transform.translate', TRANSFORM_TRANSLATE_MODULE.source);
+		const graphPrim = getPrimitive('transform.translate')!;
+		const loaded = loadWgslPrimitive({
+			moduleId: 'transform.translate',
+			source: TRANSFORM_TRANSLATE_MODULE.source
+		}).primitive;
+		assertMetadataParity(graphPrim, loaded);
+	});
+
+	it('parity: transform.scale graph registration matches generated loader contract', () => {
+		assertMechanicalParity('transform.scale', TRANSFORM_SCALE_MODULE.source);
+		const graphPrim = getPrimitive('transform.scale')!;
+		const loaded = loadWgslPrimitive({
+			moduleId: 'transform.scale',
+			source: TRANSFORM_SCALE_MODULE.source
+		}).primitive;
+		assertMetadataParity(graphPrim, loaded);
+	});
+
+	it('parity: transform.rotate graph registration matches rotate module contract', () => {
+		assertMechanicalParity('transform.rotate', TRANSFORM_ROTATE_MODULE.source);
+		const graphPrim = getPrimitive('transform.rotate')!;
+		const loaded = loadWgslPrimitive({
+			moduleId: 'transform.rotate',
+			source: TRANSFORM_ROTATE_MODULE.source
+		}).primitive;
+		assertMetadataParity(graphPrim, loaded);
+	});
+
+	it('linked transform.translate WGSL includes vector.add.vec3f dependency', () => {
+		const linked = textLinker.link({
+			entry: 'transform.translate',
+			modules: {
+				[VECTOR_ADD_VEC3F_MODULE.id]: VECTOR_ADD_VEC3F_MODULE.source,
+				[TRANSFORM_TRANSLATE_MODULE.id]: TRANSFORM_TRANSLATE_MODULE.source
+			}
+		});
+		expect(linked).toContain('fn addVec3f(');
+		expect(linked).toContain('fn translate(');
+	});
+
+	it('linked transform.scale WGSL includes vector.mulScalar.vec3f dependency', () => {
+		const linked = textLinker.link({
+			entry: 'transform.scale',
+			modules: {
+				[VECTOR_MUL_SCALAR_VEC3F_MODULE.id]: VECTOR_MUL_SCALAR_VEC3F_MODULE.source,
+				[TRANSFORM_SCALE_MODULE.id]: TRANSFORM_SCALE_MODULE.source
+			}
+		});
+		expect(linked).toContain('fn mulScalarVec3f(');
+		expect(linked).toContain('fn scale(');
+	});
+
+	it('transform.rotate module contains euler rotation matching geometry.plane convention', () => {
+		expect(TRANSFORM_ROTATE_MODULE.source).toContain('fn rotate(position: vec3<f32>, rotationX: f32');
+		expect(TRANSFORM_ROTATE_MODULE.source).toContain('fn euler_rotate(');
+		expect(TRANSFORM_ROTATE_MODULE.dependencies ?? []).toEqual([]);
 	});
 });

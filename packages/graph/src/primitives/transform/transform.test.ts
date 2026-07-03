@@ -4,7 +4,10 @@ import '@world-lab/graph';
 
 import { evalNormalizeVec3 } from '../normalize.js';
 import { evalNormalDisplace } from './normalDisplace.js';
-import { planeGridPosition } from '../pipeline/planeGrid.js';
+import { evalRotate } from './rotate.js';
+import { evalScale } from './scale.js';
+import { evalTranslate } from './translate.js';
+import { planeGridEulerRotate, planeGridPosition } from '../pipeline/planeGrid.js';
 
 describe('math.normalize', () => {
 	it('normalizes a non-unit vector', () => {
@@ -49,5 +52,60 @@ describe('transform.normalDisplace', () => {
 
 	it('matches evalNormalDisplace helper', () => {
 		expect(evalNormalDisplace([0, 0, 1], [0, 0, 1], 0.5)).toEqual([0, 0, 1.5]);
+	});
+});
+
+describe('transform.translate', () => {
+	it('adds offset to position', () => {
+		const prim = getPrimitive('transform.translate')!;
+		const result = prim.evalCPU!({
+			inputs: { position: [1, 2, 3], offset: [0.5, -1, 2] },
+			params: {}
+		});
+		expect(result.position).toEqual([1.5, 1, 5]);
+	});
+
+	it('matches evalTranslate helper', () => {
+		expect(evalTranslate([1, 0, 0], [0, 2, 0])).toEqual([1, 2, 0]);
+	});
+});
+
+describe('transform.scale', () => {
+	it('scales position uniformly', () => {
+		const prim = getPrimitive('transform.scale')!;
+		const result = prim.evalCPU!({
+			inputs: { position: [1, -2, 3], factor: 2 },
+			params: {}
+		});
+		expect(result.position).toEqual([2, -4, 6]);
+	});
+
+	it('matches evalScale helper', () => {
+		expect(evalScale([1, 2, 3], 0.5)).toEqual([0.5, 1, 1.5]);
+	});
+});
+
+describe('transform.rotate', () => {
+	it('returns input unchanged at identity rotation', () => {
+		const prim = getPrimitive('transform.rotate')!;
+		const input = [0.3, -0.7, 1.2];
+		const result = prim.evalCPU!({ inputs: { position: input }, params: {} });
+		expect(result.position).toEqual(input);
+	});
+
+	it('matches planeGridEulerRotate for non-zero angles', () => {
+		const prim = getPrimitive('transform.rotate')!;
+		const input = [1, 0, 0];
+		const rotY = Math.PI / 2;
+		const expected = planeGridEulerRotate(1, 0, 0, 0, rotY, 0);
+		const result = prim.evalCPU!({
+			inputs: { position: input },
+			params: { rotationX: 0, rotationY: rotY, rotationZ: 0 }
+		});
+		expect(result.position).toEqual(expected);
+	});
+
+	it('matches evalRotate helper', () => {
+		expect(evalRotate([1, 2, 0], 0, 0, 0)).toEqual([1, 2, 0]);
 	});
 });

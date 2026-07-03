@@ -250,6 +250,29 @@ export function displacedSphereMeshGraph(): GraphDocument {
 	};
 }
 
+/**
+ * Mesh preview sample: tilted plane via `transform.rotate` (visual gate for rigid transforms).
+ */
+export function rotatedPlaneMeshGraph(): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 120 }),
+			snapshotNode('n_plane', 'surface.plane', { x: 220, y: 100 }),
+			snapshotNode('n_rot', 'transform.rotate', { x: 460, y: 100 }, { rotationX: 0.65, rotationY: 0, rotationZ: 0 }),
+			snapshotNode('n_mesh', 'target.mesh', { x: 720, y: 100 }, { gridSize: 24, faceCount: 1 })
+		],
+		edges: [
+			edge('e_uv_plane', 'n_uv', 'procedural.uv', 'n_plane', 'surface.plane', 0, 0),
+			edge('e_plane_rot', 'n_plane', 'surface.plane', 'n_rot', 'transform.rotate', 0, 0),
+			edge('e_rot_mesh_pos', 'n_rot', 'transform.rotate', 'n_mesh', 'target.mesh', 0, 0),
+			edge('e_plane_mesh_norm', 'n_plane', 'surface.plane', 'n_mesh', 'target.mesh', 0, 1)
+		],
+		outputs: [],
+		consumers: []
+	};
+}
+
 export function primaryPreviewOutput(doc: GraphDocument): PortRef | null {
 	return doc.outputs[0]?.from ?? pipelineFieldOutput(doc);
 }

@@ -4,7 +4,8 @@ import {
 	animatedWorleyPipelineGraph,
 	cosinePaletteEffectGraph,
 	defaultPreviewGraph,
-	displacedSphereMeshGraph
+	displacedSphereMeshGraph,
+	rotatedPlaneMeshGraph
 } from './graphBuilders.js';
 import { createGraphArtifact, type GraphArtifact } from './graphArtifact.js';
 
@@ -30,6 +31,11 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'mesh-displaced-sphere',
 		label: 'Mesh — Displaced cube-sphere',
 		build: displacedSphereMeshGraph
+	},
+	{
+		id: 'mesh-rotated-plane',
+		label: 'Mesh — Rotated plane',
+		build: rotatedPlaneMeshGraph
 	}
 ];
 

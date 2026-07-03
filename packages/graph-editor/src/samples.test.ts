@@ -9,8 +9,8 @@ import { enumeratePreviewBuffers, inferDefaultPreviewBuffer, resolveMeshPreviewR
 import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js';
 
 describe('graph-editor samples registry', () => {
-	it('contains the Worley, cosine-palette, and displaced-sphere samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(3);
+	it('contains the Worley, cosine-palette, and mesh samples', () => {
+		expect(GRAPH_SAMPLES.length).toBe(4);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
@@ -107,6 +107,14 @@ describe('graph-editor samples registry', () => {
 			maxDelta = Math.max(maxDelta, Math.abs(smooth.positions[i]! - displaced.positions[i]!));
 		}
 		expect(maxDelta).toBeGreaterThan(0.01);
+	});
+
+	it('builds a rotated-plane mesh sample with transform.rotate', () => {
+		const graph = getGraphSample('mesh-rotated-plane')!.build();
+		expect(validateGraph(graph).ok).toBe(true);
+		const rot = graph.nodes.find((node) => node.id === 'n_rot');
+		expect(rot?.params).toMatchObject({ rotationX: 0.65 });
+		expect(deriveMeshTargets(graph)).toHaveLength(1);
 	});
 
 	it('exposes every sample as a read-only GraphArtifact that validates', () => {

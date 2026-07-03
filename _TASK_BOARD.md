@@ -40,7 +40,7 @@ overlap; neither depends on another).
   `packages/graph/src` primitive + group registration for the three new transforms (additive
   registry entries only — do not touch `planeGrid.ts` or any existing `vector.*`/`transform.*`
   primitive)
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 - **Editor accessibility Phase B** (focus trap action + apply to the four existing modal-ish
   dialogs)
