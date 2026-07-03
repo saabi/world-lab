@@ -3,7 +3,8 @@ import type { GraphDocument } from '@world-lab/graph';
 import {
 	animatedWorleyPipelineGraph,
 	cosinePaletteEffectGraph,
-	defaultPreviewGraph
+	defaultPreviewGraph,
+	displacedSphereMeshGraph
 } from './graphBuilders.js';
 import { createGraphArtifact, type GraphArtifact } from './graphArtifact.js';
 
@@ -24,6 +25,11 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'shadertoy-cosine-palette',
 		label: 'ShaderToy — Cosine palette',
 		build: cosinePaletteEffectGraph
+	},
+	{
+		id: 'mesh-displaced-sphere',
+		label: 'Mesh — Displaced cube-sphere',
+		build: displacedSphereMeshGraph
 	}
 ];
 

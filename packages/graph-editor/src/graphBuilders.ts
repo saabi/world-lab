@@ -220,6 +220,36 @@ export function cosinePaletteEffectGraph(): GraphDocument {
 	};
 }
 
+/**
+ * Mesh preview sample: UV → cube face → spherify → Perlin height → normal displace → target.mesh.
+ * Load from the document picker; select the mesh buffer tab in preview to see the bumpy sphere.
+ */
+export function displacedSphereMeshGraph(): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 120 }),
+			snapshotNode('n_face', 'surface.cubeFace', { x: 220, y: 100 }, { face: 0 }),
+			snapshotNode('n_sph', 'transform.spherify', { x: 460, y: 100 }),
+			snapshotNode('n_noise', 'noise.perlin3d', { x: 460, y: 280 }),
+			snapshotNode('n_disp', 'transform.normalDisplace', { x: 720, y: 180 }),
+			snapshotNode('n_mesh', 'target.mesh', { x: 980, y: 160 }, { gridSize: 24, faceCount: 6 })
+		],
+		edges: [
+			edge('e_uv_face', 'n_uv', 'procedural.uv', 'n_face', 'surface.cubeFace', 0, 0),
+			edge('e_face_sph', 'n_face', 'surface.cubeFace', 'n_sph', 'transform.spherify', 0, 0),
+			edge('e_sph_noise', 'n_sph', 'transform.spherify', 'n_noise', 'noise.perlin3d', 0, 0),
+			edge('e_sph_disp_pos', 'n_sph', 'transform.spherify', 'n_disp', 'transform.normalDisplace', 0, 0),
+			edge('e_sph_disp_norm', 'n_sph', 'transform.spherify', 'n_disp', 'transform.normalDisplace', 0, 1),
+			edge('e_noise_disp_h', 'n_noise', 'noise.perlin3d', 'n_disp', 'transform.normalDisplace', 0, 2),
+			edge('e_disp_mesh_pos', 'n_disp', 'transform.normalDisplace', 'n_mesh', 'target.mesh', 0, 0),
+			edge('e_sph_mesh_norm', 'n_sph', 'transform.spherify', 'n_mesh', 'target.mesh', 0, 1)
+		],
+		outputs: [],
+		consumers: []
+	};
+}
+
 export function primaryPreviewOutput(doc: GraphDocument): PortRef | null {
 	return doc.outputs[0]?.from ?? pipelineFieldOutput(doc);
 }
