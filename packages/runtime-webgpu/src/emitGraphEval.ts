@@ -1,16 +1,23 @@
 import {
 	getPrimitive,
 	dataTypeToWgsl,
+	describePortType,
 	formatPortDefaultWgsl,
 	promotableParams,
+	resolveCoercion,
 	resolveInputPortDefault,
 	resolveParamBindings,
+	resolvePortDataType,
+	resolvePortType,
+	typeRefToWgsl,
 	type DataType,
 	type GraphDocument,
 	type Node,
+	type PortTypeLike,
 	type PortRef,
 	type WgslArgumentBinding
 } from '@world-lab/graph';
+import { emitCoercion } from '@world-lab/compiler';
 import { Value } from '@world-lab/schema';
 
 export interface GraphParamField {
@@ -105,12 +112,10 @@ function findOutputPort(node: Node, portId: string) {
 	return node.outputs.find((port) => port.id === portId);
 }
 
-function promoteExpr(expr: string, fromType: DataType, toType: DataType): string {
-	if (fromType === toType) return expr;
-	if (fromType === 'vec2f' && toType === 'vec3f') {
-		return `vec3<f32>(${expr}, 0.0)`;
-	}
-	throw new Error(`Type mismatch: ${fromType} -> ${toType}`);
+function coerceExpr(expr: string, from: PortTypeLike, to: PortTypeLike): string {
+	const plan = resolveCoercion(resolvePortType(from), resolvePortType(to));
+	if (plan) return emitCoercion(plan, expr);
+	throw new Error(`Type mismatch: ${describePortType(from)} -> ${describePortType(to)}`);
 }
 
 function resolveParams(node: Node): Record<string, number | boolean> {
@@ -214,8 +219,8 @@ function emitGraphEval(
 	if (!outputPort || outputPort.direction !== 'out') {
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
-	if (outputPort.dataType !== expectedOutputType) {
-		throw new Error(`${outputTypeError}; got ${outputPort.dataType}`);
+	if (resolvePortDataType(outputPort) !== expectedOutputType) {
+		throw new Error(`${outputTypeError}; got ${describePortType(outputPort)}`);
 	}
 
 	const nodeIds = topologicalSort(doc, output.node);
@@ -312,8 +317,8 @@ function emitGraphEval(
 					}
 					const expr = portVar(paramBinding.from.node, paramBinding.from.port);
 					const paramPort = node.inputs.find((port) => port.id === binding.name);
-					const targetType = paramPort?.dataType ?? 'f32';
-					argValues.push(promoteExpr(expr, upstreamPort.dataType, targetType));
+					const targetType: PortTypeLike = paramPort ?? { dataType: 'f32' };
+					argValues.push(coerceExpr(expr, upstreamPort, targetType));
 				} else {
 					argValues.push(`params.${paramField(node.id, binding.name)}`);
 				}
@@ -325,14 +330,18 @@ function emitGraphEval(
 				throw new Error(`Missing input port ${binding.name} on ${node.id}`);
 			}
 
-			const isTuple = inputPort.dataType.startsWith('tuple<') && inputPort.dataType.endsWith('>');
+			const inputDataType = resolvePortDataType(inputPort);
+			const isTuple =
+				inputDataType !== undefined &&
+				inputDataType.startsWith('tuple<') &&
+				inputDataType.endsWith('>');
 
 			if (isTuple) {
 				const edges = doc.edges.filter(
 					(candidate) => candidate.to.node === node.id && candidate.to.port === inputPort.id
 				);
 
-				const innerType = inputPort.dataType.slice(6, -1) as DataType;
+				const innerType = inputDataType.slice(6, -1) as DataType;
 				const wgslType = dataTypeToWgsl(innerType);
 
 				if (edges.length === 1) {
@@ -343,7 +352,7 @@ function emitGraphEval(
 					const upstreamPort = findOutputPort(upstreamNode, edge.from.port);
 					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
-					if (upstreamPort.dataType === 'storageBuffer') {
+					if (resolvePortDataType(upstreamPort) === 'storageBuffer') {
 						// Dynamic case: emit a for loop!
 						hasLoop = true;
 						loopVarName = portVar(edge.from.node, edge.from.port);
@@ -365,7 +374,7 @@ function emitGraphEval(
 					if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 					const expr = portVar(edge.from.node, edge.from.port);
-					argExprs.push(promoteExpr(expr, upstreamPort.dataType, innerType));
+					argExprs.push(coerceExpr(expr, upstreamPort, { dataType: innerType }));
 				}
 
 				if (argExprs.length > 0) {
@@ -381,7 +390,10 @@ function emitGraphEval(
 				if (!edge) {
 					const portDefault = resolveInputPortDefault(node, inputPort, primitive);
 					if (portDefault !== undefined) {
-						argValues.push(formatPortDefaultWgsl(portDefault, inputPort.dataType));
+						if (!inputDataType) {
+							throw new Error(`Port defaults require a legacy data type: ${inputPort.name}`);
+						}
+						argValues.push(formatPortDefaultWgsl(portDefault, inputDataType));
 						continue;
 					}
 					throw new Error(`Missing edge for ${node.id}.${inputPort.id}`);
@@ -397,21 +409,27 @@ function emitGraphEval(
 				}
 
 				const expr = portVar(edge.from.node, edge.from.port);
-				argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
+				argValues.push(coerceExpr(expr, upstreamPort, inputPort));
 			}
 		}
 
-		const isValueType = (type: DataType) =>
-			['f32', 'vec2f', 'vec3f', 'vec4f', 'bool'].includes(type) ||
-			(type.startsWith('tuple<') && type.endsWith('>'));
+		const isValueType = (type: PortTypeLike) => {
+			const alias = resolvePortDataType(type);
+			return type.type?.kind === 'scalar' ||
+				type.type?.kind === 'vector' ||
+				type.type?.kind === 'matrix' ||
+				(alias !== undefined &&
+					(['f32', 'vec2f', 'vec3f', 'vec4f', 'bool'].includes(alias) ||
+						(alias.startsWith('tuple<') && alias.endsWith('>'))));
+		};
 
-		const valueOutputs = node.outputs.filter((o) => isValueType(o.dataType));
+		const valueOutputs = node.outputs.filter(isValueType);
 
 		if (valueOutputs.length > 0) {
 			if (hasLoop) {
 				for (const outPort of valueOutputs) {
 					const lhsVar = portVar(node.id, outPort.id);
-					const lhsType = dataTypeToWgsl(outPort.dataType);
+					const lhsType = typeRefToWgsl(resolvePortType(outPort));
 					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
 					const loopExpr = loopCallExpr.replace(
 						`${primitive.wgsl.entry}(`,
@@ -427,7 +445,7 @@ function emitGraphEval(
 				for (const outPort of valueOutputs) {
 					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
 					const callExpr = `${entry}(${argValues.join(', ')})`;
-					const lhsType = dataTypeToWgsl(outPort.dataType);
+					const lhsType = typeRefToWgsl(resolvePortType(outPort));
 					body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 				}
 			}

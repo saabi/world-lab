@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DataType, GraphDocument, SpaceId } from './types.js';
 import { getPrimitive } from './registry.js';
 import { validateGraph } from './validate.js';
-import { deserializeGraph, serializeGraph } from './serialize.js';
+import { deserializeGraph, normalizeGraphSemantics, serializeGraph } from './serialize.js';
 import './primitives/index.js';
 
 function twoNodeGraph(opts?: {
@@ -76,13 +76,13 @@ function pipelineEdge(fromType: DataType, toType: DataType): GraphDocument {
 describe('@world-lab/graph IR', () => {
 	it('round-trips through serialize/deserialize', () => {
 		const doc = twoNodeGraph();
-		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
+		expect(deserializeGraph(serializeGraph(doc))).toEqual(normalizeGraphSemantics(doc));
 	});
 
 	it('round-trips a node display name through serialize/deserialize', () => {
 		const doc = twoNodeGraph();
 		doc.nodes[0] = { ...doc.nodes[0]!, name: 'Height noise' };
-		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
+		expect(deserializeGraph(serializeGraph(doc))).toEqual(normalizeGraphSemantics(doc));
 	});
 
 	it('serialization is deterministic', () => {
@@ -270,6 +270,6 @@ describe('@world-lab/graph IR', () => {
 
 	it('round-trips resource dependencies through serialization', () => {
 		const doc = resourceGraph('image');
-		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
+		expect(deserializeGraph(serializeGraph(doc))).toEqual(normalizeGraphSemantics(doc));
 	});
 });

@@ -1,6 +1,6 @@
 import type { TSchema } from '@world-lab/schema';
 
-import type { DataType, SemanticTag, SpaceId } from './types.js';
+import type { DataType, SemanticTag, SpaceId, TypeRef } from './types.js';
 import type { PortDefaultValue } from './dataType.js';
 
 export interface PrimitiveMetadata {
@@ -33,13 +33,21 @@ export interface PortMetadata {
 /** A primitive's port declaration (a template; node instances get ids in the IR). */
 export interface PortSpec {
 	name: string;
-	dataType: DataType;
+	type?: TypeRef;
+	/** @deprecated Compatibility/display alias. */
+	dataType?: DataType;
 	space?: SpaceId;
 	semantics?: SemanticTag[];
 	metadata?: PortMetadata;
 	/** Literal used when the input port has no incoming edge. */
 	default?: PortDefaultValue;
 }
+
+export type PortSpecInput = Omit<PortSpec, 'type' | 'dataType'> &
+	(
+		| { type: TypeRef; dataType?: DataType }
+		| { type?: never; dataType: DataType }
+	);
 
 export interface WgslArgumentBinding {
 	name: string;
@@ -73,4 +81,9 @@ export interface NodePrimitive {
 	metadata?: PrimitiveMetadata;
 	/** Optional CPU evaluator: returns each output by name. */
 	evalCPU?: (ctx: CpuEvalContext) => Record<string, CpuValue>;
+}
+
+export interface NodePrimitiveInput extends Omit<NodePrimitive, 'inputs' | 'outputs'> {
+	inputs: PortSpecInput[];
+	outputs: PortSpecInput[];
 }

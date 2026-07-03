@@ -1,6 +1,8 @@
 import {
 	getPrimitive,
-	compatibleDataTypes,
+	compatiblePortTypes,
+	describePortType,
+	resolvePortDataType,
 	type DataType,
 	type GraphDocument,
 	type Node,
@@ -230,12 +232,12 @@ export function validateConnection(
 		issues.push({ kind: 'bad-direction', edge: edgeId, end: 'to' });
 	}
 
-	if (!compatibleDataTypes(fromPort.dataType, toPort.dataType)) {
+	if (!compatiblePortTypes(fromPort, toPort)) {
 		issues.push({
 			kind: 'type-mismatch',
 			edge: edgeId,
-			from: fromPort.dataType,
-			to: toPort.dataType
+			from: describePortType(fromPort),
+			to: describePortType(toPort)
 		});
 	}
 
@@ -319,7 +321,7 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const toNode = doc.nodes.find((node) => node.id === intent.to.node);
 			const toPort = toNode?.inputs.find((port) => port.id === intent.to.port);
 			const edges =
-				toPort && !toPort.dataType.startsWith('tuple<')
+				toPort && !resolvePortDataType(toPort)?.startsWith('tuple<')
 					? doc.edges.filter(
 							(edge) =>
 								!(edge.to.node === intent.to.node && edge.to.port === intent.to.port)
@@ -407,11 +409,11 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 					throw new Error(`Unknown port: ${intent.source.port} on ${intent.source.node}`);
 				}
 				const targetPort = node.inputs.find((port) =>
-					compatibleDataTypes(sourcePort.dataType, port.dataType)
+					compatiblePortTypes(sourcePort, port)
 				);
 				if (!targetPort) {
 					throw new Error(
-						`No compatible input on ${intent.primitiveId} for ${sourcePort.dataType}`
+						`No compatible input on ${intent.primitiveId} for ${describePortType(sourcePort)}`
 					);
 				}
 				from = intent.source;
@@ -422,11 +424,11 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 					throw new Error(`Unknown port: ${intent.source.port} on ${intent.source.node}`);
 				}
 				const targetPort = node.outputs.find((port) =>
-					compatibleDataTypes(port.dataType, sourcePort.dataType)
+					compatiblePortTypes(port, sourcePort)
 				);
 				if (!targetPort) {
 					throw new Error(
-						`No compatible output on ${intent.primitiveId} for ${sourcePort.dataType}`
+						`No compatible output on ${intent.primitiveId} for ${describePortType(sourcePort)}`
 					);
 				}
 				from = { node: node.id, port: targetPort.id };
@@ -443,7 +445,7 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const toNode = nextDoc.nodes.find((candidate) => candidate.id === to.node);
 			const toPort = toNode?.inputs.find((port) => port.id === to.port);
 			const edges =
-				toPort && !toPort.dataType.startsWith('tuple<')
+				toPort && !resolvePortDataType(toPort)?.startsWith('tuple<')
 					? nextDoc.edges.filter(
 							(edge) => !(edge.to.node === to.node && edge.to.port === to.port)
 						)

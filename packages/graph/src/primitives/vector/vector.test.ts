@@ -210,12 +210,14 @@ describe('vector utility primitives', () => {
 	it('declares port defaults on combine appended scalars', () => {
 		expect(getPrimitive('vector.combine.vec3f_f32')!.inputs).toEqual(
 			expect.arrayContaining([
-				{ name: 'xyz', dataType: 'vec3f' },
-				{ name: 'w', dataType: 'f32', default: 1 }
+				expect.objectContaining({ name: 'xyz', dataType: 'vec3f' }),
+				expect.objectContaining({ name: 'w', dataType: 'f32', default: 1 })
 			])
 		);
 		expect(getPrimitive('vector.combine.vec2f_f32')!.inputs).toEqual(
-			expect.arrayContaining([{ name: 'z', dataType: 'f32', default: 0 }])
+			expect.arrayContaining([
+				expect.objectContaining({ name: 'z', dataType: 'f32', default: 0 })
+			])
 		);
 	});
 });

@@ -1,5 +1,6 @@
 import {
 	dedupeCanonicalSemantics,
+	resolvePortType,
 	paramInputPorts,
 	type NodePrimitive,
 	type Port,
@@ -11,7 +12,8 @@ export function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | '
 		id: spec.name,
 		name: spec.name,
 		direction,
-		dataType: spec.dataType,
+		type: resolvePortType(spec),
+		...(spec.dataType !== undefined ? { dataType: spec.dataType } : {}),
 		space: spec.space ?? 'none',
 		...(spec.semantics !== undefined
 			? { semantics: dedupeCanonicalSemantics(spec.semantics) }

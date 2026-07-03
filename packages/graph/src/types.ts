@@ -18,6 +18,35 @@ export type PipelineResourceType =
 export type ListDataType = 'tuple<f32>' | 'tuple<vec2f>' | 'tuple<vec3f>' | 'tuple<vec4f>';
 export type DataType = ValueDataType | ResourceDataType | PipelineResourceType | ListDataType;
 
+export type ScalarType = 'bool' | 'i32' | 'u32' | 'f32' | 'f16';
+export interface StructField {
+	name: string;
+	type: TypeRef;
+}
+export type BufferAccess = 'read' | 'read-write';
+export type BufferUsage = string;
+export type TextureDimension = '1d' | '2d' | '3d' | 'cube';
+export type SampleType = 'float' | 'depth' | 'sint' | 'uint';
+export type StorageTextureAccess = 'read' | 'write' | 'read-write';
+export type TypeRef =
+	| { kind: 'scalar'; scalar: ScalarType }
+	| { kind: 'vector'; element: ScalarType; width: 2 | 3 | 4 }
+	| { kind: 'matrix'; element: 'f32' | 'f16'; columns: 2 | 3 | 4; rows: 2 | 3 | 4 }
+	| { kind: 'array'; element: TypeRef; length?: number }
+	| { kind: 'struct'; id: string; fields: StructField[] }
+	| { kind: 'buffer'; element: TypeRef; access: BufferAccess; usages: BufferUsage[] }
+	| {
+			kind: 'texture';
+			dimension: TextureDimension;
+			sample: SampleType;
+			format?: string;
+			access?: StorageTextureAccess;
+	  }
+	| { kind: 'sampler'; filtering: boolean; comparison: boolean }
+	| { kind: 'mesh'; vertex: TypeRef; index?: ScalarType }
+	| { kind: 'command'; command: string }
+	| { kind: 'legacy'; alias: DataType };
+
 /** Open identifier for a coordinate space. 'none' remains the non-spatial default. */
 export type SpaceId = string;
 export type SemanticTag = string;
@@ -28,7 +57,10 @@ export interface Port {
 	id: string;
 	name: string;
 	direction: 'in' | 'out';
-	dataType: DataType;
+	/** Canonical structural type. Optional only while loading legacy v1 documents. */
+	type?: TypeRef;
+	/** @deprecated Compatibility/display alias; absent when no DataType equivalent exists. */
+	dataType?: DataType;
 	space?: SpaceId; // defaults to 'none'
 	semantics?: SemanticTag[];
 	/** Literal used when the input port has no incoming edge. */

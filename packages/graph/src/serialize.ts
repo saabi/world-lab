@@ -1,4 +1,5 @@
 import type { GraphDocument } from './types.js';
+import { resolvePortType, typeRefToDataType } from './dataType.js';
 import { dedupeCanonicalSemantics } from './semantics.js';
 
 /** Recursively sorts object keys; arrays preserve element order. */
@@ -25,11 +26,18 @@ export function serializeGraph(doc: GraphDocument): string {
 /** Enforce semantic-tag ordering on every serialized port in a graph document. */
 export function normalizeGraphSemantics(doc: GraphDocument): GraphDocument {
 	const normalizePorts = (ports: GraphDocument['nodes'][number]['inputs']) =>
-		ports.map((port) =>
-			port.semantics === undefined
-				? port
-				: { ...port, semantics: dedupeCanonicalSemantics(port.semantics) }
-		);
+		ports.map((port) => {
+			const type = resolvePortType(port);
+			const alias = port.dataType ?? typeRefToDataType(type);
+			return {
+				...port,
+				type,
+				...(alias !== undefined ? { dataType: alias } : {}),
+				...(port.semantics !== undefined
+					? { semantics: dedupeCanonicalSemantics(port.semantics) }
+					: {})
+			};
+		});
 	return {
 		...doc,
 		nodes: doc.nodes.map((node) => ({

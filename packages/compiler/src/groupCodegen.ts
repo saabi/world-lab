@@ -4,7 +4,13 @@ import {
 	dataTypeToWgsl,
 	dedupeCanonicalSemantics,
 	formatPortDefaultWgsl,
+	describePortType,
+	resolveCoercion,
 	resolveInputPortDefault,
+	resolvePortDataType,
+	resolvePortType,
+	typeRefToWgsl,
+	type PortTypeLike,
 	type DataType,
 	type GraphDocument,
 	type Node,
@@ -19,6 +25,7 @@ import {
 	sectionsOf,
 	type TSchema
 } from '@world-lab/schema';
+import { emitCoercion } from './coercion.js';
 
 // Helper to sanitize identifiers for WGSL
 function sanitizeId(id: string): string {
@@ -29,12 +36,10 @@ function portVar(nodeId: string, portId: string): string {
 	return `v_${sanitizeId(nodeId)}_${sanitizeId(portId)}`;
 }
 
-function promoteExpr(expr: string, fromType: DataType, toType: DataType): string {
-	if (fromType === toType) return expr;
-	if (fromType === 'vec2f' && toType === 'vec3f') {
-		return `vec3<f32>(${expr}, 0.0)`;
-	}
-	throw new Error(`Type mismatch: ${fromType} -> ${toType}`);
+function coerceExpr(expr: string, from: PortTypeLike, to: PortTypeLike): string {
+	const plan = resolveCoercion(resolvePortType(from), resolvePortType(to));
+	if (plan) return emitCoercion(plan, expr);
+	throw new Error(`Type mismatch: ${describePortType(from)} -> ${describePortType(to)}`);
 }
 
 function groupParamWgslType(schema: TSchema): string {
@@ -61,10 +66,11 @@ function groupParamDataType(schema: TSchema): ValueDataType {
 	throw new Error(`Unsupported group param schema kind: ${kind}`);
 }
 
-function assertParamPortCompatible(paramType: ValueDataType, portType: DataType): void {
-	if (canonicalDataType(paramType) === canonicalDataType(portType)) return;
+function assertParamPortCompatible(paramType: ValueDataType, port: PortTypeLike): void {
+	const portType = resolvePortDataType(port);
+	if (portType && canonicalDataType(paramType) === canonicalDataType(portType)) return;
 	throw new Error(
-		`Incompatible group param type ${paramType} for input port data type ${portType}`
+		`Incompatible group param type ${paramType} for input port data type ${describePortType(port)}`
 	);
 }
 
@@ -111,7 +117,7 @@ function validateGroupParamContract(def: GroupDefinition): void {
 				`Unknown group param target port: ${mapping.target.node}.${mapping.target.port}`
 			);
 		}
-		assertParamPortCompatible(paramType, port.dataType);
+		assertParamPortCompatible(paramType, port);
 	}
 }
 
@@ -307,14 +313,18 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 				const inputPort = node.inputs.find((i) => i.name === binding.name || i.id === binding.name);
 				if (!inputPort) throw new Error(`Missing input port ${binding.name} on node ${node.id}`);
 
-				const isTuple = inputPort.dataType.startsWith('tuple<') && inputPort.dataType.endsWith('>');
+				const inputDataType = resolvePortDataType(inputPort);
+				const isTuple =
+					inputDataType !== undefined &&
+					inputDataType.startsWith('tuple<') &&
+					inputDataType.endsWith('>');
 
 				if (isTuple) {
 					const edges = subgraph.edges.filter(
 						(e) => e.to.node === node.id && e.to.port === inputPort.id
 					);
 
-					const innerType = inputPort.dataType.slice(6, -1) as DataType;
+					const innerType = inputDataType.slice(6, -1) as DataType;
 					const wgslType = dataTypeToWgsl(innerType);
 
 					if (edges.length === 1) {
@@ -325,7 +335,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						const upstreamPort = upstreamNode.outputs.find((p) => p.id === edge.from.port);
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
-						if (upstreamPort.dataType === 'storageBuffer') {
+						if (resolvePortDataType(upstreamPort) === 'storageBuffer') {
 							// Dynamic case: emit a for loop!
 							hasLoop = true;
 							loopVarName = portVar(edge.from.node, edge.from.port);
@@ -347,7 +357,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 						const expr = portVar(edge.from.node, edge.from.port);
-						argExprs.push(promoteExpr(expr, upstreamPort.dataType, innerType));
+						argExprs.push(coerceExpr(expr, upstreamPort, { dataType: innerType }));
 					}
 
 					if (argExprs.length > 0) {
@@ -379,11 +389,14 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 						if (!upstreamPort) throw new Error(`Unknown upstream port: ${edge.from.node}.${edge.from.port}`);
 
 						const expr = portVar(edge.from.node, edge.from.port);
-						argValues.push(promoteExpr(expr, upstreamPort.dataType, inputPort.dataType));
+						argValues.push(coerceExpr(expr, upstreamPort, inputPort));
 					} else {
 						const portDefault = resolveInputPortDefault(node, inputPort, primitive);
 						if (portDefault !== undefined) {
-							argValues.push(formatPortDefaultWgsl(portDefault, inputPort.dataType));
+							if (!inputDataType) {
+								throw new Error(`Port defaults require a legacy data type: ${inputPort.name}`);
+							}
+							argValues.push(formatPortDefaultWgsl(portDefault, inputDataType));
 						} else {
 							const groupParamName = paramMappings.get(`${node.id}_${inputPort.id}`);
 							if (groupParamName) {
@@ -406,7 +419,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 		if (hasLoop) {
 			for (const outPort of node.outputs) {
 				const lhsVar = portVar(node.id, outPort.id);
-				const lhsType = dataTypeToWgsl(outPort.dataType);
+				const lhsType = typeRefToWgsl(resolvePortType(outPort));
 				bodyLines.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
 				bodyLines.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
 				bodyLines.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
@@ -416,7 +429,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 		} else {
 			for (const outPort of node.outputs) {
 				const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
-				const lhsType = dataTypeToWgsl(outPort.dataType);
+				const lhsType = typeRefToWgsl(resolvePortType(outPort));
 				bodyLines.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 			}
 		}

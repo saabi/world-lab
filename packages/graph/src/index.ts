@@ -14,6 +14,7 @@ export * from './registry.js';
 export * from './ports.js';
 export * from './dataType.js';
 export * from './semantics.js';
+export * from './coercion.js';
 export * from './portDefaults.js';
 export * from './paramInputs.js';
 export * from './contract.js';

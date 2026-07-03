@@ -11,3 +11,4 @@ export * from './frustumCull.js';
 export * from './resources.js';
 export * from './vegetation.js';
 export * from './evalGraph.js';
+export * from './coercion.js';

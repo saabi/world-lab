@@ -1,7 +1,7 @@
 import type { DataType } from './types.js';
 import type { NodePrimitive } from './primitive.js';
 import { listPrimitives } from './registry.js';
-import { compatibleDataTypes } from './ports.js';
+import { compatiblePortTypes } from './ports.js';
 
 export interface PortMatch {
 	primitive: NodePrimitive;
@@ -13,7 +13,7 @@ export function compatibleConsumers(dataType: DataType): PortMatch[] {
 	const matches: PortMatch[] = [];
 	for (const primitive of listPrimitives()) {
 		for (const input of primitive.inputs) {
-			if (compatibleDataTypes(dataType, input.dataType)) {
+			if (compatiblePortTypes({ dataType }, input)) {
 				matches.push({ primitive, portName: input.name });
 				break;
 			}
@@ -27,7 +27,7 @@ export function compatibleProducers(dataType: DataType): PortMatch[] {
 	const matches: PortMatch[] = [];
 	for (const primitive of listPrimitives()) {
 		for (const output of primitive.outputs) {
-			if (compatibleDataTypes(output.dataType, dataType)) {
+			if (compatiblePortTypes(output, { dataType })) {
 				matches.push({ primitive, portName: output.name });
 				break;
 			}

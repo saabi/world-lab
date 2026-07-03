@@ -1,7 +1,11 @@
 import {
 	getPrimitive,
+	describePortType,
+	resolveCoercion,
 	resolveInputPortDefault,
 	resolveParamBindings,
+	resolvePortDataType,
+	resolvePortType,
 	type CpuValue,
 	type DataType,
 	type GraphDocument,
@@ -10,6 +14,7 @@ import {
 	type PortRef
 } from '@world-lab/graph';
 import { Value } from '@world-lab/schema';
+import { applyCoercion } from './coercion.js';
 
 export interface EvalGraphSample {
 	/** Procedural inputs for this sample (e.g. uv: [u, v]). */
@@ -29,12 +34,14 @@ function findOutputPort(node: Node, portId: string) {
 	return node.outputs.find((port) => port.id === portId);
 }
 
-function coerceInputValue(value: CpuValue, fromType: DataType, toType: DataType): CpuValue {
-	if (fromType === toType) return value;
-	if (fromType === 'vec2f' && toType === 'vec3f' && Array.isArray(value) && value.length === 2) {
-		return [value[0], value[1], 0];
-	}
-	throw new Error(`Type mismatch: ${fromType} -> ${toType}`);
+function applyPortCoercion(
+	value: CpuValue,
+	from: Parameters<typeof resolvePortType>[0],
+	to: Parameters<typeof resolvePortType>[0]
+): CpuValue {
+	const plan = resolveCoercion(resolvePortType(from), resolvePortType(to));
+	if (plan) return applyCoercion(plan, value);
+	throw new Error(`Type mismatch: ${describePortType(from)} -> ${describePortType(to)}`);
 }
 
 function resolveParams(
@@ -64,10 +71,10 @@ function resolveParams(
 			if (!upstreamOutputs || !(binding.from.port in upstreamOutputs)) {
 				throw new Error(`Missing upstream value: ${binding.from.node}.${binding.from.port}`);
 			}
-			const value = coerceInputValue(
+			const value = applyPortCoercion(
 				upstreamOutputs[binding.from.port]!,
-				fromPort.dataType,
-				'f32'
+				fromPort,
+				{ dataType: 'f32' }
 			);
 			if (typeof value !== 'number' && typeof value !== 'boolean') {
 				throw new Error(`Param ${key} requires scalar upstream value`);
@@ -164,7 +171,8 @@ function evaluateNode(
 			continue;
 		}
 
-		if (RESOURCE_TYPES.has(inputPort.dataType)) {
+		const inputDataType = resolvePortDataType(inputPort);
+		if (inputDataType && RESOURCE_TYPES.has(inputDataType)) {
 			const resolved = options?.resolveResource?.(edge.from);
 			if (resolved === undefined) {
 				throw new Error(`Missing resource resolver for port: ${edge.from.node}.${edge.from.port}`);
@@ -188,10 +196,10 @@ function evaluateNode(
 			throw new Error(`Missing upstream value: ${edge.from.node}.${edge.from.port}`);
 		}
 
-		inputs[inputPort.name] = coerceInputValue(
+		inputs[inputPort.name] = applyPortCoercion(
 			upstreamOutputs[edge.from.port],
-			fromPort.dataType,
-			inputPort.dataType
+			fromPort,
+			inputPort
 		);
 	}
 
@@ -242,9 +250,9 @@ export function evaluateGraphOutput(
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
 
-	if (outputPort.dataType !== 'f32') {
+	if (resolvePortDataType(outputPort) !== 'f32') {
 		throw new Error(
-			`evaluateGraphOutput requires scalar f32 output; got ${outputPort.dataType}`
+			`evaluateGraphOutput requires scalar f32 output; got ${describePortType(outputPort)}`
 		);
 	}
 
@@ -285,9 +293,9 @@ export function evaluateGraphVec3Output(
 		throw new Error(`Unknown output port: ${output.node}.${output.port}`);
 	}
 
-	if (outputPort.dataType !== 'vec3f') {
+	if (resolvePortDataType(outputPort) !== 'vec3f') {
 		throw new Error(
-			`evaluateGraphVec3Output requires vec3f output; got ${outputPort.dataType}`
+			`evaluateGraphVec3Output requires vec3f output; got ${describePortType(outputPort)}`
 		);
 	}
 

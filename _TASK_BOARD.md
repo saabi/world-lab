@@ -33,13 +33,21 @@ is still open.
   in Foundation 1, review closely on landing)
   Brief: `_docs/architecture/procedural-graph/briefs/F1.5-typeref-compatibility-layer.md`
   Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
-  `packages/graph/src/dataType.ts`, `packages/graph/src/registry.ts`,
-  `packages/compiler/src/groupCodegen.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
-  `packages/runtime-cpu/src/evalGraph.ts`, `packages/graph-editor/src/graphValidation.ts`,
+  `packages/graph/src/dataType.ts`, `packages/graph/src/coercion.ts`, `packages/graph/src/ports.ts`,
+  `packages/graph/src/portMatch.ts`, `packages/graph/src/serialize.ts`, `packages/graph/src/registry.ts`,
+  `packages/graph/src/validate.ts`, `packages/graph/src/index.ts`,
+  `packages/compiler/src/coercion.ts`, `packages/compiler/src/groupCodegen.ts`,
+  `packages/compiler/src/index.ts`,
+  `packages/runtime-webgpu/src/emitGraphEval.ts`, `packages/runtime-cpu/src/coercion.ts`,
+  `packages/runtime-cpu/src/evalGraph.ts`, `packages/runtime-cpu/src/index.ts`,
+  `packages/graph-editor/src/nodePortUtils.ts`,
+  `packages/graph-editor/src/portBindings.ts`, `packages/graph-editor/src/types.ts`,
+  `packages/mcp-server/src/index.ts`,
+  `packages/graph-editor/src/graphValidation.ts`,
   `packages/graph-editor/src/previewBackend.ts`, `packages/graph-editor/src/nodePaletteModel.ts`,
   `packages/graph-editor/src/irAdapter.ts`, `packages/graph-editor/src/previewBuffers.ts`,
   and their test files
-  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 

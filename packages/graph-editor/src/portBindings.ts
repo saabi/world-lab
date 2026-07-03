@@ -1,4 +1,9 @@
-import { getPrimitive, resolveInputPortDefault, type GraphDocument } from '@world-lab/graph';
+import {
+	describePortType,
+	getPrimitive,
+	resolveInputPortDefault,
+	type GraphDocument
+} from '@world-lab/graph';
 import type { PortBindingState } from './types.js';
 
 function formatDefaultLabel(value: unknown): string {
@@ -35,7 +40,7 @@ export function derivePortBindings(doc: GraphDocument, nodeId: string): PortBind
 		return {
 			portId: port.id,
 			name: port.name,
-				dataType: port.dataType,
+				dataType: describePortType(port),
 				...(port.space !== undefined ? { space: port.space } : {}),
 				...(port.semantics !== undefined ? { semantics: [...port.semantics] } : {}),
 				source

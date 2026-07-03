@@ -4,6 +4,7 @@
 // Depends only on graph + schema + compiler; no Svelte/renderer dependency.
 
 import {
+	describePortType,
 	getPrimitive,
 	listPrimitives as listRegisteredPrimitives,
 	validateGraph,
@@ -105,12 +106,12 @@ export function describeNode(primitiveId: string): NodeDescription | null {
 		inputs: primitive.inputs.map((port) => ({
 			id: port.name,
 			name: port.name,
-			dataType: port.dataType
+			dataType: describePortType(port)
 		})),
 		outputs: primitive.outputs.map((port) => ({
 			id: port.name,
 			name: port.name,
-			dataType: port.dataType
+			dataType: describePortType(port)
 		})),
 		wgslEntry: primitive.wgsl.entry
 	};

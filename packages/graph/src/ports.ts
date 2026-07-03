@@ -1,5 +1,11 @@
+import { resolveCoercion } from './coercion.js';
+import {
+	canonicalDataType,
+	resolvePortDataType,
+	resolvePortType,
+	type PortTypeLike
+} from './dataType.js';
 import type { DataType } from './types.js';
-import { canonicalDataType } from './dataType.js';
 
 /** Whether an output data type may connect to an input port type. */
 export function compatibleDataTypes(from: DataType | string, to: DataType | string): boolean {
@@ -16,4 +22,12 @@ export function compatibleDataTypes(from: DataType | string, to: DataType | stri
 	}
 
 	return false;
+}
+
+/** Whether an output port type may connect to an input port type. */
+export function compatiblePortTypes(from: PortTypeLike, to: PortTypeLike): boolean {
+	const fromAlias = resolvePortDataType(from);
+	const toAlias = resolvePortDataType(to);
+	if (fromAlias && toAlias && compatibleDataTypes(fromAlias, toAlias)) return true;
+	return resolveCoercion(resolvePortType(from), resolvePortType(to)) !== null;
 }

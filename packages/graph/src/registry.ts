@@ -1,43 +1,56 @@
-import type { NodePrimitive } from './primitive.js';
+import type { NodePrimitive, NodePrimitiveInput, PortSpec, PortSpecInput } from './primitive.js';
+import { dataTypeToTypeRef, typeRefToDataType } from './dataType.js';
 import { dedupeCanonicalSemantics } from './semantics.js';
 
 const primitives = new Map<string, NodePrimitive>();
 const insertionOrder: NodePrimitive[] = [];
 
-function normalizePrimitiveSemantics(primitive: NodePrimitive): NodePrimitive {
-	const normalizePorts = (ports: NodePrimitive['inputs']): NodePrimitive['inputs'] => {
-		if (!ports.some((port) => port.semantics !== undefined)) return ports;
-		return ports.map((port) =>
-			port.semantics === undefined
-				? port
-				: { ...port, semantics: dedupeCanonicalSemantics(port.semantics) }
-		);
-	};
-	const inputs = normalizePorts(primitive.inputs);
-	const outputs = normalizePorts(primitive.outputs);
-	if (inputs === primitive.inputs && outputs === primitive.outputs) return primitive;
+function normalizePortSpec(port: PortSpecInput | PortSpec): PortSpec {
+	if (port.type === undefined && port.dataType === undefined) {
+		throw new Error(`Port ${port.name} has neither type nor dataType`);
+	}
+	const type = port.type ?? dataTypeToTypeRef(port.dataType!);
+	const inferredAlias = typeRefToDataType(type);
+	if (port.dataType !== undefined && inferredAlias !== port.dataType) {
+		throw new Error(`Port type/dataType mismatch on ${port.name}`);
+	}
 	return {
-		...primitive,
-		inputs,
-		outputs
+		...port,
+		type,
+		...(port.dataType !== undefined
+			? { dataType: port.dataType }
+			: inferredAlias !== undefined
+				? { dataType: inferredAlias }
+				: {}),
+		...(port.semantics !== undefined
+			? { semantics: dedupeCanonicalSemantics(port.semantics) }
+			: {})
 	};
 }
 
-export function registerPrimitive(p: NodePrimitive): void {
+export function normalizePrimitiveInput(input: NodePrimitiveInput | NodePrimitive): NodePrimitive {
+	return {
+		...input,
+		inputs: input.inputs.map(normalizePortSpec),
+		outputs: input.outputs.map(normalizePortSpec)
+	};
+}
+
+export function registerPrimitive(p: NodePrimitiveInput | NodePrimitive): void {
 	if (primitives.has(p.id)) {
 		throw new Error(`Primitive already registered: ${p.id}`);
 	}
-	const normalized = normalizePrimitiveSemantics(p);
+	const normalized = normalizePrimitiveInput(p);
 	primitives.set(normalized.id, normalized);
 	insertionOrder.push(normalized);
 }
 
 /** Replace an already-registered primitive in place (preserves palette order). */
-export function replacePrimitive(p: NodePrimitive): void {
+export function replacePrimitive(p: NodePrimitiveInput | NodePrimitive): void {
 	if (!primitives.has(p.id)) {
 		throw new Error(`Primitive not registered: ${p.id}`);
 	}
-	const normalized = normalizePrimitiveSemantics(p);
+	const normalized = normalizePrimitiveInput(p);
 	const index = insertionOrder.findIndex((candidate) => candidate.id === p.id);
 	if (index >= 0) {
 		insertionOrder[index] = normalized;

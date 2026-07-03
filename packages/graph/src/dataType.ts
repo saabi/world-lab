@@ -1,6 +1,148 @@
-import type { DataType, ListDataType, ValueDataType } from './types.js';
+import { Type, type TSchema } from '@world-lab/schema';
+import type { DataType, ListDataType, TypeRef, ValueDataType } from './types.js';
 
 export type PortDefaultValue = number | boolean | number[];
+
+export interface PortTypeLike {
+	type?: TypeRef;
+	dataType?: DataType;
+}
+
+export function dataTypeToTypeRef(dataType: DataType): TypeRef {
+	switch (dataType) {
+		case 'f32':
+			return { kind: 'scalar', scalar: 'f32' };
+		case 'bool':
+			return { kind: 'scalar', scalar: 'bool' };
+		case 'vec2f':
+			return { kind: 'vector', element: 'f32', width: 2 };
+		case 'vec3f':
+			return { kind: 'vector', element: 'f32', width: 3 };
+		case 'vec4f':
+			return { kind: 'vector', element: 'f32', width: 4 };
+		case 'image':
+		case 'mesh':
+		case 'audio':
+		case 'geometry':
+		case 'varyings':
+		case 'texture':
+		case 'vertexBuffer':
+		case 'indexBuffer':
+		case 'renderTarget':
+		case 'bindGroup':
+		case 'storageBuffer':
+		case 'tuple<f32>':
+		case 'tuple<vec2f>':
+		case 'tuple<vec3f>':
+		case 'tuple<vec4f>':
+			return { kind: 'legacy', alias: dataType };
+		default: {
+			const _exhaustive: never = dataType;
+			return _exhaustive;
+		}
+	}
+}
+
+export function typeRefToDataType(type: TypeRef): DataType | undefined {
+	if (type.kind === 'legacy') return type.alias;
+	if (type.kind === 'scalar') {
+		if (type.scalar === 'f32') return 'f32';
+		if (type.scalar === 'bool') return 'bool';
+		return undefined;
+	}
+	if (type.kind === 'vector' && type.element === 'f32') {
+		if (type.width === 2) return 'vec2f';
+		if (type.width === 3) return 'vec3f';
+		if (type.width === 4) return 'vec4f';
+	}
+	return undefined;
+}
+
+export function resolvePortType(port: PortTypeLike): TypeRef {
+	if (port.type) return port.type;
+	if (port.dataType) return dataTypeToTypeRef(port.dataType);
+	throw new Error('Port has neither type nor dataType');
+}
+
+export function resolvePortDataType(port: PortTypeLike): DataType | undefined {
+	return port.dataType ?? (port.type ? typeRefToDataType(port.type) : undefined);
+}
+
+export function describeTypeRef(type: TypeRef): string {
+	const alias = typeRefToDataType(type);
+	if (alias) return alias;
+	switch (type.kind) {
+		case 'scalar':
+		case 'vector':
+		case 'matrix':
+			return typeRefToWgsl(type);
+		case 'array':
+			return `array<${describeTypeRef(type.element)}${type.length === undefined ? '' : `, ${type.length}`}>`;
+		case 'struct':
+			return type.id;
+		case 'buffer':
+			return `buffer<${describeTypeRef(type.element)}, ${type.access}>`;
+		case 'texture':
+			return `texture_${type.dimension}<${type.sample}>`;
+		case 'sampler':
+			return type.comparison ? 'sampler_comparison' : 'sampler';
+		case 'mesh':
+			return `mesh<${describeTypeRef(type.vertex)}>`;
+		case 'command':
+			return `command<${type.command}>`;
+		case 'legacy':
+			return type.alias;
+	}
+}
+
+export function describePortType(port: PortTypeLike): string {
+	return port.dataType ?? describeTypeRef(resolvePortType(port));
+}
+
+export function typeRefToWgsl(type: TypeRef): string {
+	switch (type.kind) {
+		case 'scalar':
+			return type.scalar;
+		case 'vector':
+			return `vec${type.width}<${type.element}>`;
+		case 'matrix':
+			return `mat${type.columns}x${type.rows}<${type.element}>`;
+		case 'legacy':
+			throw new Error(`Unsupported GPU data type: ${type.alias}`);
+	}
+	throw new Error(`Unsupported WGSL type kind: ${type.kind}`);
+}
+
+export function typeRefToTypeBoxSchema(type: TypeRef): TSchema | undefined {
+	switch (type.kind) {
+		case 'scalar':
+			if (type.scalar === 'bool') return Type.Boolean();
+			if (type.scalar === 'i32' || type.scalar === 'u32') return Type.Integer();
+			return Type.Number();
+		case 'vector':
+			return Type.Tuple(
+				Array.from({ length: type.width }, () =>
+					type.element === 'bool'
+						? Type.Boolean()
+						: type.element === 'i32' || type.element === 'u32'
+							? Type.Integer()
+							: Type.Number()
+				)
+			);
+		case 'struct':
+			{
+				const properties: Record<string, TSchema> = {};
+				for (const field of type.fields) {
+					const schema = typeRefToTypeBoxSchema(field.type);
+					if (!schema) return undefined;
+					properties[field.name] = schema;
+				}
+				return Type.Object(properties);
+			}
+		default:
+			return undefined;
+	}
+}
 
 const VALUE_TYPE_ALIASES: Record<string, ValueDataType> = {
 	f32: 'f32',
@@ -57,20 +199,9 @@ export function canonicalDataType(raw: string): DataType {
 
 /** Map a canonical graph data type to its WGSL spelling. */
 export function dataTypeToWgsl(dataType: DataType): string {
-	switch (canonicalDataType(dataType)) {
-		case 'f32':
-			return 'f32';
-		case 'bool':
-			return 'bool';
-		case 'vec2f':
-			return 'vec2<f32>';
-		case 'vec3f':
-			return 'vec3<f32>';
-		case 'vec4f':
-			return 'vec4<f32>';
-		default:
-			throw new Error(`Unsupported GPU data type: ${dataType}`);
-	}
+	const type = dataTypeToTypeRef(canonicalDataType(dataType));
+	if (type.kind === 'legacy') throw new Error(`Unsupported GPU data type: ${dataType}`);
+	return typeRefToWgsl(type);
 }
 
 /** Whether `raw` is already in canonical graph form. */

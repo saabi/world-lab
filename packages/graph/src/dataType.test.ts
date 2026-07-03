@@ -39,8 +39,8 @@ describe('@world-lab/graph primitive port canonical guard', () => {
 	it('registers every primitive port dataType in canonical form', () => {
 		for (const primitive of listPrimitives()) {
 			for (const port of [...primitive.inputs, ...primitive.outputs]) {
-				expect(isCanonicalDataType(port.dataType)).toBe(true);
-				expect(canonicalDataType(port.dataType)).toBe(port.dataType);
+				expect(isCanonicalDataType(port.dataType!)).toBe(true);
+				expect(canonicalDataType(port.dataType!)).toBe(port.dataType);
 			}
 		}
 	});
