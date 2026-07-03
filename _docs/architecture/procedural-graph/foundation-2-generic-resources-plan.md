@@ -71,13 +71,17 @@ this generalization is achievable without touching the algorithm, only the type 
    vs. materialized instance, after a pre-implementation review round). Pure types + inference, no
    runtime allocation yet.
 2. **F2.2 — resource dependency planner.** Generalizes `frameGraph/types.ts`'s `RenderTarget`/
-   `ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union, and updates `resolveTargetSizes`
-   to be resource-kind-aware (texture-shaped resources resolve viewport-relative pixel dimensions;
-   buffer-shaped resources resolve element count/byte size instead — a new, parallel resolution
-   function, not an overload of the texture-only one). `validatePassGraph`/`buildAdjacency`/
-   `topologicalOrder`/`collectFeedbackTargets`/`computeLifetimes`/`buildPassOrder` themselves need
-   **no algorithmic changes** — verified above, they already operate on opaque IDs and booleans.
-   Keep pure and exhaustively headless-tested, matching `order.test.ts`'s existing rigor exactly.
+   `ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union (renamed `ResourceTarget`/
+   `ResourceRead`), and updates `resolveTargetSizes` to be resource-kind-aware (texture-shaped
+   resources resolve viewport-relative pixel dimensions; buffer-shaped resources resolve element
+   count via a new, parallel `resolveBufferSizes` function, not an overload of the texture-only
+   one). `validatePassGraph`/`buildAdjacency`/`topologicalOrder`/`collectFeedbackTargets`/
+   `computeLifetimes`/`buildPassOrder` themselves need **no algorithmic changes** — verified above,
+   they already operate on opaque IDs and booleans. Also materializes `ResourceInstance`s from a
+   real `GraphDocument` (`collectResourceInstances`, `@world-lab/graph`) and reserves (but does not
+   yet consume) planner-level `ResourceBinding[]` on `Pass`, per F2.1's own brief. Keep pure and
+   exhaustively headless-tested, matching `order.test.ts`'s existing rigor exactly. **Contract:**
+   [F2.2-resource-dependency-planner.md](./briefs/F2.2-resource-dependency-planner.md).
 3. **F2.3 — runtime resource realization.** The actually-missing piece: allocate real WebGPU
    resources (buffers and textures) from F2.2's descriptors, derive bind-group layouts and usage
    flags, support persistent buffers and texture/buffer ping-pong history (physical double-

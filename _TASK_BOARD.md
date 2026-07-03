@@ -27,7 +27,14 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F2.2 — resource dependency planner** (Foundation 2, milestone 2 of 5 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md`)
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.2-resource-dependency-planner.md`
+  Owns: `packages/runtime-webgpu/src/frameGraph/types.ts`,
+  `packages/runtime-webgpu/src/frameGraph/order.ts`,
+  `packages/runtime-webgpu/src/graphFramePlan.ts`, `packages/graph/src/resources.ts`, and their
+  test files
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
