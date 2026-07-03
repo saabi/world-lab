@@ -27,18 +27,21 @@ is still open.
 
 ## Active
 
-- **F2.1 — generic resource type algebra** (Foundation 2, milestone 1 of 5; revision 3 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — pure types +
-  inference only, no GPU allocation)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.1-resource-type-algebra.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/implementation.ts`,
-  `packages/graph/src/resources.ts`, `packages/graph/src/index.ts`, and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
 
-Also outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
+Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.1 — generic resource type algebra** — `04f5319` · `ResourceTemplate`/`ResourceInstance`
+  (id-less template on the primitive, `id: node.id` only on the materialized instance — fixes
+  confirmed via `@ts-expect-error` compile-time tests, not just runtime assertions);
+  `ResourceAccess`/`ResourceBinding` with `resolveBufferUsage`/`inferBufferUsage` as the actual
+  callable APIs the additive-usage gate needed; real `BufferUsageFlag` union. Test suite covers
+  every gate item precisely, including both the excess-property and missing-property
+  `@ts-expect-error` proofs for the ownership split. Full workspace check/test/build green.
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.1-resource-type-algebra.md`
 
 - **F1.4a — unify execution roots + migrate legacy documents** — `48ea451` · **final
   milestone in Foundation 1.** `discoverExecutionRoots` (sink nodes as the only execution root,

@@ -65,9 +65,11 @@ this generalization is achievable without touching the algorithm, only the type 
 
 ## Sequence
 
-1. **F2.1 — generic resource type algebra.** Buffer/texture/sampler descriptors, access modes,
-   inferred usage, transient/persistent/history lifetimes. Gives `ResourceDescriptor` its real
-   shape. Pure types + inference, no runtime allocation yet. **Contract follows this plan.**
+1. **F2.1 — generic resource type algebra ✅ done (`04f5319`).** Buffer/texture/sampler
+   descriptors, access modes, inferred usage, transient/persistent/history lifetimes. Gives
+   `ResourceDescriptor` its real shape (as `ResourceTemplate`/`ResourceInstance`, id-less template
+   vs. materialized instance, after a pre-implementation review round). Pure types + inference, no
+   runtime allocation yet.
 2. **F2.2 — resource dependency planner.** Generalizes `frameGraph/types.ts`'s `RenderTarget`/
    `ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union, and updates `resolveTargetSizes`
    to be resource-kind-aware (texture-shaped resources resolve viewport-relative pixel dimensions;
