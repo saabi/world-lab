@@ -32,13 +32,54 @@
 
 ## UI polish — webgputoy / graph-editor / subdivide (not built)
 
-- **Node tint control is far from what it controls.** `GraphEditor.svelte`'s "Node tint" `<select>`
-  sits in the top document toolbar, next to Save/Undo/Redo — visually distant from the canvas
-  nodes it recolors. Move it closer to (or overlaying) the graph canvas. Consider going further
-  and adopting Blender's **`N`-key floating sidebar** convention generally: a toggleable floating
-  panel docked to the canvas edge for canvas-scoped display settings (node tint today; a natural
-  home for future per-view toggles too), rather than growing the persistent top toolbar per
-  setting.
+- ~~Node tint control is far from what it controls~~ ✅ done (2026-07-02) — a Blender-style
+  `N`-key floating panel landed, centralized in `packages/subdivide` rather than hand-rolled by
+  each app:
+  - **Zone-scoped, not root-level.** `FloatingPanelSpec`/`FloatingPanelSide` (`floatingPanel.ts`)
+    and `Subdivide.svelte`'s `floatingPanels` prop dock a panel to an edge of *whichever pane
+    currently hosts a given zone* — `Subdivide` passes the full spec list to every `Pane.svelte`,
+    which filters to its own `zone` and renders matches inside its own `.inner`, so the panel
+    tracks that pane's position/size and follows if the zone is reassigned or split. Reserves no
+    grid space either way — the pane keeps its full size whether the panel is open or closed.
+  - **Hover-scoped `N` handling.** Each `Pane.svelte` tracks its own mouse-hover state and only
+    responds to `N` (via `onfloatingpaneltoggle`) while the pointer is over it — other panes, and
+    any panels they host, are unaffected, so multiple panes can each carry an independent side
+    panel. `GraphEditor.svelte` still owns the actual open/closed state (`onfloatingpaneltoggle`
+    callback, same pattern as `onlayoutchange`/`onopen`/`onclose`) and a toolbar `»` button for
+    non-hover/keyboard-less access.
+  - **Active-pane border highlight**, matching a pasted Blender reference: every pane now has a
+    permanent subtle border with rounded corners (`.inner`), brightening on hover — the same
+    `hovered` state drives both the border and the `N` targeting, since they're the same concept
+    (Blender's "active area").
+  - **Sized to content by default, not full pane height** — also matched to a pasted reference
+    (Blender's Transform panel, which grows with its content rather than always spanning the
+    edge). `FloatingPanelSpec.stretch` (default `false`) opts into the old always-full-height/
+    width behavior instead.
+  - **Reveal tab when closed** — matched to a third pasted reference (Blender's own collapsed-
+    sidebar chevron): any pane with a closed panel bound to its zone shows a small clickable
+    chevron tab at that panel's docking edge, pointing the direction the panel would slide in
+    from; clicking it re-opens the panel through the same `onfloatingpaneltoggle` path as `N`.
+  - **Pane header, restructured once already.** First pass added the zone label
+    (`zoneLabels[zone]`) as a separate, conditionally-rendered `.pane-title-bar`, alongside
+    `PaneHeader.svelte`'s pre-existing zero-size, absolutely-positioned corner-triangle
+    "change pane type" trigger — which then visibly overlapped the new title text, since the
+    triangle never participated in layout. Corrected: `PaneHeader.svelte` is now the one real
+    header row (`.pane-header`, `flex: 0 0 var(--pane-title-bar-height)`, always present, since
+    the menu trigger is a permanent fixture of every pane regardless of title) — the trigger is
+    a real square button with a `▾` icon as its first flex child, and the title (still optional;
+    a zone with no configured label just shows no text) is a sibling that fills the rest of the
+    row, so the button naturally displaces it rather than overlapping. Both the reveal tab and
+    the open floating panel now unconditionally clear `--pane-title-bar-height`, since the
+    header row always reserves that space.
+  - `GraphEditor.svelte` is the first consumer: one panel bound to the `canvas` zone, docked
+    right — Node tint is its first, and currently only, content; a natural home for future
+    per-view toggles too.
+  - Caught and fixed a real pre-existing gap while adding this: `packages/subdivide`'s (and
+    `graph-editor`'s and `editor-ui`'s) vitest configs had no `@testing-library/svelte`
+    auto-cleanup between tests — invisible until a test queries via the global `screen` object
+    with more than one `render()` call per file (existing tests in `graph-editor` avoided it by
+    scoping to their own returned `container`). Fixed via
+    `setupFiles: ['@testing-library/svelte/vitest']` in all three.
 - **Divider hit/visual size** (`packages/subdivide/src/Divider.svelte`): currently a flat
   `thickness = '1px'` (default, set via `--thickness` in `Subdivide.svelte`), same at rest and
   under pointer. Make the resting visual **~2px wider**, and expand further on hover **without
@@ -59,6 +100,14 @@
   in the inspector. Add an optional `name`/`label` field, surfaced as an editable text field in
   `InspectorPanel.svelte` near where params are already edited, and reflected in the canvas node
   title (`GraphNodeView.svelte`).
+- **No drag-and-drop node placement from the palette.** `NodePalette.svelte` is click-only today
+  (`onclick` → `onadd`); `GraphEditor.svelte::addPrimitive` stacks new nodes at a fixed offset
+  (`40 + n·24`, `40 + n·24`) regardless of where the user is looking on the canvas. Add
+  pointer drag from a palette primitive button, a canvas drop target on `GraphCanvas.svelte`
+  (screen → flow coords via xyflow's projection helpers), and place the new node at the drop
+  point — keep click-to-add as a fallback (e.g. center of viewport or current stack offset).
+  Consider a drag ghost/preview and `dataTransfer`/`effectAllowed` for HTML5 DnD parity across
+  palette → canvas boundaries inside the subdivide layout.
 - ~~WebGPUToy has no visible header/branding at all~~ ✅ done (2026-07-02) — real logo landed:
   `WebGpuToyLogo.svelte` (isotype + wordmark, theme-aware, `packages`-style SVG path data in
   `webGpuToyLogo.ts`), rendered into `GraphEditor.svelte`'s new `toolbarStart` snippet slot from
