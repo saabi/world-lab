@@ -2,6 +2,7 @@ import {
 	getPrimitive,
 	canonicalDataType,
 	dataTypeToWgsl,
+	dedupeCanonicalSemantics,
 	formatPortDefaultWgsl,
 	resolveInputPortDefault,
 	type DataType,
@@ -9,7 +10,6 @@ import {
 	type Node,
 	type PortRef,
 	type GroupDefinition,
-	type CoordinateSpace,
 	type ValueDataType
 } from '@world-lab/graph';
 import {
@@ -455,14 +455,24 @@ ${fnBody}
 	const yamlInputs = def.interface.inputs
 		.map((i) => {
 			const spaceStr = i.space && i.space !== 'none' ? `\n    space: ${i.space}` : '';
-			return `  ${i.name}:${spaceStr || ' {}'}`;
+			const semanticsStr =
+				i.semantics !== undefined
+					? `\n    semantics: ${JSON.stringify(dedupeCanonicalSemantics(i.semantics))}`
+					: '';
+			const fields = `${spaceStr}${semanticsStr}`;
+			return `  ${i.name}:${fields || ' {}'}`;
 		})
 		.join('\n');
 
 	const yamlOutputs = def.interface.outputs
 		.map((o) => {
 			const spaceStr = o.space && o.space !== 'none' ? `\n    space: ${o.space}` : '';
-			return `  ${o.name}:${spaceStr || ' {}'}`;
+			const semanticsStr =
+				o.semantics !== undefined
+					? `\n    semantics: ${JSON.stringify(dedupeCanonicalSemantics(o.semantics))}`
+					: '';
+			const fields = `${spaceStr}${semanticsStr}`;
+			return `  ${o.name}:${fields || ' {}'}`;
 		})
 		.join('\n');
 

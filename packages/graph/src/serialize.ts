@@ -1,4 +1,5 @@
 import type { GraphDocument } from './types.js';
+import { dedupeCanonicalSemantics } from './semantics.js';
 
 /** Recursively sorts object keys; arrays preserve element order. */
 function sortKeys(value: unknown): unknown {
@@ -18,10 +19,28 @@ function sortKeys(value: unknown): unknown {
 
 /** Produces deterministic JSON with recursively sorted keys and tab indentation. */
 export function serializeGraph(doc: GraphDocument): string {
-	return JSON.stringify(sortKeys(doc), null, '\t');
+	return JSON.stringify(sortKeys(normalizeGraphSemantics(doc)), null, '\t');
+}
+
+/** Enforce semantic-tag ordering on every serialized port in a graph document. */
+export function normalizeGraphSemantics(doc: GraphDocument): GraphDocument {
+	const normalizePorts = (ports: GraphDocument['nodes'][number]['inputs']) =>
+		ports.map((port) =>
+			port.semantics === undefined
+				? port
+				: { ...port, semantics: dedupeCanonicalSemantics(port.semantics) }
+		);
+	return {
+		...doc,
+		nodes: doc.nodes.map((node) => ({
+			...node,
+			inputs: normalizePorts(node.inputs),
+			outputs: normalizePorts(node.outputs)
+		}))
+	};
 }
 
 /** Parses a JSON string produced by serializeGraph back to a GraphDocument. */
 export function deserializeGraph(json: string): GraphDocument {
-	return JSON.parse(json) as GraphDocument;
+	return normalizeGraphSemantics(JSON.parse(json) as GraphDocument);
 }

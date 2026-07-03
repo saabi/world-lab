@@ -3,13 +3,12 @@ import {
 	type GraphDocument,
 	type GraphOutput,
 	type Node,
-	type Port,
 	type PortRef,
-	type PortSpec,
 	type ProceduralConsumer
 } from '@world-lab/graph';
 
 import { resyncGraphPortMetadata } from '../graphSync.js';
+import { instantiatePorts } from '../nodePortUtils.js';
 
 export class MarkupParseError extends Error {
 	readonly line?: number;
@@ -167,16 +166,6 @@ function requireAttr(element: XmlElement, name: string): string {
 		);
 	}
 	return value;
-}
-
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
-	return specs.map((spec) => ({
-		id: spec.name,
-		name: spec.name,
-		direction,
-		dataType: spec.dataType,
-		space: spec.space ?? 'none'
-	}));
 }
 
 function parseNodeElement(element: XmlElement): Node {

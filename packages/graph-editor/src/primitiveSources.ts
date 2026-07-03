@@ -55,9 +55,12 @@ function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string
 		lines.push('inputs:');
 		for (const port of primitive.inputs) {
 			lines.push(`  ${port.name}:`);
-			if (port.space && port.space !== 'none') {
-				lines.push(`    space: ${port.space}`);
-			}
+				if (port.space && port.space !== 'none') {
+					lines.push(`    space: ${port.space}`);
+				}
+				if (port.semantics !== undefined) {
+					lines.push(`    semantics: ${JSON.stringify(port.semantics)}`);
+				}
 		}
 	}
 
@@ -78,9 +81,15 @@ function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string
 
 	if (primitive.outputs.length > 0) {
 		lines.push('outputs:');
-		for (const port of primitive.outputs) {
-			lines.push(`  ${port.name}:`);
-		}
+			for (const port of primitive.outputs) {
+				lines.push(`  ${port.name}:`);
+				if (port.space && port.space !== 'none') {
+					lines.push(`    space: ${port.space}`);
+				}
+				if (port.semantics !== undefined) {
+					lines.push(`    semantics: ${JSON.stringify(port.semantics)}`);
+				}
+			}
 	}
 
 	return `/*---\n${lines.join('\n')}\n---*/\n${wgslBody.trim()}\n`;

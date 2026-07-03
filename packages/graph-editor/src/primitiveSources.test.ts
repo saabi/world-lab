@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { getPrimitive, listPrimitives } from '@world-lab/graph';
+import { getPrimitive, listPrimitives, replacePrimitive } from '@world-lab/graph';
 
 import {
 	cloneBuiltinPrimitive,
@@ -24,6 +24,36 @@ describe('@world-lab/graph-editor primitiveSources', () => {
 		const source = getDefaultPrimitiveSource('math.min');
 		expect(source).toContain('help:');
 		expect(source).toContain('SDF union');
+	});
+
+	it('includes open spaces and canonical semantics in synthesized frontmatter', () => {
+		const before = getPrimitive('math.min')!;
+		try {
+			replacePrimitive({
+				...before,
+				inputs: [
+					{
+						...before.inputs[0]!,
+						space: 'stereo_field',
+						semantics: ['unit:m', 'color:linear-srgb', 'unit:m']
+					},
+					...before.inputs.slice(1)
+				],
+				outputs: [
+					{
+						...before.outputs[0]!,
+						semantics: ['unit:ratio', 'unit:ratio']
+					}
+				]
+			});
+
+			const source = getDefaultPrimitiveSource('math.min');
+			expect(source).toContain('space: stereo_field');
+			expect(source).toContain('semantics: ["color:linear-srgb","unit:m"]');
+			expect(source).toContain('semantics: ["unit:ratio"]');
+		} finally {
+			replacePrimitive(before);
+		}
 	});
 
 	it('shows real math.remap WGSL from procedural-wgsl, not a fabricated stub', () => {

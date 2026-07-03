@@ -1,12 +1,21 @@
-import { paramInputPorts, type NodePrimitive, type Port, type PortSpec } from '@world-lab/graph';
+import {
+	dedupeCanonicalSemantics,
+	paramInputPorts,
+	type NodePrimitive,
+	type Port,
+	type PortSpec
+} from '@world-lab/graph';
 
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
+export function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
 		id: spec.name,
 		name: spec.name,
 		direction,
 		dataType: spec.dataType,
 		space: spec.space ?? 'none',
+		...(spec.semantics !== undefined
+			? { semantics: dedupeCanonicalSemantics(spec.semantics) }
+			: {}),
 		...(spec.default !== undefined ? { default: spec.default } : {})
 	}));
 }

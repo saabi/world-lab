@@ -13,6 +13,7 @@ export * from './primitive.js';
 export * from './registry.js';
 export * from './ports.js';
 export * from './dataType.js';
+export * from './semantics.js';
 export * from './portDefaults.js';
 export * from './paramInputs.js';
 export * from './contract.js';
@@ -38,6 +39,7 @@ export {
 	NOISE2D_CPU_PARITY
 } from './primitives/noise/parityFixtures.js';
 export { COLORLAB_CPU_PARITY } from './primitives/color/parityFixtures.js';
+export { PLANET_SPACES } from './primitives/terrain/spaces.js';
 export {
 	DEFAULT_PLANE_GRID_TRANSFORM,
 	planeGridEulerRotate,

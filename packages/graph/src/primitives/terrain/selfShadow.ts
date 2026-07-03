@@ -3,14 +3,15 @@ import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, pureParam, ratioRParam } from './_params.js';
+import { PLANET_SPACES } from './spaces.js';
 
 const selfShadow: NodePrimitive = {
 	id: 'terrain.selfShadow',
 	category: 'terrain',
 	inputs: [
-		{ name: 'surface_pos', dataType: 'vec3f', space: 'world_pos' },
-		{ name: 'sun_dir', dataType: 'vec3f', space: 'world_dir' },
-		{ name: 'meters_per_pixel', dataType: 'f32', space: 'scale_ctx' },
+		{ name: 'surface_pos', dataType: 'vec3f', space: PLANET_SPACES.WORLD_POSITION },
+		{ name: 'sun_dir', dataType: 'vec3f', space: PLANET_SPACES.WORLD_DIRECTION },
+		{ name: 'meters_per_pixel', dataType: 'f32', space: PLANET_SPACES.SCALE_CONTEXT },
 		{ name: 'planet_rot', dataType: 'vec4f' }
 	],
 	outputs: [{ name: 'shadow', dataType: 'f32' }],

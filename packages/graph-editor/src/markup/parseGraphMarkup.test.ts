@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { getPrimitive, registerPrimitive } from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import { defaultPreviewGraph } from '../defaultGraph.js';
 import { parseGraphMarkup } from './parseGraphMarkup.js';
 import { printGraphMarkup } from './printGraph.js';
@@ -24,6 +26,35 @@ describe('@world-lab/graph-editor parseGraphMarkup', () => {
 		expect(parsed.nodes).toHaveLength(1);
 		expect(parsed.nodes[0]?.id).toBe('n_uv');
 		expect(parsed.nodes[0]?.position).toEqual({ x: 10, y: 20 });
+	});
+
+	it('instantiates canonical semantic tags from registered primitive specs', () => {
+		const primitiveId = 'test.markup-semantics';
+		if (!getPrimitive(primitiveId)) {
+			registerPrimitive({
+				id: primitiveId,
+				category: 'test',
+				inputs: [],
+				outputs: [
+					{
+						name: 'value',
+						dataType: 'f32',
+						space: 'stereo_field',
+						semantics: ['unit:m', 'color:linear-srgb', 'unit:m']
+					}
+				],
+				params: Type.Object({}),
+				wgsl: { moduleId: primitiveId, entry: 'markupSemantics' }
+			});
+		}
+
+		const parsed = parseGraphMarkup(
+			`<PlanetGraph version="1"><Node id="n" primitive="${primitiveId}" /></PlanetGraph>`
+		);
+		expect(parsed.nodes[0]?.outputs[0]).toMatchObject({
+			space: 'stereo_field',
+			semantics: ['color:linear-srgb', 'unit:m']
+		});
 	});
 
 	it('throws on unknown root element', () => {

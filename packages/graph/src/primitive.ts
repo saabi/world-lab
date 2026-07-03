@@ -1,6 +1,6 @@
 import type { TSchema } from '@world-lab/schema';
 
-import type { CoordinateSpace, DataType } from './types.js';
+import type { DataType, SemanticTag, SpaceId } from './types.js';
 import type { PortDefaultValue } from './dataType.js';
 
 export interface PrimitiveMetadata {
@@ -34,7 +34,8 @@ export interface PortMetadata {
 export interface PortSpec {
 	name: string;
 	dataType: DataType;
-	space?: CoordinateSpace;
+	space?: SpaceId;
+	semantics?: SemanticTag[];
 	metadata?: PortMetadata;
 	/** Literal used when the input port has no incoming edge. */
 	default?: PortDefaultValue;

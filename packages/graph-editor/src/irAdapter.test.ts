@@ -1,6 +1,7 @@
 import '@world-lab/graph';
 import { describe, expect, it, beforeEach } from 'vitest';
-import type { GraphDocument } from '@world-lab/graph';
+import { getPrimitive, registerPrimitive, type GraphDocument } from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 import {
 	applyEditIntent,
 	graphToFlow,
@@ -36,6 +37,37 @@ describe('@world-lab/graph-editor irAdapter', () => {
 
 		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: doc.nodes[0]!.id });
 		expect(doc.nodes).toHaveLength(0);
+	});
+
+	it('creates nodes with canonical semantic tags and open spaces', () => {
+		const primitiveId = 'test.semantic-create';
+		if (!getPrimitive(primitiveId)) {
+			registerPrimitive({
+				id: primitiveId,
+				category: 'test',
+				inputs: [
+					{
+						name: 'value',
+						dataType: 'f32',
+						space: 'stereo_field',
+						semantics: ['unit:m', 'color:linear-srgb', 'unit:m']
+					}
+				],
+				outputs: [{ name: 'out', dataType: 'f32' }],
+				params: Type.Object({}),
+				wgsl: { moduleId: primitiveId, entry: 'semanticCreate' }
+			});
+		}
+
+		const doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId,
+			position: { x: 0, y: 0 }
+		});
+		expect(doc.nodes[0]?.inputs[0]).toMatchObject({
+			space: 'stereo_field',
+			semantics: ['color:linear-srgb', 'unit:m']
+		});
 	});
 
 	it('round-trips node positions through graphToFlow', () => {

@@ -18,24 +18,19 @@ export type PipelineResourceType =
 export type ListDataType = 'tuple<f32>' | 'tuple<vec2f>' | 'tuple<vec3f>' | 'tuple<vec4f>';
 export type DataType = ValueDataType | ResourceDataType | PipelineResourceType | ListDataType;
 
-/** Coordinate space for spatial ports (see graph-and-compiler.md). 'none' = not spatial. */
-export type CoordinateSpace =
-	| 'none'
-	| 'world_dir'
-	| 'body_dir'
-	| 'world_pos'
-	| 'body_pos'
-	| 'ideal_fragment_body_dir'
-	| 'height_meters'
-	| 'world_radius_meters'
-	| 'scale_ctx';
+/** Open identifier for a coordinate space. 'none' remains the non-spatial default. */
+export type SpaceId = string;
+export type SemanticTag = string;
+/** @deprecated Use SpaceId. */
+export type CoordinateSpace = SpaceId;
 
 export interface Port {
 	id: string;
 	name: string;
 	direction: 'in' | 'out';
 	dataType: DataType;
-	space?: CoordinateSpace; // defaults to 'none'
+	space?: SpaceId; // defaults to 'none'
+	semantics?: SemanticTag[];
 	/** Literal used when the input port has no incoming edge. */
 	default?: PortDefaultValue;
 }
@@ -96,7 +91,8 @@ export interface GraphDocument {
 export interface GroupInputMapping {
 	name: string;
 	dataType: DataType;
-	space?: CoordinateSpace;
+	space?: SpaceId;
+	semantics?: SemanticTag[];
 	target: PortRef;
 }
 
@@ -109,7 +105,8 @@ export interface GroupParamMapping {
 export interface GroupOutputMapping {
 	name: string;
 	dataType: DataType;
-	space?: CoordinateSpace;
+	space?: SpaceId;
+	semantics?: SemanticTag[];
 	target: PortRef;
 }
 

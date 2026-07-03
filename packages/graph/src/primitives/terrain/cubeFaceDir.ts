@@ -2,6 +2,7 @@ import { Type } from '@world-lab/schema';
 
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
+import { PLANET_SPACES } from './spaces.js';
 
 function cubeFaceUvToUnitDir(face: number, u: number, v: number): [number, number, number] {
 	const a = u * 2 - 1;
@@ -35,7 +36,7 @@ const cubeFaceDir: NodePrimitive = {
 	id: 'surface.cubeFaceDir',
 	category: 'surface',
 	inputs: [{ name: 'uv', dataType: 'vec2f' }],
-	outputs: [{ name: 'unit_dir', dataType: 'vec3f', space: 'body_dir' }],
+	outputs: [{ name: 'unit_dir', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION }],
 	params: Type.Object({
 		face: Type.Integer({ minimum: 0, maximum: 5, default: 0 })
 	}),

@@ -2,6 +2,7 @@ import { Type } from '@world-lab/schema';
 
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
+import { PLANET_SPACES } from '../terrain/spaces.js';
 import { cubeFaceUvToPosition } from './cubeFaceMath.js';
 
 function normalize3(v: [number, number, number]): [number, number, number] {
@@ -17,8 +18,8 @@ const cubeSphere: NodePrimitive = {
 	category: 'surface',
 	inputs: [{ name: 'uv', dataType: 'vec2f' }],
 	outputs: [
-		{ name: 'position', dataType: 'vec3f', space: 'body_pos' },
-		{ name: 'normal', dataType: 'vec3f', space: 'body_dir' }
+		{ name: 'position', dataType: 'vec3f', space: PLANET_SPACES.BODY_POSITION },
+		{ name: 'normal', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION }
 	],
 	params: Type.Object({
 		face: Type.Integer({ minimum: 0, maximum: 5, default: 0 })

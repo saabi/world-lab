@@ -3,12 +3,13 @@ import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { freqParam, planetRadiusParam, scaleMppInput } from './_params.js';
+import { PLANET_SPACES } from './spaces.js';
 
 const domainWarp: NodePrimitive = {
 	id: 'terrain.domainWarp',
 	category: 'terrain',
 	inputs: [
-		{ name: 'unit_dir', dataType: 'vec3f', space: 'body_dir' },
+		{ name: 'unit_dir', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION },
 		scaleMppInput
 	],
 	outputs: [{ name: 'distortion', dataType: 'f32' }],

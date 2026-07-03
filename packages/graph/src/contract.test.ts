@@ -34,6 +34,36 @@ describe('@world-lab/graph contract & swap families', () => {
 		}
 	});
 
+	it('preserves the legacy mechanical contract for every registered primitive', () => {
+		const legacyContract = (primitive: NodePrimitive) => {
+			const formatPorts = (ports: NodePrimitive['inputs']) =>
+				ports
+					.map((port) => {
+						const space =
+							port.space && port.space !== 'none' ? `@${port.space}` : '';
+						return `${port.dataType}${space}`;
+					})
+					.join(',');
+			return `${formatPorts(primitive.inputs)}->${formatPorts(primitive.outputs)}`;
+		};
+
+		for (const primitive of listPrimitives()) {
+			expect(contractOf(primitive)).toBe(legacyContract(primitive));
+		}
+	});
+
+	it('does not include semantic tags in the mechanical contract', () => {
+		const add = getPrimitive('math.add')!;
+		const tagged: NodePrimitive = {
+			...add,
+			inputs: [
+				{ ...add.inputs[0]!, semantics: ['unit:m', 'color:linear-srgb'] },
+				...add.inputs.slice(1)
+			]
+		};
+		expect(contractOf(tagged)).toBe(contractOf(add));
+	});
+
 	it('swapFamily returns role when set, else contract', () => {
 		const add = getPrimitive('math.add')!;
 		// add has no role → falls back to contract

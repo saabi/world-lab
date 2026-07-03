@@ -131,6 +131,30 @@ describe('@world-lab/compiler loadWgslPrimitive', () => {
 		expect(loaded.primitive).toEqual(EXPECTED_PERLIN);
 	});
 
+	it('accepts open spaces and canonicalizes semantic tags from frontmatter', () => {
+		const source = PERLIN_SOURCE.replace(
+			'    space: body_dir',
+			'    space: stereo_field\n    semantics: [unit:m, color:linear-srgb, unit:m]'
+		).replace(
+			'    range: [0, 1]',
+			'    range: [0, 1]\n    space: spectrum_field\n    semantics: [unit:ratio, color:linear-srgb, unit:ratio]'
+		);
+
+		const loaded = loadWgslPrimitive({
+			moduleId: 'noise.perlin3d',
+			source
+		});
+
+		expect(loaded.primitive.inputs[0]).toMatchObject({
+			space: 'stereo_field',
+			semantics: ['color:linear-srgb', 'unit:m']
+		});
+		expect(loaded.primitive.outputs[0]).toMatchObject({
+			space: 'spectrum_field',
+			semantics: ['color:linear-srgb', 'unit:ratio']
+		});
+	});
+
 	it('preserves input/param classification, argument order, and exact wgslType metadata', () => {
 		const loaded = loadWgslPrimitive({
 			moduleId: 'noise.perlin3d',

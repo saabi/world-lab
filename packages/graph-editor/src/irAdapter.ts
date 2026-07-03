@@ -1,12 +1,12 @@
 import {
 	getPrimitive,
 	compatibleDataTypes,
-	type CoordinateSpace,
 	type DataType,
 	type GraphDocument,
 	type Node,
 	type Port,
 	type PortRef,
+	type SpaceId,
 	type ValidationIssue,
 	type ValidationResult
 } from '@world-lab/graph';
@@ -239,8 +239,8 @@ export function validateConnection(
 		});
 	}
 
-	const fromSpace: CoordinateSpace = fromPort.space ?? 'none';
-	const toSpace: CoordinateSpace = toPort.space ?? 'none';
+	const fromSpace: SpaceId = fromPort.space ?? 'none';
+	const toSpace: SpaceId = toPort.space ?? 'none';
 	if (fromSpace !== 'none' && toSpace !== 'none' && fromSpace !== toSpace) {
 		issues.push({ kind: 'space-mismatch', edge: edgeId, from: fromSpace, to: toSpace });
 	}

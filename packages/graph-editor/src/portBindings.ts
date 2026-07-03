@@ -35,9 +35,10 @@ export function derivePortBindings(doc: GraphDocument, nodeId: string): PortBind
 		return {
 			portId: port.id,
 			name: port.name,
-			dataType: port.dataType,
-			...(port.space !== undefined ? { space: port.space } : {}),
-			source
+				dataType: port.dataType,
+				...(port.space !== undefined ? { space: port.space } : {}),
+				...(port.semantics !== undefined ? { semantics: [...port.semantics] } : {}),
+				source
 		};
 	});
 }

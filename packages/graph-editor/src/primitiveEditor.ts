@@ -6,8 +6,6 @@ import {
 	type GraphDocument,
 	type Node,
 	type NodePrimitive,
-	type Port,
-	type PortSpec,
 	type ValidationIssue
 } from '@world-lab/graph';
 import { Value, type TSchema } from '@world-lab/schema';
@@ -20,17 +18,6 @@ export interface PrimitiveSaveResult {
 	loaded: LoadedWgslPrimitive;
 	graph: GraphDocument;
 	validationIssues: ValidationIssue[];
-}
-
-function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
-	return specs.map((spec) => ({
-		id: spec.name,
-		name: spec.name,
-		direction,
-		dataType: spec.dataType,
-		space: spec.space ?? 'none',
-		...(spec.default !== undefined ? { default: spec.default } : {})
-	}));
 }
 
 function paramKeys(schema: TSchema): string[] {

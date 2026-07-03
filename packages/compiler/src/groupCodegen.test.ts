@@ -63,10 +63,12 @@ describe('@world-lab/compiler groupCodegen', () => {
 			subgraph,
 			interface: {
 				inputs: [
-					{
-						name: 'normal',
-						dataType: 'f32',
-						target: { node: 'mult', port: 'a' }
+						{
+							name: 'normal',
+							dataType: 'f32',
+							space: 'stereo_field',
+							semantics: ['unit:m', 'color:linear-srgb', 'unit:m'],
+							target: { node: 'mult', port: 'a' }
 					},
 					{
 						name: 'height',
@@ -80,10 +82,11 @@ describe('@world-lab/compiler groupCodegen', () => {
 					}
 				],
 				outputs: [
-					{
-						name: 'value',
-						dataType: 'f32',
-						target: { node: 'add', port: 'value' }
+						{
+							name: 'value',
+							dataType: 'f32',
+							semantics: ['unit:ratio', 'unit:ratio'],
+							target: { node: 'add', port: 'value' }
 					}
 				]
 			},
@@ -104,6 +107,9 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 		expect(frontmatter).toContain('id: g.normalDisplace');
 		expect(frontmatter).toContain('category: transform');
+		expect(frontmatter).toContain('space: stereo_field');
+		expect(frontmatter).toContain('semantics: ["color:linear-srgb","unit:m"]');
+		expect(frontmatter).toContain('semantics: ["unit:ratio"]');
 		expect(frontmatter).toContain('role: positionTransform');
 		expect(frontmatter).toContain('help: "Displaces a position along a normal by a height factor."');
 
@@ -115,6 +121,11 @@ describe('@world-lab/compiler groupCodegen', () => {
 		expect(loaded.primitive.category).toBe('transform');
 		expect(loaded.primitive.inputs).toHaveLength(3);
 		expect(loaded.primitive.outputs).toHaveLength(1);
+		expect(loaded.primitive.inputs[0]).toMatchObject({
+			space: 'stereo_field',
+			semantics: ['color:linear-srgb', 'unit:m']
+		});
+		expect(loaded.primitive.outputs[0]?.semantics).toEqual(['unit:ratio']);
 		expect(loaded.imports).toContain('math.multiply');
 		expect(loaded.imports).toContain('math.add');
 

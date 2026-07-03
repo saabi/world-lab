@@ -14,15 +14,16 @@ import {
 	type Unit,
 } from '@world-lab/schema';
 import type {
-	CoordinateSpace,
 	DataType,
 	NodePrimitive,
 	PortMetadata,
 	PortSpec,
 	PrimitiveMetadata,
+	SemanticTag,
+	SpaceId,
 	WgslArgumentBinding,
 } from '@world-lab/graph';
-import { canonicalDataType } from '@world-lab/graph';
+import { canonicalDataType, dedupeCanonicalSemantics } from '@world-lab/graph';
 
 export interface WgslFnParameter {
 	name: string;
@@ -54,18 +55,6 @@ export interface LoadedWgslPrimitive {
 const MODULE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 const IDENT_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-const COORDINATE_SPACES = new Set<CoordinateSpace>([
-	'none',
-	'world_dir',
-	'body_dir',
-	'world_pos',
-	'body_pos',
-	'ideal_fragment_body_dir',
-	'height_meters',
-	'world_radius_meters',
-	'scale_ctx',
-]);
-
 const TOP_LEVEL_KEYS = new Set([
 	'id',
 	'entry',
@@ -88,6 +77,7 @@ const TOP_LEVEL_KEYS = new Set([
 const PORT_FIELD_KEYS = new Set([
 	'description',
 	'semantic',
+	'semantics',
 	'space',
 	'unit',
 	'range',
@@ -433,21 +423,25 @@ function requireString(value: unknown, label: string): string {
 function parsePortMetadata(
 	raw: unknown,
 	label: string,
-	allowSpace: boolean,
-): { metadata: PortMetadata; space?: CoordinateSpace } {
+): { metadata: PortMetadata; space?: SpaceId; semantics?: SemanticTag[] } {
 	if (raw === null || raw === undefined) raw = {};
 	if (!isPlainObject(raw)) throw new Error(`Invalid ${label}`);
 
 	const metadata: PortMetadata = {};
-	let space: CoordinateSpace | undefined;
+	let space: SpaceId | undefined;
+	let semantics: SemanticTag[] | undefined;
 	for (const [key, value] of Object.entries(raw)) {
 		if (!PORT_FIELD_KEYS.has(key)) throw new Error(`Unknown port field key: ${key}`);
 		if (key === 'space') {
-			if (!allowSpace) throw new Error(`Unexpected field key: ${key}`);
-			if (typeof value !== 'string' || !COORDINATE_SPACES.has(value as CoordinateSpace)) {
+			if (typeof value !== 'string' || value.length === 0) {
 				throw new Error(`Invalid coordinate space: ${String(value)}`);
 			}
-			space = value as CoordinateSpace;
+			space = value;
+		} else if (key === 'semantics') {
+			if (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string')) {
+				throw new Error(`Invalid ${label}.semantics`);
+			}
+			semantics = dedupeCanonicalSemantics(value as SemanticTag[]);
 		} else if (key === 'description' || key === 'semantic' || key === 'unit') {
 			if (typeof value !== 'string') throw new Error(`Invalid ${label}.${key}`);
 			metadata[key] = value;
@@ -463,7 +457,7 @@ function parsePortMetadata(
 			metadata.range = [value[0], value[1]];
 		}
 	}
-	return { metadata, space };
+	return { metadata, space, semantics };
 }
 
 function omitEmptyMetadata<T extends PortMetadata | PrimitiveMetadata>(metadata: T): T | undefined {
@@ -665,7 +659,7 @@ export function loadWgslPrimitive(input: LoadWgslPrimitiveInput): LoadedWgslPrim
 	}
 	const outputName = outputNames[0]!;
 	const rawOutput = doc.outputs[outputName];
-	const outputField = parsePortMetadata(rawOutput, `outputs.${outputName}`, false);
+	const outputField = parsePortMetadata(rawOutput, `outputs.${outputName}`);
 
 	const signatures = reader.readSignatures(input.source);
 	if (signatures.length === 0) {
@@ -712,15 +706,15 @@ export function loadWgslPrimitive(input: LoadWgslPrimitiveInput): LoadedWgslPrim
 			);
 		}
 		if (hasInput) {
-			const { metadata, space } = parsePortMetadata(
+			const { metadata, semantics, space } = parsePortMetadata(
 				inputDoc[parameter.name],
-				`inputs.${parameter.name}`,
-				true,
+				`inputs.${parameter.name}`
 			);
 			inputs.push({
 				name: parameter.name,
 				dataType: wgslTypeToDataType(parameter.type),
 				...(space ? { space } : {}),
+				...(semantics !== undefined ? { semantics } : {}),
 				metadata: {
 					...metadata,
 					wgslType: parameter.type.trim(),
@@ -746,6 +740,8 @@ export function loadWgslPrimitive(input: LoadWgslPrimitiveInput): LoadedWgslPrim
 		{
 			name: outputName,
 			dataType: wgslTypeToDataType(signature.returnType),
+			...(outputField.space ? { space: outputField.space } : {}),
+			...(outputField.semantics !== undefined ? { semantics: outputField.semantics } : {}),
 			...(outputMetadata ? { metadata: outputMetadata } : {}),
 		},
 	];

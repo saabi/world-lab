@@ -2,6 +2,7 @@ import { Type } from '@world-lab/schema';
 
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
+import { PLANET_SPACES } from './spaces.js';
 
 const pbrLighting: NodePrimitive = {
 	id: 'material.pbrLighting',
@@ -11,9 +12,9 @@ const pbrLighting: NodePrimitive = {
 		{ name: 'roughness', dataType: 'f32' },
 		{ name: 'metallic', dataType: 'f32' },
 		{ name: 'ior', dataType: 'f32' },
-		{ name: 'normal', dataType: 'vec3f', space: 'world_dir' },
-		{ name: 'view', dataType: 'vec3f', space: 'world_dir' },
-		{ name: 'surface_pos', dataType: 'vec3f', space: 'world_pos' },
+		{ name: 'normal', dataType: 'vec3f', space: PLANET_SPACES.WORLD_DIRECTION },
+		{ name: 'view', dataType: 'vec3f', space: PLANET_SPACES.WORLD_DIRECTION },
+		{ name: 'surface_pos', dataType: 'vec3f', space: PLANET_SPACES.WORLD_POSITION },
 		{ name: 'sun_shadow', dataType: 'f32' }
 	],
 	outputs: [{ name: 'color', dataType: 'vec3f' }],

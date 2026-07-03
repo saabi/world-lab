@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CoordinateSpace, DataType, GraphDocument } from './types.js';
+import type { DataType, GraphDocument, SpaceId } from './types.js';
 import { getPrimitive } from './registry.js';
 import { validateGraph } from './validate.js';
 import { deserializeGraph, serializeGraph } from './serialize.js';
@@ -7,8 +7,8 @@ import './primitives/index.js';
 
 function twoNodeGraph(opts?: {
 	toType?: DataType;
-	fromSpace?: CoordinateSpace;
-	toSpace?: CoordinateSpace;
+	fromSpace?: SpaceId;
+	toSpace?: SpaceId;
 }): GraphDocument {
 	return {
 		version: '1',
@@ -89,8 +89,41 @@ describe('@world-lab/graph IR', () => {
 		expect(serializeGraph(twoNodeGraph())).toBe(serializeGraph(twoNodeGraph()));
 	});
 
+	it('canonicalizes semantic tags during serialization and deserialization', () => {
+		const doc = twoNodeGraph();
+		doc.nodes[0]!.outputs[0]!.semantics = [
+			'unit:m',
+			'color:linear-srgb',
+			'unit:m'
+		];
+
+		const serialized = serializeGraph(doc);
+		const encoded = JSON.parse(serialized) as GraphDocument;
+		expect(encoded.nodes[0]?.outputs[0]?.semantics).toEqual([
+			'color:linear-srgb',
+			'unit:m'
+		]);
+		expect(deserializeGraph(serialized).nodes[0]?.outputs[0]?.semantics).toEqual([
+			'color:linear-srgb',
+			'unit:m'
+		]);
+		expect(deserializeGraph(JSON.stringify(doc)).nodes[0]?.outputs[0]?.semantics).toEqual([
+			'color:linear-srgb',
+			'unit:m'
+		]);
+	});
+
 	it('accepts a type- and space-matching edge', () => {
 		expect(validateGraph(twoNodeGraph()).ok).toBe(true);
+	});
+
+	it('accepts matching open space identifiers without core registration', () => {
+		expect(
+			validateGraph(twoNodeGraph({ fromSpace: 'stereo_field', toSpace: 'stereo_field' })).ok
+		).toBe(true);
+		expect(
+			validateGraph(twoNodeGraph({ fromSpace: 'stereo_field', toSpace: 'speaker_field' })).ok
+		).toBe(false);
 	});
 
 	it('rejects a type-mismatched edge', () => {

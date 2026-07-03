@@ -3,15 +3,16 @@ import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, scaleMppInput } from './_params.js';
+import { PLANET_SPACES } from './spaces.js';
 
 const normalEstimator: NodePrimitive = {
 	id: 'terrain.normalEstimator',
 	category: 'terrain',
 	inputs: [
-		{ name: 'unit_dir', dataType: 'vec3f', space: 'body_dir' },
+		{ name: 'unit_dir', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION },
 		scaleMppInput
 	],
-	outputs: [{ name: 'normal', dataType: 'vec3f', space: 'body_dir' }],
+	outputs: [{ name: 'normal', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION }],
 	params: Type.Object({
 		radius: planetRadiusParam,
 		voronoi_scale: Type.Number({ default: 1 }),

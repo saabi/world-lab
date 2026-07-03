@@ -1,4 +1,4 @@
-import type { CoordinateSpace, DataType, PortDefaultValue } from '@world-lab/graph';
+import type { DataType, PortDefaultValue, SemanticTag, SpaceId } from '@world-lab/graph';
 
 export type PortBindingSource =
 	| { kind: 'edge'; edgeId: string; fromNode: string; fromPort: string }
@@ -10,6 +10,7 @@ export interface PortBindingState {
 	portId: string;
 	name: string;
 	dataType: DataType;
-	space?: CoordinateSpace;
+	space?: SpaceId;
+	semantics?: SemanticTag[];
 	source: PortBindingSource;
 }

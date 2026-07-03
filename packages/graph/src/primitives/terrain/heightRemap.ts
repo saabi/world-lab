@@ -3,6 +3,7 @@ import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, pureParam, ratioRParam } from './_params.js';
+import { PLANET_SPACES } from './spaces.js';
 
 export function evalHeightRemap(
 	vor: [number, number, number],
@@ -36,7 +37,13 @@ const heightRemap: NodePrimitive = {
 		{ name: 'vor', dataType: 'vec3f' },
 		{ name: 'detail', dataType: 'f32' }
 	],
-	outputs: [{ name: 'world_radius_meters', dataType: 'f32', space: 'world_radius_meters' }],
+	outputs: [
+		{
+			name: 'world_radius_meters',
+			dataType: 'f32',
+			space: PLANET_SPACES.WORLD_RADIUS_METERS
+		}
+	],
 	params: Type.Object({
 		voronoi_amplitude: ratioRParam(0.01),
 		detail_amplitude: ratioRParam(0.01),

@@ -3,14 +3,15 @@ import { Type } from '@world-lab/schema';
 import type { NodePrimitive } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, pureParam, ratioRParam, scaleMppInput } from './_params.js';
+import { PLANET_SPACES } from './spaces.js';
 
 const biomeMaterial: NodePrimitive = {
 	id: 'terrain.biomeMaterial',
 	category: 'material',
 	inputs: [
-		{ name: 'sample_unit_dir', dataType: 'vec3f', space: 'body_dir' },
-		{ name: 'sample_world_pos', dataType: 'vec3f', space: 'world_pos' },
-		{ name: 'sample_height_meters', dataType: 'f32', space: 'height_meters' },
+		{ name: 'sample_unit_dir', dataType: 'vec3f', space: PLANET_SPACES.BODY_DIRECTION },
+		{ name: 'sample_world_pos', dataType: 'vec3f', space: PLANET_SPACES.WORLD_POSITION },
+		{ name: 'sample_height_meters', dataType: 'f32', space: PLANET_SPACES.HEIGHT_METERS },
 		{ name: 'sample_distortion', dataType: 'f32' },
 		{ name: 'sample_vor', dataType: 'vec3f' },
 		{ name: 'sample_detail', dataType: 'f32' },
