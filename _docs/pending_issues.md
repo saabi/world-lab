@@ -15,16 +15,30 @@
 > coverage (`af69aef`). Do not re-add.
 
 - **node groups UX** not built: "Save as group", zone framing, and collapse-to-node. The group *system* (`groupToFunction`/`buildGroupModule`) exists; the editor authoring/collapse UI does not. See `node-model-design-notes.md` §E.
-- **params-as-inputs not wireable in the editor**: promotable params (e.g. remap bounds) should appear as input ports and the form should show connected-vs-literal. Graph-core helpers exist (`paramInputPorts`/`resolveParamBindings`) and port-level defaults landed (`1f1bee4`); the editor + connected-override codegen is still pending. Brief: `M-params-as-inputs.md`.
+- ~~params-as-inputs not wireable in the editor~~ ✅ done (2026-07-03, `fa9697d`) — edge >
+  literal > default precedence now lives in both `runtime-cpu/evalGraph.ts::resolveParams`
+  (evalCPU) and `runtime-webgpu/emitGraphEval.ts` (WGSL codegen — this turned out to be the
+  real per-node param-embedding path via a `GraphParams` uniform struct + `params.<field>`
+  access for literals, substituting the upstream expression directly for edge-bound params;
+  not `packages/compiler` at all, which is group-codegen only — worth remembering next time a
+  brief needs to guess where "codegen" lives). `InspectorPanel.svelte`/`ParamForm.svelte` show
+  a read-only "driven by `<node>.<port>`" label in place of the control for wired params.
+  Brief: `M-params-as-inputs-remainder.md`.
 - Functions representing group nodes must be decomposable into its components and editable upon request. Built-in group functions such as remap must be inspectable as graphs (ideally a la touchdesigner by zooming in or similar gesture) and outomatically cloned and replaced if modified.
 - ~~The document load/save and samples UX is not well polished... including undo/redo functionality~~
   ✅ done (2026-07-01) — undo/redo landed (`history.svelte.ts`, a past/future `GraphDocument`
   stack hooked into the existing `applyEditIntent`/`updateGraph` choke point; per-action labels;
   Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y + toolbar buttons; history resets on document load/new, not
-  persisted, matching the pattern in `saabi/colorlab`). Polish: delete-confirmation dialog,
+  persisted, matching the pattern in `saabi/colorlab`). ~~Polish: delete-confirmation dialog,
   `updatedAt` timestamp shown per saved document, and a discard-changes confirm for the two
-  states where edits aren't auto-saved (new/unnamed graph, loaded read-only sample — every
-  other document already auto-saves on edit, so "unsaved changes" wasn't a real risk elsewhere).
+  states where edits aren't auto-saved~~ ✅ all three confirmed already built (2026-07-03,
+  verified by reading `DocumentList.svelte`/`GraphEditor.svelte` directly, not assumed): a real
+  two-step delete-confirm dialog (`deleteTarget` state, "Delete '{name}'? This can't be
+  undone." with Cancel), `formatUpdatedAt` rendered per saved document in the switcher, and
+  `confirmDiscardIfNeeded()` (`window.confirm`) gating `newGraph`/`loadSavedDocument`/
+  `loadSampleDocument`/`triggerUpload` — exactly the two documented at-risk states (new/unnamed
+  graph, loaded read-only sample — every other document already auto-saves on edit, so
+  "unsaved changes" wasn't a real risk elsewhere). No further action needed on this bullet.
   Schema/artifact versioning was explicitly out of scope (owner: existing `GraphArtifactVersion`
   migration path is sufficient). Not yet exercised in a real browser — no browser-automation
   tool available in this environment; verified via check/test/build gates + a dev-server
@@ -138,6 +152,17 @@
     `N`-key / reveal-tab affordance already covers open/close without duplicating it in the
     toolbar.
 
+- **Preview buffer selection resets on graph edit / recompile.** Editing the graph (which triggers
+  shader recompile and preview refresh) currently jumps the preview pane's selected output back to
+  the first buffer in the list. Preferred behavior: **keep the user's buffer selection** across
+  edits and recompiles whenever that output still exists; only fall back to the first/default
+  buffer when the edit removes or invalidates the previously selected output (e.g. deleted display
+  sink, removed declared output, or buffer id no longer in `enumeratePreviewBuffers`). Note:
+  `previewPaneSelection.ts::syncSelectionsForGraphChange` and `GraphEditor.svelte::updateGraph`
+  already attempt this by buffer id — the reset-on-edit behavior suggests either unstable buffer
+  ids across re-derivation or another code path overwriting `previewBuffersByPane`; fix should
+  verify end-to-end in the preview tab bar (`PreviewZone.svelte`), not just the sync helper.
+
 
 ## Engine — compiler / runtime (not built)
 
@@ -152,7 +177,14 @@
 
 - ~~**`geometry.plane` needs orientation + dimensions**~~ ✅ `a55b8c2` — `width`/`height` + Euler XYZ rotation params on `geometry.plane`; WGSL + evalCPU parity; defaults preserve fullscreen quad. Composable `transform.*` nodes remain a follow-on (`node-model-design-notes.md` §B).
 - **geometry transforms**: `transform.spherify`/`displace`/`translate`/`rotate`/`scale`/`twist`/`bend`/affine, and decompose `geometry.cubeSphere` → `geometry.cube` + `transform.spherify` (more elemental, reusable on any vertex list). These also cover the plane orientation/dimensions case above via composition. `node-model-design-notes.md` §B.
-- **colorlab harvest remainder**: OKLab/OKLCH, CVD simulation, chromatic adaptation, gamut mapping (slice A = D65 space conversions only). `M-colorlab-harvest.md`.
+- **colorlab harvest remainder**: OKLab/OKLCH ✅ (slice A, `9fbc58a`), chromatic adaptation ✅
+  done (2026-07-03, `522e31a` — `color.chromaticAdapt`, Bradford, D65↔D50 defaults, registered
+  as an ordinary primitive rather than a swap-family `colorSpace` member since its signature
+  takes two extra white-point inputs). **Still open:** CVD simulation, gamut mapping — CVD
+  needs a mode representation (protanopia/deuteranopia/tritanopia + severity) pinned as a
+  design decision before it's briefable; gamut mapping is boundary generation, not a per-pixel
+  conversion, and was always out of scope for this harvest. `M-colorlab-harvest.md`,
+  `M-colorlab-harvest-slice-b.md`.
 - **vegetation as nodes**: `veg.densityField`/`peakDetect`/`prominence`/`coverageMask` — the algorithm lives in `runtime-cpu/vegetation.ts` but isn't exposed as graph nodes. `primitive-library.md`.
 - **terrain analysis primitives**: `slope`/`altitude`/`curvature`/`beachMask`/`ridgeMask`/`erosionApprox` (discussed turn 50; not built). `primitive-library.md`.
 - low-hanging-fruit math/sdf/colour/noise still listed in `primitive-library.md` (e.g. `math.normalize` — needed by `spherify`).
