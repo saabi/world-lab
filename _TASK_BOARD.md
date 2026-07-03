@@ -102,6 +102,16 @@ remainder, vegetation/terrain nodes) · Tier 4 (S0.5, planet PoC). See `work-pla
 
 ## Archive — landed
 
+- **Folded in from the retired nested board** (`_docs/architecture/procedural-graph/TASK_BOARD.md`,
+  2026-06-29–era Codex coordination doc, unified into this one 2026-07-03 — see that file's
+  header for the retirement note):
+  - Node-model decomposition fix — restored `math.remap`/`sdf.opSubtract` as real group-backed
+    decompositions (not the atomic correctness fallback) — `a29b4cc`
+  - Noise-functions harvest — six 2D noise primitives ported from `noise-functions.glsl` — `b0f9fd9`
+  - Colorlab harvest, slice A — 14 fixed-D65 colour-space primitives (adaptation/CVD deferred,
+    tracked in `pending_issues.md`'s "colorlab harvest remainder") — `9fbc58a`
+  - Pipeline nodes S0 (rebased) — geometry/buffer/stage/target nodes exposing the graph as a
+    full pipeline — `5af0b80`
 - **Tier 1 — trustworthy editor pipeline** (all reviewed green, visual-confirmed):
   - T-A compiled-WGSL view — `63e2ea9`
   - T-B incomplete/invalid-graph flagging (editor surfacing) — `b1761ae`

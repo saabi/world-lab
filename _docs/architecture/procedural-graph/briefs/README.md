@@ -14,10 +14,10 @@ runs what.
 
 ## Conventions
 
-- **Parallel via task board.** Independent tasks run in parallel when a `_TASK_BOARD.md`
-  assigns **disjoint files/packages** (claim-by-edit; see
-  [execution-and-delegation.md](../execution-and-delegation.md)). The critical *dependency
-  chain* stays serialized — never start a task whose prerequisite is open.
+- **Parallel via task board.** Independent tasks run in parallel when the root
+  [`_TASK_BOARD.md`](../../../../_TASK_BOARD.md) assigns **disjoint files/packages**
+  (claim-by-edit; see [execution-and-delegation.md](../execution-and-delegation.md)). The
+  critical *dependency chain* stays serialized — never start a task whose prerequisite is open.
 - **Self-contained.** A brief links the relevant stream doc(s) so a fresh or
   external agent (Cursor / Codex / Gemini Antigravity) needs no other context.
 - **Gate = done.** The task is complete when the brief's tests are green and
@@ -104,7 +104,8 @@ runs what.
 | [M-primitive-help-coverage.md](./M-primitive-help-coverage.md) | Frontmatter-based help for every primitive — 62/112 (55%) resolved blank; unified frontmatter as the source, guaranteed non-empty fallback + guard test, backfilled all categories | ✅ landed (`af69aef`) | Cursor (done) |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
-parallel only under the ownership/worktree rules in [`../TASK_BOARD.md`](../TASK_BOARD.md).
-**M9c** may run in parallel with M10 (does not block GPU). **M9d** is proposed
-parallel polish while M11 is active — see proposal for architect sign-off.
-Live status + resume entry point: [../STATUS.md](../STATUS.md).
+parallel only under the ownership/worktree rules in the root
+[`_TASK_BOARD.md`](../../../../_TASK_BOARD.md) (the nested `../TASK_BOARD.md` is retired —
+unified into the root board 2026-07-03). **M9c** may run in parallel with M10 (does not block
+GPU). **M9d** is proposed parallel polish while M11 is active — see proposal for architect
+sign-off. Live status + resume entry point: [../STATUS.md](../STATUS.md).

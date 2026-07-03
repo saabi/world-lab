@@ -59,10 +59,12 @@ delegation needs human/Opus oversight regardless of implementer.
 ## Dependency waves, ownership, and handoffs
 
 The critical dependency chain remains serialized: do not start a milestone whose
-prerequisite is open. Independent tasks may run in parallel when
-[`TASK_BOARD.md`](./TASK_BOARD.md) assigns disjoint files, or when each task uses an
-isolated worktree/branch and the integrator merges them one at a time. Shared barrel,
-registry, lockfile, and ledger edits are integration-owned unless explicitly assigned.
+prerequisite is open. Independent tasks may run in parallel when the root
+[`_TASK_BOARD.md`](../../../_TASK_BOARD.md) assigns disjoint files (the nested `TASK_BOARD.md`
+that used to sit in this directory is retired — unified into the root board 2026-07-03), or
+when each task uses an isolated worktree/branch and the integrator merges them one at a time.
+Shared barrel, registry, lockfile, and ledger edits are integration-owned unless explicitly
+assigned.
 
 **Every task ends with a task-specific handoff.** The last thing an agent does — whether it wrote
 a brief, implemented a milestone, or reviewed one — is state explicitly:

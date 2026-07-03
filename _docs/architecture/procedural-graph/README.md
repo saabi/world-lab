@@ -40,7 +40,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [primitive-library.md](./primitive-library.md) | **Catalogue:** every node built/planned/discussed — fields, domain, inputs, + geometry/buffer/stage/target families; low-hanging fruit | `graph`, `procedural-wgsl` |
 | [node-model-design-notes.md](./node-model-design-notes.md) | **Design:** collections/loops (lights→PBR), elemental geometry + transforms, node-swap UX (Blender math vs perf) | `graph`, `compiler`, `graph-editor` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
-| [TASK_BOARD.md](./TASK_BOARD.md) | Active task routing, dependencies, blockers, and commit policy | all |
+| [TASK_BOARD.md](./TASK_BOARD.md) | **Retired 2026-07-03** — unified into the root [`_TASK_BOARD.md`](../../../_TASK_BOARD.md), the live task board | all |
 | [HANDOFF.md](./HANDOFF.md) | Stable index of task-specific handoff records | all |
 | [handoffs/](./handoffs/README.md) | Task-specific implementation, review, and commit records | all |
 | [briefs/](./briefs/README.md) | Routable per-task contract briefs, ordered by the task board | per-milestone |

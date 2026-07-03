@@ -7,7 +7,8 @@ boundary.
 
 **Read order to resume:** [README.md](./README.md) →
 [execution-and-delegation.md](./execution-and-delegation.md) → **this file** →
-[TASK_BOARD.md](./TASK_BOARD.md) → the active brief in
+the root [`_TASK_BOARD.md`](../../../_TASK_BOARD.md) (the nested `TASK_BOARD.md` that used to
+sit here is retired — unified into the root board 2026-07-03) → the active brief in
 [briefs/](./briefs/README.md) → its task-specific
 [handoff](./handoffs/README.md). If the task touches params/forms, read
 [parameter-and-form-schema.md](./parameter-and-form-schema.md) before the brief. Then
