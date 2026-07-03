@@ -114,6 +114,45 @@ describe('enumeratePreviewBuffers', () => {
 		expect(imageBuffers[0]?.id).toBe('image');
 	});
 
+	it('prefers the display sink node name over the synthetic output name for a declared pipeline output', () => {
+		const base = cosinePaletteEffectGraph();
+		const fieldOutput = base.outputs[0]!.from;
+		const graph: GraphDocument = {
+			...base,
+			outputs: [{ name: 'pipeline_image', from: fieldOutput }],
+			nodes: base.nodes.map((node) => (node.id === 'n_display' ? { ...node, name: 'Final look' } : node))
+		};
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.family === 'image');
+		// id (the persistence key) stays on the synthetic output name; only the label changes.
+		expect(buffer?.id).toBe('pipeline_image');
+		expect(buffer?.label).toBe('Final look');
+	});
+
+	it('falls back to the synthetic output name when the display sink has no name set', () => {
+		const base = cosinePaletteEffectGraph();
+		const fieldOutput = base.outputs[0]!.from;
+		const graph: GraphDocument = {
+			...base,
+			outputs: [{ name: 'pipeline_image', from: fieldOutput }]
+		};
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.family === 'image');
+		expect(buffer?.label).toBe('pipeline_image');
+	});
+
+	it('prefers the display sink node name over its primitive id for an undeclared pipeline sink', () => {
+		const base = cosinePaletteEffectGraph();
+		const graph: GraphDocument = {
+			...base,
+			outputs: [],
+			consumers: [],
+			nodes: base.nodes.map((node) => (node.id === 'n_display' ? { ...node, name: 'Final look' } : node))
+		};
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.family === 'image');
+		// Field-output suffix (`· node.port`) is unrelated, existing behavior for undeclared
+		// sinks — this test only cares that the base label prefers the node name.
+		expect(buffer?.label).toBe('Final look · n_effect.color');
+	});
+
 	it('lists one buffer per pipeline display target with distinct ids', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),

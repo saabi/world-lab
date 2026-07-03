@@ -95,12 +95,18 @@
   2026-07-03); considered and dropped, not deferred. Not to be confused with `PaneHeader.svelte`'s
   own, unrelated corner-triangle (the "change pane type" trigger), which was separately already
   replaced with a real square button — see "Pane header, restructured once already" above.
-- **Nodes can't be named.** `packages/graph`'s `Node` type (`types.ts`) has `id`/`primitive`/
-  `params`/`inputs`/`outputs`/`position` only — no user-facing display name/label field. Nodes
-  are only ever shown by their `id` or `primitive` type (e.g. `noise.perlin3d`) on the canvas and
-  in the inspector. Add an optional `name`/`label` field, surfaced as an editable text field in
-  `InspectorPanel.svelte` near where params are already edited, and reflected in the canvas node
-  title (`GraphNodeView.svelte`).
+- ~~Nodes can't be named~~ ✅ done (2026-07-03) — `Node.name?: string` (`packages/graph`'s
+  `types.ts`), a rename field in `InspectorPanel.svelte`, and canvas label fallback
+  (`node.name?.trim() || node.primitive`) in `irAdapter.ts::graphToFlow`. `c2eb302`.
+  **Gap found after landing:** the brief's scope was canvas + inspector only — the preview-pane
+  buffer selector (`previewBuffers.ts`) has its *own*, separate label logic that didn't read
+  `node.name` at all: `labelForNode()` fell back to `node.primitive` for undeclared pipeline
+  sinks, and declared pipeline outputs showed the auto-synthesized `pipeline_image[_<id>]`
+  name directly as the label with no node-name override. Fixed: both paths now prefer the
+  display sink node's `name` when set, falling back to the prior behavior (primitive id /
+  synthetic output name) otherwise — the *underlying* output name/buffer `id` (the stable
+  persistence key) is untouched, only the displayed label changes, so renaming a node doesn't
+  churn a user's remembered buffer selection across reloads.
 - **No drag-and-drop node placement from the palette.** `NodePalette.svelte` is click-only today
   (`onclick` → `onadd`); `GraphEditor.svelte::addPrimitive` stacks new nodes at a fixed offset
   (`40 + n·24`, `40 + n·24`) regardless of where the user is looking on the canvas. Add
@@ -118,6 +124,19 @@
   `AppHeader.svelte`, the mark lives inside the editor's own toolbar rather than a separate
   app-level header bar — reasonable for a full-screen single-purpose editor that shouldn't spend
   vertical space on a redundant nav bar.
+- **App header toolbar layout** (`GraphEditor.svelte` `.toolbar`):
+  - **Node delete button is in the wrong place.** The selection-delete control currently lives
+    in the app header alongside document/file actions — it belongs with canvas/selection UX, not
+    the file chrome. Target placement TBD (e.g. canvas context menu, floating panel, or a
+    selection toolbar on the graph pane).
+  - **Undo/Redo breaks file-action grouping.** Undo/Redo sits between the document name and the
+    New/Save/Load/More file buttons, splitting what should read as one coherent file cluster.
+    Move Undo/Redo to the left (with edit actions) or the right (with view/canvas actions) so
+    file controls stay grouped.
+  - **Remove the far-right sidebar toggle from the header.** A header button opens the canvas
+    sidebar (`sidebarOpen` / `handleFloatingPanelToggle('sidebar')`); drop it — the pane's own
+    `N`-key / reveal-tab affordance already covers open/close without duplicating it in the
+    toolbar.
 
 
 ## Engine — compiler / runtime (not built)

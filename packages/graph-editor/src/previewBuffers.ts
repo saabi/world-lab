@@ -56,7 +56,7 @@ function sourcePortKey(source: PreviewBufferSource): string {
 
 function labelForNode(doc: GraphDocument, nodeId: string): string {
 	const node = doc.nodes.find((candidate) => candidate.id === nodeId);
-	return node?.primitive ?? nodeId;
+	return node?.name?.trim() || node?.primitive || nodeId;
 }
 
 function bufferFromOutput(doc: GraphDocument, name: string, from: PortRef): PreviewBuffer {
@@ -172,8 +172,18 @@ export function enumeratePreviewBuffers(doc: GraphDocument): PreviewBuffer[] {
 		if (presentationCountForField(presentations, fieldKey) > 1) continue;
 		if (seenDeclaredNames.has(output.name)) continue;
 		seenDeclaredNames.add(output.name);
+		// Keep `id` on the synthetic output name (pipeline_image[_<sinkId>]) — it's the stable
+		// persistence key — but prefer the display sink's own name for the label, if one is set.
+		const presentation = presentations.find(
+			(candidate) => portKey(candidate.fieldOutput) === fieldKey
+		);
+		const displayNode = presentation
+			? doc.nodes.find((node) => node.id === presentation.displayNodeId)
+			: undefined;
+		const label = displayNode?.name?.trim() || output.name;
 		buffers.push({
 			...bufferFromOutput(doc, output.name, output.from),
+			label,
 			family: 'image',
 			inferred: true
 		});
