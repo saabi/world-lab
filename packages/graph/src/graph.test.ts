@@ -183,6 +183,15 @@ describe('@world-lab/graph IR', () => {
 			inputs: [{ name: 'color', dataType: 'texture' }],
 			outputs: []
 		});
+		expect(getPrimitive('target.mesh')).toMatchObject({
+			category: 'target/sink',
+			inputs: [
+				{ name: 'position', dataType: 'vec3f' },
+				{ name: 'normal', dataType: 'vec3f' }
+			],
+			outputs: [],
+			metadata: { role: 'meshTarget' }
+		});
 	});
 
 	it('accepts edges from output ports that share a name with an input on the source node', () => {

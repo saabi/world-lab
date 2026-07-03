@@ -30,6 +30,7 @@ export {
 	tryPipelinePresentation,
 	type PipelinePresentation
 } from './pipeline.js';
+export { deriveMeshTargets, isMeshTarget, type MeshTargetDescriptor } from './meshTarget.js';
 export {
 	HASH12_PARITY,
 	HASH22_PARITY,

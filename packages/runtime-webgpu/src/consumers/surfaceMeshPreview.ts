@@ -3,7 +3,8 @@ import {
 	executeMeshGen,
 	meshGenRequestForLegacySurface,
 	type GeneratedMesh,
-	type LegacySurfaceId
+	type LegacySurfaceId,
+	type MeshGenRequest
 } from '../consumers/meshGen.js';
 
 export interface SurfaceMeshPreviewInput {
@@ -13,6 +14,12 @@ export interface SurfaceMeshPreviewInput {
 	gridSize?: number;
 	/** Use `surface.cubeFace → transform.spherify` for cube-sphere (graph decomposition proof). */
 	decomposedCubeSphere?: boolean;
+}
+
+export interface MeshGenPreviewInput {
+	device: GPUDevice;
+	canvas: HTMLCanvasElement;
+	request: MeshGenRequest;
 }
 
 type Mat4 = Float32Array;
@@ -186,9 +193,9 @@ function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat): GPUR
 	});
 }
 
-/** Render a graph-generated surface mesh into a WebGPU canvas (orbit camera, flat shading). */
-export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): Promise<void> {
-	const { device, canvas, surfaceId, gridSize = 16, decomposedCubeSphere = false } = input;
+/** Render a graph-generated mesh into a WebGPU canvas (orbit camera, flat shading). */
+export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<void> {
+	const { device, canvas, request } = input;
 	const context = canvas.getContext('webgpu');
 	if (!context) {
 		throw new Error('WebGPU canvas context unavailable');
@@ -197,9 +204,6 @@ export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): 
 	const format = navigator.gpu.getPreferredCanvasFormat();
 	context.configure({ device, format, alphaMode: 'opaque' });
 
-	const request = meshGenRequestForLegacySurface(surfaceId, gridSize, {
-		decomposedCubeSphere: surfaceId === 'surface.cubeSphere' && decomposedCubeSphere
-	});
 	let mesh: GeneratedMesh;
 	try {
 		mesh = await executeMeshGen(device, request);
@@ -281,4 +285,13 @@ export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): 
 	indexBuffer.destroy();
 	uniformBuffer.destroy();
 	depthTexture.destroy();
+}
+
+/** Render a graph-generated surface mesh into a WebGPU canvas (orbit camera, flat shading). */
+export async function renderSurfaceMeshPreview(input: SurfaceMeshPreviewInput): Promise<void> {
+	const { device, canvas, surfaceId, gridSize = 16, decomposedCubeSphere = false } = input;
+	const request = meshGenRequestForLegacySurface(surfaceId, gridSize, {
+		decomposedCubeSphere: surfaceId === 'surface.cubeSphere' && decomposedCubeSphere
+	});
+	await renderMeshGenPreview({ device, canvas, request });
 }

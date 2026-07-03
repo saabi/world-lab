@@ -10,6 +10,7 @@
 	import { resolvePreviewRenderer, type PreviewRenderer } from './previewBackend.js';
 	import {
 		findPreviewBufferById,
+		resolveMeshPreviewRequest,
 		resolvePreviewBufferPort,
 		type PreviewBuffer,
 		type PreviewFamily
@@ -50,6 +51,9 @@
 	);
 	const previewOutput = $derived(
 		selectedBuffer ? resolvePreviewBufferPort(graph, selectedBuffer) : null
+	);
+	const meshPreviewRequest = $derived(
+		selectedBuffer ? resolveMeshPreviewRequest(graph, selectedBuffer) : null
 	);
 	const previewRenderer = $derived(
 		resolvePreviewRenderer(selectedBuffer, {
@@ -134,7 +138,12 @@
 			{compileSignature}
 		/>
 	{:else if previewRenderer === 'mesh'}
-		<MeshPreviewPanel refreshEpoch={refreshEpoch} {compileSignature} />
+		<MeshPreviewPanel
+			{graph}
+			meshRequest={meshPreviewRequest}
+			refreshEpoch={refreshEpoch}
+			{compileSignature}
+		/>
 	{:else if previewRenderer === 'effect'}
 		<EffectPreviewPanel
 			{graph}

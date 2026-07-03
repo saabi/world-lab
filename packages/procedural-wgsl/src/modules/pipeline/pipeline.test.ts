@@ -5,7 +5,8 @@ import { STAGE_VERTEX_SOURCE } from './vertexStage.js';
 import {
 	BUFFER_PERSIST_SOURCE,
 	STAGE_FRAGMENT_SOURCE,
-	TARGET_DISPLAY_SOURCE
+	TARGET_DISPLAY_SOURCE,
+	TARGET_MESH_SOURCE
 } from './structural.js';
 
 describe('procedural-wgsl pipeline modules', () => {
@@ -26,7 +27,8 @@ describe('procedural-wgsl pipeline modules', () => {
 		for (const source of [
 			BUFFER_PERSIST_SOURCE,
 			STAGE_FRAGMENT_SOURCE,
-			TARGET_DISPLAY_SOURCE
+			TARGET_DISPLAY_SOURCE,
+			TARGET_MESH_SOURCE
 		]) {
 			expect(source).toContain('(no WGSL — structural node)');
 			expect(source).not.toMatch(/fn\s+\w+\([^)]*\)\s*\{\s*\}/);

@@ -1,15 +1,19 @@
 import {
+	deriveMeshTargets,
 	derivePipelinePresentations,
 	effectiveOutputs,
 	isPipelineTarget,
 	type DataType,
 	type GraphDocument,
+	type MeshTargetDescriptor,
 	type PortRef
 } from '@world-lab/graph';
 
 import { outputPortDataType } from './graphBuilders.js';
 
 export type PreviewFamily = 'geometry' | 'image' | 'data' | 'audio';
+
+export type { MeshTargetDescriptor };
 
 export type PreviewBufferSource = PortRef | { sinkNode: string };
 
@@ -69,6 +73,17 @@ function bufferFromOutput(doc: GraphDocument, name: string, from: PortRef): Prev
 		dataType,
 		family,
 		inferred: dataType !== 'vec4f'
+	};
+}
+
+function bufferFromMeshSink(doc: GraphDocument, meshNodeId: string): PreviewBuffer {
+	return {
+		id: meshNodeId,
+		label: labelForNode(doc, meshNodeId),
+		source: { sinkNode: meshNodeId },
+		dataType: 'mesh',
+		family: 'geometry',
+		inferred: true
 	};
 }
 
@@ -208,6 +223,13 @@ export function enumeratePreviewBuffers(doc: GraphDocument): PreviewBuffer[] {
 		buffers.push(bufferFromPipelineSink(doc, node.id, presentation?.fieldOutput ?? null));
 	}
 
+	const seenMeshSinkIds = new Set<string>();
+	for (const descriptor of deriveMeshTargets(doc)) {
+		if (seenMeshSinkIds.has(descriptor.meshNodeId)) continue;
+		seenMeshSinkIds.add(descriptor.meshNodeId);
+		buffers.push(bufferFromMeshSink(doc, descriptor.meshNodeId));
+	}
+
 	return buffers;
 }
 
@@ -222,6 +244,17 @@ export function resolvePreviewBufferPort(
 		(candidate) => candidate.displayNodeId === sinkNode
 	);
 	return presentation?.fieldOutput ?? null;
+}
+
+/** Resolve a geometry-family mesh sink buffer to its tessellation descriptor. */
+export function resolveMeshPreviewRequest(
+	doc: GraphDocument,
+	buffer: PreviewBuffer
+): MeshTargetDescriptor | null {
+	if (buffer.family !== 'geometry' || buffer.dataType !== 'mesh') return null;
+	const source = buffer.source;
+	if ('node' in source) return null;
+	return deriveMeshTargets(doc).find((candidate) => candidate.meshNodeId === source.sinkNode) ?? null;
 }
 
 /** Pick the first buffer / a sensible default when nothing is selected yet. */

@@ -11,9 +11,10 @@ describe('surface.cubeFace', () => {
 			inputs: { uv: [0.5, 0.5] },
 			params: { face: 0 }
 		});
-		expect(result.position[0]).toBe(1);
-		expect(result.position[1]).toBeCloseTo(0, 6);
-		expect(result.position[2]).toBeCloseTo(0, 6);
+		const position = result.position as number[];
+		expect(position[0]).toBe(1);
+		expect(position[1]).toBeCloseTo(0, 6);
+		expect(position[2]).toBeCloseTo(0, 6);
 	});
 
 	it('matches cubeFaceUvToPosition helper byte-for-byte', () => {

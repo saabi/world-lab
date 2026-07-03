@@ -66,6 +66,28 @@ const primitives: NodePrimitive[] = [
 			deterministic: false,
 			role: 'pipelineTarget'
 		}
+	},
+	{
+		id: 'target.mesh',
+		category: 'target/sink',
+		inputs: [
+			{ name: 'position', dataType: 'vec3f', metadata: { semantic: 'mesh-position-field' } },
+			{ name: 'normal', dataType: 'vec3f', metadata: { semantic: 'mesh-normal-field' } }
+		],
+		outputs: [],
+		params: Type.Object({
+			gridSize: Type.Integer({ minimum: 2, default: 24 }),
+			faceCount: Type.Integer({ minimum: 1, maximum: 6, default: 1 })
+		}),
+		wgsl: { moduleId: 'target.mesh', entry: 'meshTarget' },
+		metadata: {
+			description: 'Mesh preview sink — tessellates wired position/normal fields for geometry preview.',
+			pure: false,
+			deterministic: false,
+			role: 'meshTarget',
+			help: 'Declare a mesh to render in the geometry preview pane.',
+			usage: 'Wire vec3f position and normal fields, then set gridSize and faceCount for tessellation.'
+		}
 	}
 ];
 

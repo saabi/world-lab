@@ -1,19 +1,24 @@
 <script lang="ts">
-	import {
-		renderSurfaceMeshPreview,
-		requestGpuDevice,
-		type SurfacePrimitiveId
-	} from '@world-lab/runtime-webgpu';
+	import type { GraphDocument } from '@world-lab/graph';
+	import { renderMeshGenPreview, requestGpuDevice, type MeshGenRequest } from '@world-lab/runtime-webgpu';
+
+	import type { MeshTargetDescriptor } from './previewBuffers.js';
 
 	interface Props {
+		graph: GraphDocument;
+		meshRequest: MeshTargetDescriptor | null;
 		size?: number;
 		refreshEpoch?: number;
 		compileSignature?: string;
 	}
 
-	let { size = 256, refreshEpoch = 0, compileSignature = '' }: Props = $props();
-
-	let surfaceId = $state<SurfacePrimitiveId>('surface.cubeSphere');
+	let {
+		graph,
+		meshRequest,
+		size = 256,
+		refreshEpoch = 0,
+		compileSignature = ''
+	}: Props = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let statusMessage = $state<string | null>(null);
@@ -21,11 +26,22 @@
 	const webGpuAvailable =
 		typeof navigator !== 'undefined' && typeof navigator.gpu !== 'undefined';
 
+	function buildMeshGenRequest(descriptor: MeshTargetDescriptor): MeshGenRequest {
+		return {
+			graph,
+			position: descriptor.position,
+			normal: descriptor.normal,
+			gridSize: descriptor.gridSize,
+			faceCount: descriptor.faceCount
+		};
+	}
+
 	$effect(() => {
 		void refreshEpoch;
 		void compileSignature;
-		void surfaceId;
-		if (!canvas) return;
+		void graph;
+		void meshRequest;
+		if (!canvas || !meshRequest) return;
 
 		if (!webGpuAvailable) {
 			statusMessage = 'WebGPU is not available in this browser.';
@@ -40,12 +56,10 @@
 				const { device } = await requestGpuDevice();
 				if (cancelled) return;
 
-				await renderSurfaceMeshPreview({
+				await renderMeshGenPreview({
 					device,
 					canvas,
-					surfaceId,
-					gridSize: 24,
-					decomposedCubeSphere: surfaceId === 'surface.cubeSphere'
+					request: buildMeshGenRequest(meshRequest)
 				});
 				if (cancelled) return;
 				statusMessage = null;
@@ -62,29 +76,13 @@
 </script>
 
 <div class="preview">
-	<div class="surface-toggle" role="tablist" aria-label="Surface mapping">
-		<button
-			type="button"
-			role="tab"
-			aria-selected={surfaceId === 'surface.plane'}
-			class:active={surfaceId === 'surface.plane'}
-			onclick={() => (surfaceId = 'surface.plane')}
-		>
-			Plane
-		</button>
-		<button
-			type="button"
-			role="tab"
-			aria-selected={surfaceId === 'surface.cubeSphere'}
-			class:active={surfaceId === 'surface.cubeSphere'}
-			onclick={() => (surfaceId = 'surface.cubeSphere')}
-		>
-			Cube-sphere
-		</button>
-	</div>
-	<canvas bind:this={canvas} width={size} height={size} class="mesh"></canvas>
-	{#if statusMessage}
-		<p class="status">{statusMessage}</p>
+	{#if !meshRequest}
+		<p class="empty">Wire a mesh target — add target.mesh and connect position and normal fields.</p>
+	{:else}
+		<canvas bind:this={canvas} width={size} height={size} class="mesh" aria-label="Mesh preview"></canvas>
+		{#if statusMessage}
+			<p class="status">{statusMessage}</p>
+		{/if}
 	{/if}
 </div>
 
@@ -96,33 +94,7 @@
 		padding: 8px;
 		height: 100%;
 		align-items: center;
-	}
-
-	.surface-toggle {
-		display: flex;
-		gap: 4px;
-		align-self: flex-start;
-	}
-
-	.surface-toggle button {
-		font-size: 10px;
-		padding: 3px 8px;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 4px;
-		background: #1a1f30;
-		color: inherit;
-		cursor: pointer;
-		opacity: 0.7;
-	}
-
-	.surface-toggle button.active {
-		opacity: 1;
-		border-color: rgba(255, 255, 255, 0.35);
-		background: #24304a;
-	}
-
-	.surface-toggle button:hover {
-		border-color: rgba(255, 255, 255, 0.3);
+		justify-content: center;
 	}
 
 	.mesh {
@@ -131,10 +103,16 @@
 		border: 1px solid rgba(255, 255, 255, 0.12);
 	}
 
-	.status {
+	.status,
+	.empty {
 		margin: 0;
 		font-size: 11px;
 		opacity: 0.7;
 		text-align: center;
+	}
+
+	.empty {
+		padding: 12px;
+		align-self: stretch;
 	}
 </style>

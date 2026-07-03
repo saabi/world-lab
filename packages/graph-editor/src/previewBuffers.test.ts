@@ -1,6 +1,6 @@
 import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import type { GraphDocument } from '@world-lab/graph';
+import { getPrimitive, type GraphDocument, type Node, type PortRef } from '@world-lab/graph';
 
 import { cosinePaletteEffectGraph, defaultPreviewGraph } from './graphBuilders.js';
 import {
@@ -8,11 +8,71 @@ import {
 	enumeratePreviewBuffers,
 	inferDefaultPreviewBuffer,
 	previewFamily,
+	resolveMeshPreviewRequest,
 	resolvePreviewBufferPort
 } from './previewBuffers.js';
 
-describe('previewFamily', () => {
-	it('maps every DataType to the family table', () => {
+function snapshotNode(id: string, primitiveId: string, params?: Record<string, unknown>): Node {
+	const primitive = getPrimitive(primitiveId);
+	if (!primitive) {
+		throw new Error(`Unknown primitive: ${primitiveId}`);
+	}
+	return {
+		id,
+		primitive: primitiveId,
+		params,
+		inputs: primitive.inputs.map((spec) => ({
+			id: spec.name,
+			name: spec.name,
+			direction: 'in' as const,
+			dataType: spec.dataType,
+			space: spec.space ?? 'none'
+		})),
+		outputs: primitive.outputs.map((spec) => ({
+			id: spec.name,
+			name: spec.name,
+			direction: 'out' as const,
+			dataType: spec.dataType,
+			space: spec.space ?? 'none'
+		}))
+	};
+}
+
+function portRef(nodeId: string, port: string): PortRef {
+	return { node: nodeId, port };
+}
+
+function meshTargetGraph(): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_uv', 'procedural.uv'),
+			snapshotNode('n_plane', 'surface.plane'),
+			snapshotNode('n_mesh', 'target.mesh', { gridSize: 20, faceCount: 1 })
+		],
+		edges: [
+			{
+				id: 'e_uv_plane',
+				from: portRef('n_uv', 'uv'),
+				to: portRef('n_plane', 'uv')
+			},
+			{
+				id: 'e_pos',
+				from: portRef('n_plane', 'position'),
+				to: portRef('n_mesh', 'position')
+			},
+			{
+				id: 'e_norm',
+				from: portRef('n_plane', 'normal'),
+				to: portRef('n_mesh', 'normal')
+			}
+		],
+		outputs: [],
+		consumers: []
+	};
+}
+
+describe('previewFamily', () => {	it('maps every DataType to the family table', () => {
 		const expected: Record<string, string> = {
 			image: 'image',
 			texture: 'image',
@@ -190,5 +250,75 @@ describe('enumeratePreviewBuffers', () => {
 			node: 'n_effect',
 			port: 'color'
 		});
+	});
+});
+
+describe('mesh preview buffers', () => {
+	it('enumerates a geometry buffer for a wired target.mesh sink', () => {
+		const graph = meshTargetGraph();
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'n_mesh');
+		expect(buffer).toMatchObject({
+			family: 'geometry',
+			dataType: 'mesh',
+			inferred: true,
+			source: { sinkNode: 'n_mesh' }
+		});
+	});
+
+	it('resolves mesh preview request from a mesh buffer', () => {
+		const graph = meshTargetGraph();
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'n_mesh')!;
+		expect(resolveMeshPreviewRequest(graph, buffer)).toEqual({
+			meshNodeId: 'n_mesh',
+			position: portRef('n_plane', 'position'),
+			normal: portRef('n_plane', 'normal'),
+			gridSize: 20,
+			faceCount: 1
+		});
+	});
+
+	it('returns null for geometry buffers that are not mesh sinks', () => {
+		const graph: GraphDocument = {
+			...cosinePaletteEffectGraph(),
+			outputs: [{ name: 'plane', from: { node: 'n_plane', port: 'mesh' } }],
+			consumers: []
+		};
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'plane')!;
+		expect(resolveMeshPreviewRequest(graph, buffer)).toBeNull();
+	});
+});
+
+describe('mesh preview buffers', () => {
+	it('enumerates a geometry buffer for a wired target.mesh sink', () => {
+		const graph = meshTargetGraph();
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'n_mesh');
+		expect(buffer).toMatchObject({
+			family: 'geometry',
+			dataType: 'mesh',
+			inferred: true,
+			source: { sinkNode: 'n_mesh' }
+		});
+	});
+
+	it('resolves mesh preview request from a mesh buffer', () => {
+		const graph = meshTargetGraph();
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'n_mesh')!;
+		expect(resolveMeshPreviewRequest(graph, buffer)).toEqual({
+			meshNodeId: 'n_mesh',
+			position: portRef('n_plane', 'position'),
+			normal: portRef('n_plane', 'normal'),
+			gridSize: 20,
+			faceCount: 1
+		});
+	});
+
+	it('returns null for geometry buffers that are not mesh sinks', () => {
+		const graph: GraphDocument = {
+			...cosinePaletteEffectGraph(),
+			outputs: [{ name: 'plane', from: { node: 'n_plane', port: 'mesh' } }],
+			consumers: []
+		};
+		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'plane')!;
+		expect(resolveMeshPreviewRequest(graph, buffer)).toBeNull();
 	});
 });
