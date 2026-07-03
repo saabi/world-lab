@@ -4,6 +4,7 @@ import type { GraphDocument } from '@world-lab/graph';
 import {
 	applyEditIntent,
 	graphToFlow,
+	nodeDisplayLabel,
 	resetIdCounters,
 	validateConnection
 } from './irAdapter.js';
@@ -613,5 +614,41 @@ describe('@world-lab/graph-editor irAdapter', () => {
 			to: { node: 'n_d', port: 'x' }
 		});
 		expect(next.edges.map((edge) => edge.id)).toEqual(['e_8', 'e_9']);
+	});
+
+	it('sets a node display name through applyEditIntent', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'noise.perlin3d',
+			position: { x: 0, y: 0 }
+		});
+		const nodeId = doc.nodes[0]!.id;
+
+		doc = applyEditIntent(doc, { kind: 'set-name', nodeId, name: '  Perlin A  ' });
+		expect(doc.nodes[0]?.name).toBe('Perlin A');
+
+		doc = applyEditIntent(doc, { kind: 'set-name', nodeId, name: '   ' });
+		expect(doc.nodes[0]?.name).toBeUndefined();
+	});
+
+	it('graphToFlow uses custom name or falls back to primitive id', () => {
+		let doc = applyEditIntent(emptyDoc(), {
+			kind: 'add-node',
+			primitiveId: 'noise.perlin3d',
+			position: { x: 0, y: 0 }
+		});
+		doc = applyEditIntent(doc, {
+			kind: 'add-node',
+			primitiveId: 'noise.perlin3d',
+			position: { x: 120, y: 0 }
+		});
+
+		const [first, second] = doc.nodes;
+		doc = applyEditIntent(doc, { kind: 'set-name', nodeId: first!.id, name: 'Layer A' });
+
+		const flow = graphToFlow(doc);
+		expect(flow.nodes.find((node) => node.id === first!.id)?.data.label).toBe('Layer A');
+		expect(flow.nodes.find((node) => node.id === second!.id)?.data.label).toBe('noise.perlin3d');
+		expect(nodeDisplayLabel({ name: '  ', primitive: 'noise.perlin3d' })).toBe('noise.perlin3d');
 	});
 });

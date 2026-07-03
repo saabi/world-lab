@@ -31,6 +31,26 @@
 		<p class="empty">Select a node to inspect parameters and inputs.</p>
 	{:else}
 		<h2 class="title">{primitive.id}</h2>
+		<label class="name-field">
+			<span class="heading">Name</span>
+			<input
+				class="name-input"
+				type="text"
+				value={node.name ?? ''}
+				placeholder={primitive.id}
+				onchange={(event) => {
+					if (!nodeId) return;
+					onchange?.(
+						applyEditIntent(graph, {
+							kind: 'set-name',
+							nodeId,
+							name: event.currentTarget.value
+						}),
+						'Rename node'
+					);
+				}}
+			/>
+		</label>
 		{#if inspectorHelp?.summary}
 			<p class="help">{inspectorHelp.summary}</p>
 		{/if}
@@ -89,6 +109,30 @@
 		opacity: 0.8;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
+	}
+
+	.name-field {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.name-input {
+		width: 100%;
+		box-sizing: border-box;
+		padding: 4px 6px;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		background: rgba(0, 0, 0, 0.25);
+		color: inherit;
+		font: inherit;
+		font-size: 12px;
+	}
+
+	.name-input::placeholder {
+		opacity: 0.45;
+		font-family: monospace;
+		font-size: 11px;
 	}
 
 	.empty {

@@ -43,6 +43,8 @@ export interface Port {
 export interface Node {
 	id: string;
 	primitive: string; // primitive id, e.g. 'noise.perlin3d'
+	/** Editor-only display label; falls back to `primitive` when unset or blank. */
+	name?: string;
 	params?: Record<string, unknown>;
 	inputs: Port[];
 	outputs: Port[];

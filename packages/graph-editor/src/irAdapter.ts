@@ -39,6 +39,7 @@ export type GraphEditIntent =
 	| { kind: 'remove-edge'; edgeId: string }
 	| { kind: 'move-node'; nodeId: string; position: { x: number; y: number } }
 	| { kind: 'set-params'; nodeId: string; params: Record<string, unknown> }
+	| { kind: 'set-name'; nodeId: string; name: string }
 	| { kind: 'replace-node-primitive'; nodeId: string; primitiveId: string }
 	| {
 			kind: 'add-connected-node';
@@ -138,6 +139,12 @@ function createNode(doc: GraphDocument, primitiveId: string, position: { x: numb
 	};
 }
 
+/** Canvas/inspector label for a node — custom name or primitive id. */
+export function nodeDisplayLabel(node: Pick<Node, 'name' | 'primitive'>): string {
+	const trimmed = node.name?.trim();
+	return trimmed || node.primitive;
+}
+
 export function graphToFlow(doc: GraphDocument): {
 	nodes: Array<{ id: string; position: { x: number; y: number }; data: FlowNodeData }>;
 	edges: Array<{
@@ -155,7 +162,7 @@ export function graphToFlow(doc: GraphDocument): {
 		data: {
 			nodeId: node.id,
 			primitiveId: node.primitive,
-			label: node.primitive,
+			label: nodeDisplayLabel(node),
 			inputs: node.inputs,
 			outputs: node.outputs
 		}
@@ -345,6 +352,22 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 				nodes: doc.nodes.map((node) =>
 					node.id === intent.nodeId ? { ...node, params: { ...intent.params } } : node
 				)
+			};
+		}
+		case 'set-name': {
+			return {
+				...doc,
+				nodes: doc.nodes.map((node) => {
+					if (node.id !== intent.nodeId) {
+						return node;
+					}
+					const trimmed = intent.name.trim();
+					if (!trimmed) {
+						const { name: _removed, ...rest } = node;
+						return rest;
+					}
+					return { ...node, name: trimmed };
+				})
 			};
 		}
 		case 'replace-node-primitive': {

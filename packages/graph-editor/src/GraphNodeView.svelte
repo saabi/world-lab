@@ -127,6 +127,9 @@
 			<span class="label-text">{nodeData.label}</span>
 			<span class="caret" aria-hidden="true">▾</span>
 		</button>
+		{#if nodeData.label !== nodeData.primitiveId}
+			<div class="primitive-id">{nodeData.primitiveId}</div>
+		{/if}
 		{#if menuOpen}
 			<NodeSwapMenu
 				currentPrimitiveId={nodeData.primitiveId}
@@ -268,6 +271,14 @@
 	.caret {
 		font-size: 9px;
 		opacity: 0.55;
+	}
+
+	.primitive-id {
+		margin-top: 2px;
+		padding-left: 2px;
+		font-family: monospace;
+		font-size: 9px;
+		opacity: 0.45;
 	}
 
 	.ports {

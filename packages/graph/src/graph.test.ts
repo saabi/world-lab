@@ -79,6 +79,12 @@ describe('@world-lab/graph IR', () => {
 		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
 	});
 
+	it('round-trips a node display name through serialize/deserialize', () => {
+		const doc = twoNodeGraph();
+		doc.nodes[0] = { ...doc.nodes[0]!, name: 'Height noise' };
+		expect(deserializeGraph(serializeGraph(doc))).toEqual(doc);
+	});
+
 	it('serialization is deterministic', () => {
 		expect(serializeGraph(twoNodeGraph())).toBe(serializeGraph(twoNodeGraph()));
 	});

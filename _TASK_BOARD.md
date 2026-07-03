@@ -35,14 +35,14 @@ file, so all four are safe to run in parallel; none depends on another).
   Brief: `_docs/architecture/procedural-graph/briefs/M-divider-visual-polish.md`
   Owns: `packages/subdivide/src/Divider.svelte`, `packages/subdivide/src/Subdivide.svelte`,
   `packages/subdivide/src/floatingPanel.test.ts` (new test additions only)
-  Claimed by: — · Status: unclaimed
+  Claimed by: Auto · Status: in progress
 
 - **User-facing node names**
   Brief: `_docs/architecture/procedural-graph/briefs/M-node-naming.md`
   Owns: `packages/graph/src/types.ts`, `packages/graph/src/graph.test.ts` (or nearest existing
   Node-serialization test file), `packages/graph-editor/src/irAdapter.ts`,
   `packages/graph-editor/src/InspectorPanel.svelte`, `packages/graph-editor/src/GraphNodeView.svelte`
-  Claimed by: — · Status: unclaimed
+  Claimed by: Cursor · Status: in progress
 
 - **Palette drag-and-drop node placement**
   Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
