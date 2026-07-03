@@ -1,7 +1,7 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Revision:** 3 (2026-07-03) —
-incorporates two rounds of verified external review; see [Revision history](#revision-history) ·
+**Status:** proposed implementation plan, not yet approved · **Revision:** 4 (2026-07-03) —
+incorporates three rounds of verified external review; see [Revision history](#revision-history) ·
 **Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
@@ -26,6 +26,49 @@ is sequenced so the live planet renderer (`apps/scene-editor`, gated per `AGENTS
 already-shipped, already-tested graph-editor feature keep working throughout, not just at the end.
 
 ## Revision history
+
+**Revision 4** incorporates a third verified external review, of revision 3. Two findings
+required correcting a claim this document had made — and repeated — incorrectly:
+
+- **The consumer-type inventory claim was wrong, for the second time.** Revisions 2 and 3 both
+  asserted, after a grep, that only `'preview'` and `'image'` consumer types exist anywhere in the
+  codebase. This was false: `packages/compiler/src/compileGraph.test.ts:31-47` has
+  `'vertex-pass'`/`'fragment-pass'`/`'veg-compute'` consumers (spanning `stage: 'vertex'`,
+  `'fragment'`, and `'compute'` — all three `PipelineStage` values this document previously claimed
+  were unused); `packages/graph/src/graph.test.ts:31` and `packages/mcp-server/src/index.test.ts:33`
+  both have `type: 'terrain-mesh'`. At least **six** distinct consumer shapes exist, not two. Given
+  this document's own research has now been wrong about this exact question twice, F1.4a's fix no
+  longer treats "the registry enumerates every known type" as a safe assumption — the
+  never-silently-discard fallback is the load-bearing safety net, not a backstop for hypotheticals.
+- **Migrating an `image` consumer to just `stage.fragment` + `target.display` would not satisfy
+  `PipelineGraphPlan` as it exists today.** Verified directly: `planPipelineGraph`
+  (`packages/runtime-webgpu/src/pipelineGraph.ts:206-224`) unconditionally calls
+  `findNode(doc, 'buffer.persist')` (line 215, throws if absent) and requires a geometry source
+  wired to it, regardless of how the display/fragment target itself was resolved. But this doesn't
+  mean today's consumer-only image fixtures are actually broken — `fullscreenFragment.ts`'s
+  `resolveVertexAssembly` (lines 76-92) calls `planPipelineGraph` inside a `try/catch` specifically
+  *because* "minimal fragment-only graphs still draw via the default 2×2 plane grid" (its own
+  comment), falling back to `DEFAULT_PIPELINE_GEOMETRY_PARAMS` when the full chain isn't present.
+  Migration needs to make this implicit runtime fallback an explicit, synthesized part of the v2
+  document — not leave the gap for `PipelineGraphPlan`'s new kind-tag-based discovery to fall into.
+- Added `PortSpecInput` (F1.5) so making `type: TypeRef` canonical doesn't require every existing
+  `dataType`-only registration to fail type-checking before normalization can run.
+- Generalized `HostBinding` (F1.3) from a closed ShaderToy-specific enum to a generic
+  `{ context, key, stages? }` shape — the closed version repeated exactly the anti-pattern F1.2
+  exists to fix elsewhere (baking domain-specific names into the core union instead of registering
+  them as standard-library values), and conflated four genuinely different binding contexts
+  (stage builtin, invocation-domain input, playback context, write-target context) into one shape.
+- Corrected "kernel/pass/sink nodes are execution roots" (F1.4a) — `pass` is not a kind in F1.3's
+  union and never was; only `sink` is a real, concrete execution-root kind during Foundation 1.
+  `kernel` isn't either, yet — `stage.vertex`/`stage.fragment` stay `wgsl-function`/
+  `legacy-structural` through Foundation 1, not `kernel`, which doesn't get a real shape until
+  Foundation 3. The phrase now says what's actually true: sinks are Foundation 1's execution roots.
+- Defined `SinkInvocation` concretely (F1.3) — it was referenced as `SinkDefinition`'s return type
+  but never given a shape. Used a generic `{ sinkKind, nodeId, payload: T }` rather than another
+  closed union, matching the same discipline just applied to `HostBinding`.
+- Added migration determinism/idempotence requirements to F1.4a's test gate: identical output on
+  repeated migration of the same document, a no-op on re-migrating an already-v2 document,
+  collision-free synthesized IDs, and canonical/deduplicated `semantics` ordering.
 
 **Revision 3** incorporates a second verified external review, of revision 2. Every finding was
 independently re-checked against the plan text and the live code — including re-deriving the
@@ -159,8 +202,8 @@ The five sub-problems have materially different migration risk, verified by dire
 `resource`/`kernel`/`command` placeholder variants (and F1.1's deferred buffer-element-typing) both
 want `TypeRef` to exist first — doing F1.5 later would mean designing those placeholders twice.
 F1.4a stays last: it's the highest-blast-radius change and benefits most from F1.3's `kind` tagging
-already being in place, so "kernel/pass/sink nodes are execution roots" is a direct tag check, not
-another string-based convention layered on the ones being retired.
+already being in place, so "sink nodes are execution roots" is a direct tag check, not another
+string-based convention layered on the ones being retired.
 
 **Foundation 4** (replacing `PipelineGraphPlan`'s hardcoded chain-search with a fully generic
 command/resource/hazard planner) is explicitly **not** part of Foundation 1. F1.4a only teaches the
@@ -352,9 +395,24 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
    `TypeRef` values that happen to correspond to an existing `DataType` (a `TypeRef` describing an
    arbitrary struct, a parameterized buffer, or a specific texture format has no legacy string to
    map back to, and must not be forced into one).
-3. Add `type: TypeRef` to `PortSpec` and `Port`, derived from `dataType` via the mapping above for
-   every existing primitive; new primitives may declare `type` directly. `dataType` stays as a
-   deprecated authoring alias, not removed.
+3. Add `type: TypeRef` to `PortSpec` and `Port` as the canonical, always-populated field — but not
+   as a field every call site must provide directly. Making `type` required immediately would fail
+   every one of the 138 existing `dataType`-only registrations before normalization can run. Split
+   the authoring/storage shapes:
+   ```ts
+   type PortSpecInput =
+     | { type: TypeRef; dataType?: DataType }
+     | { type?: never; dataType: DataType };
+
+   interface PortSpec {
+     type: TypeRef; // canonical, always present after normalization
+     dataType?: DataType; // deprecated authoring alias
+   }
+   ```
+   `registerPrimitive` accepts `PortSpecInput` and normalizes it into canonical `PortSpec` (deriving
+   `type` from `dataType` via the F1.5 mapping when only `dataType` was given). Existing primitives
+   need no source changes; new primitives may declare `type` directly. Serialized v2 `Port`
+   instances always contain `type`.
 4. Split promotion into a shared decision plus backend-specific appliers, not one function:
    - `resolveCoercion(from: TypeRef, to: TypeRef): CoercionPlan | null` — the single, shared
      decision of *whether* a promotion is legal and *what* it means (e.g. "pad with a zero Z
@@ -469,35 +527,54 @@ with no WGSL function at all — without creating a package dependency cycle bet
    shapes, now informed by `TypeRef` from F1.5); `wgsl-function`, `group`, `host-input`,
    `legacy-structural`, and `sink` need concrete definitions now, since they cover every primitive
    that exists today.
-2. Define `HostBinding` concretely — not a stub:
+2. Define `HostBinding` concretely, but **generically** — not as a closed enum of ShaderToy-specific
+   names, which would bake domain-specific vocabulary into the core union exactly the way `F1.2`
+   is removing planet-specific vocabulary from `CoordinateSpace`. The five current bindings span
+   four genuinely different binding *contexts* — `fragCoord` is a shader-stage builtin, `iTime` is
+   playback/frame-clock context, `iResolution` is write-target context, and `procedural.uv`/
+   `metricPosition` are invocation-domain inputs — a flat `{source: 'fragCoord' | 'iTime' | ...}`
+   union would flatten that structure away:
    ```ts
-   type HostBinding =
-     | { source: 'fragCoord' }
-     | { source: 'iTime' }
-     | { source: 'iResolution' }
-     | { source: 'proceduralUv' }
-     | { source: 'metricPosition' };
+   interface HostBinding {
+     context: 'invocation' | 'stage-builtin' | 'playback' | 'write-target' | 'read-resource' |
+       'interaction' | 'session';
+     key: string;
+     stages?: ShaderStage[];
+   }
    ```
-   Migrate `host.fragCoord`, `host.iTime`, `host.iResolution`, `procedural.uv`, and
-   `procedural.metricPosition` to `kind: 'host-input'` with the matching `binding`. Their
-   placeholder WGSL modules are removed once `emitGraphEval.ts` dispatches on
-   `implementation.kind === 'host-input'` and `binding.source` instead of `node.primitive === '...'`
-   string checks — this retires the string-based dispatch finding 3 identified, not just adds a
-   new enum alongside it.
-3. Define `SinkDefinition` concretely, so generic sink *discovery* (via `kind: 'sink'`) can coexist
-   with per-sink-kind *invocation extraction* (which is genuinely different per sink, as
-   `deriveMeshTargets` vs. the image pipeline's presentation derivation shows):
+   The five current bindings become **standard-library-registered values** of this generic shape
+   (e.g. `{ context: 'stage-builtin', key: 'fragCoord', stages: ['fragment'] }` for `host.fragCoord`,
+   `{ context: 'playback', key: 'iTime' }` for `host.iTime`), not permanent core enum members —
+   consistent with F1.2's own resolution of the same category of problem. Migrate `host.fragCoord`,
+   `host.iTime`, `host.iResolution`, `procedural.uv`, and `procedural.metricPosition` to
+   `kind: 'host-input'` with the matching `binding`. Their placeholder WGSL modules are removed once
+   `emitGraphEval.ts` dispatches on `implementation.kind === 'host-input'` and `binding.context`/
+   `binding.key` instead of `node.primitive === '...'` string checks — this retires the string-based
+   dispatch finding 3 (of the second review round) identified, not just adds a new enum alongside it.
+3. Define `SinkDefinition` and `SinkInvocation` concretely, so generic sink *discovery* (via
+   `kind: 'sink'`) can coexist with per-sink-kind *invocation extraction* (which is genuinely
+   different per sink, as `deriveMeshTargets` vs. the image pipeline's presentation derivation
+   shows) without display and mesh invocations forcing yet another closed union:
    ```ts
+   interface SinkInvocation<T = unknown> {
+     sinkKind: string;
+     nodeId: string;
+     payload: T; // shape owned by whichever runtime handler is registered for sinkKind
+   }
+
    interface SinkDefinition {
      kind: string; // e.g. 'display', 'meshPreview'
      deriveInvocation(doc: GraphDocument, node: Node): SinkInvocation | null;
    }
    ```
-   Migrate `target.display` to `kind: 'sink'` with a `SinkDefinition` whose `deriveInvocation` is
-   `derivePipelinePresentations`'s per-node logic, ported (not reimplemented); migrate `target.mesh`
-   the same way, porting `deriveMeshTargets`'s existing position/normal/gridSize/faceCount
-   extraction into its `deriveInvocation`. Generic code walks `implementation.kind === 'sink'` to
-   *find* sink nodes; each sink's own `deriveInvocation` still supplies its specific shape.
+   Runtime handlers are registered by `sinkKind`, so third-party/standard-library sink kinds can be
+   added without changing `SinkInvocation`'s shape. Migrate `target.display` to `kind: 'sink'` with
+   a `SinkDefinition` whose `deriveInvocation` is `derivePipelinePresentations`'s per-node logic,
+   ported (not reimplemented), with `payload` carrying today's presentation shape; migrate
+   `target.mesh` the same way, porting `deriveMeshTargets`'s existing position/normal/gridSize/
+   faceCount extraction into its `deriveInvocation`'s `payload`. Generic code walks
+   `implementation.kind === 'sink'` to *find* sink nodes; each sink's own `deriveInvocation` still
+   supplies its specific payload shape.
 4. Give `buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` the explicit
    `kind: 'legacy-structural'` marker instead of forcing them into `sink` or `command` — these
    three don't have a well-defined final kind until Foundation 2/3's resource/pass model exists.
@@ -549,9 +626,12 @@ their final Foundation 2/3 kind.
 ## F1.4a — Unify execution roots + migrate legacy documents
 
 **Goal:** replace `GraphDocument.outputs` + `GraphDocument.consumers` + role-metadata node
-detection with one rule — exports name reusable values, kernel/pass/sink nodes (per F1.3's `kind`
-tag) are the only execution roots — **and** ship a real `GraphDocument` schema migration so no
-existing saved graph silently loses its execution roots. This is **not** Foundation 4: it does not
+detection with one rule — exports name reusable values, **sink** nodes (per F1.3's `kind` tag) are
+the only execution roots during Foundation 1 — **and** ship a real `GraphDocument` schema migration
+so no existing saved graph silently loses its execution roots. (Not "kernel/pass/sink": `pass` is
+not a kind in F1.3's union, and `kernel` doesn't get a real shape until Foundation 3 —
+`stage.vertex`/`stage.fragment` stay `wgsl-function`/`legacy-structural` throughout Foundation 1.
+Only `sink` is a concrete execution-root kind right now.) This is **not** Foundation 4: it does not
 build a generic resource/hazard-validation planner, only generic *root discovery* for today's one
 pipeline shape.
 
@@ -572,52 +652,80 @@ pipeline shape.
   touches this, making it the highest-stakes regression surface in Foundation 1.
 - `PipelineGraphPlan` hardcodes fixed-chain node search: `findNode(doc, 'target.display')`,
   `findNode(doc, 'buffer.persist')`, plus direct `.primitive !== 'stage.vertex'` string checks.
-- **Legacy documents with no sink/kernel node at all, verified — two distinct shapes, not one:**
-  `packages/graph-editor/src/graphBuilders.ts:131-158`'s `defaultPreviewGraph()` (`type: 'preview'`)
-  is a pure value chain with **zero** `target.*`/`stage.*` nodes. Separately,
-  `packages/runtime-webgpu/src/consumers/fullscreenFragment.test.ts:65-86` (`type: 'image',
-  stage: 'fragment'`) is **also** sink-node-free — a value chain from `host.fragCoord`/
-  `host.iResolution`/`host.iTime` into `effect.cosinePalette`, with no `stage.fragment`/
-  `target.display` node either. Exhaustive grep across the codebase found only these **two**
-  distinct consumer `type` values in actual use (`'preview'` and `'image'`) — no `vertex`,
-  `compute`, or terrain-mesh-typed consumer exists anywhere today, though `ProceduralConsumer.stage`
-  is typed to allow `'vertex'`/`'compute'`/`'mesh-gen'` values that no current fixture exercises. A
-  migration handling only one of the two known shapes by name, with no fallback for shapes not yet
-  enumerated, is still underspecified — a **registry**, not a single case, is required.
+- **Legacy documents with no sink/kernel node at all — at least six distinct shapes, corrected
+  after being wrong twice.** Revisions 2 and 3 both claimed, after a grep, that only `'preview'`
+  and `'image'` consumer types exist. Verified wrong: `packages/compiler/src/compileGraph.test.ts:31-47`
+  has three more — `'vertex-pass'` (`stage: 'vertex'`), `'fragment-pass'` (`stage: 'fragment'`),
+  `'veg-compute'` (`stage: 'compute'`) — and `packages/graph/src/graph.test.ts:31` plus
+  `packages/mcp-server/src/index.test.ts:33` both have `type: 'terrain-mesh'`. That's six confirmed
+  shapes across all three `PipelineStage` values this document previously claimed were unused, on
+  top of `defaultPreviewGraph()` (`packages/graph-editor/src/graphBuilders.ts:131-158`, `'preview'`,
+  zero sink nodes) and `fullscreenFragment.test.ts:65-86` (`'image'`/`'fragment'`, also zero sink
+  nodes). Given this document's own research has been incomplete on this exact question twice, the
+  migration cannot rely on "the registry enumerates every known type" — the never-silently-discard
+  fallback is the actual safety net, not a backstop for hypothetical future types only.
+- **Migrating a sink-node-free `image`/`fragment` consumer to just `stage.fragment` +
+  `target.display` would not satisfy `PipelineGraphPlan` as it exists today, verified directly.**
+  `planPipelineGraph` (`packages/runtime-webgpu/src/pipelineGraph.ts:206-224`) unconditionally calls
+  `findNode(doc, 'buffer.persist')` (throws if absent) and requires a geometry source wired to it —
+  regardless of how the display/fragment target itself was resolved. This isn't a hypothetical
+  break, though: `fullscreenFragment.ts`'s `resolveVertexAssembly` (lines 76-92) already calls
+  `planPipelineGraph` inside a `try/catch`, whose own comment says why — *"minimal fragment-only
+  graphs still draw via the default 2×2 plane grid"* — falling back to
+  `DEFAULT_PIPELINE_GEOMETRY_PARAMS` when the full chain isn't present. Today's behavior for these
+  graphs is already "no explicit geometry chain, use an implicit default" — migration needs to make
+  that implicit default an **explicit, synthesized** part of the v2 document, not leave a gap for
+  the new kind-tag-based discovery to fall into.
 
 **Fix:**
 1. Define the rule: **exports** (`GraphDocument.outputs`, unchanged) name reusable values.
-   **Kernel/pass/sink nodes** (via F1.3's `implementation.kind`) are the only execution roots for
-   *rendering/compute execution* — runtime execution derives from walking backward from every
-   reachable kernel/pass/sink node.
+   **Sink nodes** (via F1.3's `implementation.kind === 'sink'`) are the only execution roots during
+   Foundation 1 — runtime execution derives from walking backward from every reachable sink node.
+   (`kernel` and `pass` become additional root kinds once Foundations 3 and 4 respectively give
+   them real shapes; neither exists as a concrete kind yet.)
 2. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function built
-   around a **registry**, not a single hardcoded case:
+   around a **registry**, not a single hardcoded case, covering every confirmed shape:
    ```ts
-   type LegacyConsumerMigration = (consumer: ProceduralConsumer, doc: GraphDocument) => Node | null;
+   type LegacyConsumerMigration = (consumer: ProceduralConsumer, doc: GraphDocument) => Node[];
    const LEGACY_CONSUMER_MIGRATIONS: Record<string, LegacyConsumerMigration> = {
      preview: /* synthesize a preview.fieldSink node wired from consumer.outputs[0] */,
-     image: /* synthesize a target.display + stage.fragment chain wired from consumer.outputs */
+     image: /* synthesize the FULL chain: geometry.plane (DEFAULT_PIPELINE_GEOMETRY_PARAMS) ->
+              buffer.persist -> stage.vertex -> stage.fragment -> target.display, wired from
+              consumer.outputs — not just stage.fragment + target.display. This makes today's
+              runtime fallback (resolveVertexAssembly's try/catch default) an explicit, permanent
+              part of the migrated document, so PipelineGraphPlan's kind-tag-based discovery always
+              finds a complete, real chain and never needs that try/catch again. */
+     'vertex-pass': /* synthesize stage.vertex wired from consumer.outputs, same geometry defaults */,
+     'fragment-pass': /* same shape as `image` */,
+     'veg-compute': /* synthesize a compute-kernel sink wired from consumer.outputs; stage: 'compute' */,
+     'terrain-mesh': /* synthesize a target.mesh-equivalent sink wired from consumer.outputs */
    };
    ```
    - For each consumer entry, look up its `type` in the registry and synthesize the corresponding
-     v2 sink/kernel node(s) if none already exist in the document.
-   - **Unknown consumer types are never silently discarded.** If a document has a `consumers` entry
-     whose `type` isn't in the registry, migration either (a) preserves it as a generic
-     `legacy.consumerSink` node carrying `{ type, stage, outputs }` verbatim, so it remains
-     discoverable and executable via a fallback path, or (b) fails the migration with an explicit
-     "unsupported migration" diagnostic naming the unknown type — never a silent drop.
+     v2 sink node(s) if none already exist in the document. Every registry entry returns real,
+     structurally-complete nodes — no entry may synthesize a partial chain that depends on an
+     implicit runtime default surviving past migration.
+   - **Unknown consumer types are never silently discarded — this is the primary safety net, not a
+     backstop, given this document's own consumer-type research has already been wrong twice.** If
+     a document has a `consumers` entry whose `type` isn't in the registry, migration preserves it
+     as a generic `legacy.consumerSink` node carrying `{ type, stage, outputs }` verbatim, so it
+     remains discoverable and executable via a fallback path. Failing the migration outright is not
+     an acceptable alternative here — it would mean any consumer type this plan's own research
+     missed (already twice) turns into a hard failure for real user documents; preserving unknown
+     types generically is the only option that can't be defeated by an incomplete inventory.
    - For documents that already have real `target.*`/`stage.*` sink nodes, migration drops the
      now-redundant `consumers` array and keeps the nodes as-is.
    - Keep graph-schema versioning (`GraphDocument.version`) and artifact/serialization-format
      versioning as separate concerns — a schema-version bump does not imply every serialized
      artifact (e.g. exported markup) changes shape for unrelated reasons.
-3. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`; both
-   verified consumer-only shapes (`defaultPreviewGraph`'s `'preview'` type,
-   `fullscreenFragment.test.ts`'s `'image'`/`'fragment'` type); and at least one hand-written
-   document with a deliberately-unknown consumer `type`, proving the fallback path (generic
-   preservation or explicit diagnostic, per the registry above) rather than silent data loss.
-   Migrate each through v1→v2 and assert the synthesized/derived result still produces the same
-   rendered/compiled output as before migration.
+3. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`; all six
+   confirmed consumer-only shapes (`'preview'`, `'image'`/`'fragment'`, `'vertex-pass'`,
+   `'fragment-pass'`, `'veg-compute'`/`'compute'`, `'terrain-mesh'`); and at least one hand-written
+   document with a deliberately-unknown consumer `type`, proving the generic-preservation fallback
+   fires rather than a silent drop or a hard failure. Migrate each through v1→v2 and assert the
+   synthesized/derived result still produces the same rendered/compiled output as before migration
+   — for the `image`/`fragment` shape specifically, assert `PipelineGraphPlan` succeeds on the
+   migrated document *without* relying on `resolveVertexAssembly`'s try/catch fallback.
 4. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
    is proven — new documents are always v2, authored without `consumers`.
 5. Update the 6 files reading `.consumers` to read post-migration v2 documents instead, one file
@@ -635,9 +743,12 @@ pipeline shape.
    byte-identical WGSL for compiled shader text; pixel-equivalent for rendered previews; canonical
    v2 serialization (not byte-identical v1 text) for markup export; a browser visual gate for the
    bundled samples. Not one blanket "byte-identical" claim across all of these.
-2. The full fixture corpus (every bundled sample + both verified consumer-only shapes + the
+2. The full fixture corpus (every bundled sample + all six confirmed consumer-only shapes + the
    unknown-consumer-type fixture) migrates v1→v2 with no silent loss of execution roots — the
-   unknown-type fixture specifically proves the fallback path fires instead of a silent drop.
+   unknown-type fixture specifically proves the generic-preservation fallback fires instead of a
+   silent drop or a hard failure; the `image`/`fragment` fixture specifically proves
+   `PipelineGraphPlan` succeeds on the migrated document without needing `resolveVertexAssembly`'s
+   try/catch fallback.
 3. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
    **rehomed**, not deleted outright — their logic now lives inside the corresponding
    `SinkDefinition.deriveInvocation` implementations from F1.3 (`deriveMeshTargets`'s exact
@@ -648,7 +759,13 @@ pipeline shape.
    `implementation.kind` alone — proving root *discovery* is generic, while acknowledging (per
    scope above) the planner's *shape* is still the one fixed chain.
 5. Loading an old v1 saved document still opens and behaves identically after migration.
-6. `check` and `test` green for every package, full workspace, with special attention to
+6. **Migration determinism and idempotence:** migrating the same v1 document twice (independently,
+   not caching the first result) produces identical node/edge IDs and identical serialized output
+   both times; migrating an already-v2 document is a no-op (byte-identical output); synthesized
+   node/edge IDs are proven collision-free against every existing ID in the document being
+   migrated; `semantics` arrays are deduplicated and stored in a canonical (e.g. sorted) order so
+   equivalent tag sets don't produce spuriously different serializations.
+7. `check` and `test` green for every package, full workspace, with special attention to
    `graph-editor`.
 
 **Out of scope:** the generic resource/pass/hazard-validation model (Foundation 2). Generalizing
