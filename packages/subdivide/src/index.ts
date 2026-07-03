@@ -9,3 +9,4 @@ export * from './layout/parse.js';
 export * from './layout/defaultLayout.js';
 export * from './layout/menu.js';
 export * from './zones.js';
+export * from './floatingPanel.js';

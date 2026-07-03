@@ -8,6 +8,11 @@ export default defineConfig({
 	},
 	test: {
 		environment: 'happy-dom',
-		include: ['src/**/*.test.ts']
+		include: ['src/**/*.test.ts'],
+		// Auto-registers a beforeEach/afterEach pair that unmounts and cleans up the DOM between
+		// tests. Without it, multiple render() calls in one file leak into each other whenever a
+		// test queries via the global `screen` object (not scoped to a returned `container`) --
+		// found while adding packages/subdivide's floating-panel tests.
+		setupFiles: ['@testing-library/svelte/vitest']
 	}
 });

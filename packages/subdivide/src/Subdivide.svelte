@@ -6,6 +6,7 @@
 	import type { DividerData } from './layout/runtime.js';
 	import type { GroupData } from './layout/runtime.js';
 	import type { ZoneMap } from './zones.js';
+	import type { FloatingPanelSpec } from './floatingPanel.js';
 
 	interface SplitEvent {
 		edge: SplitEdge;
@@ -34,6 +35,10 @@
 		onclose?: (event: PaneEvent) => void;
 		zoneContextMenus?: Record<string, PaneContextAction[]>;
 		onpanecontextmenu?: (event: PaneContextEvent) => void;
+		/** Panels docked to an edge, overlaying the pane grid — independent of the divider tree. */
+		floatingPanels?: FloatingPanelSpec[];
+		/** Fires when the pane the mouse is over responds to `N` for one of its own panels. */
+		onfloatingpaneltoggle?: (panelId: string) => void;
 	}
 </script>
 
@@ -67,7 +72,9 @@
 		onopen,
 		onclose,
 		zoneContextMenus,
-		onpanecontextmenu
+		onpanecontextmenu,
+		floatingPanels = [],
+		onfloatingpaneltoggle
 	}: Props = $props();
 
 	let container = $state<HTMLDivElement | null>(null);
@@ -521,6 +528,8 @@
 				{zones}
 				zoneLabels={resolvedZoneLabels}
 				{availableZones}
+				{floatingPanels}
+				{onfloatingpaneltoggle}
 				onsplit={(event) => split(pane, event)}
 				onzonechange={(zone) => handleZoneChange(pane, zone)}
 				oncontextmenu={hasPaneMenus

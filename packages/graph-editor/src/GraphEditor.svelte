@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
-	import type { LayoutDocument } from '@world-lab/subdivide';
+	import type { LayoutDocument, FloatingPanelSpec } from '@world-lab/subdivide';
 	import { effectiveGraphDocument, type GraphDocument } from '@world-lab/graph';
 
 	import PreviewZone from './PreviewZone.svelte';
@@ -85,6 +85,7 @@
 	let selectedPrimitiveModuleId = $state<string | null>('noise.perlin3d');
 	let previewBuffersByPane = $state<PreviewBuffersByPane>({});
 	let nodeColorMode = $state<NodeColorMode>('category');
+	let sidebarOpen = $state(false);
 	let loadDocumentLayout = $state(true);
 	let activeDocumentName = $state<string | null>(null);
 	let documentReadOnly = $state(false);
@@ -567,6 +568,17 @@
 		updateGraph(next);
 	}
 
+	// `N` toggling itself is centralized in packages/subdivide (Pane.svelte responds only when
+	// the mouse is over that specific pane); this just owns the actual open/closed state, the
+	// same way onlayoutchange/onopen/onclose already work.
+	function handleFloatingPanelToggle(panelId: string) {
+		if (panelId === 'sidebar') sidebarOpen = !sidebarOpen;
+	}
+
+	const floatingPanels: FloatingPanelSpec[] = $derived([
+		{ id: 'sidebar', zone: 'canvas', side: 'right', open: sidebarOpen, size: '240px', snippet: sidebar }
+	]);
+
 	function isEditableTarget(target: EventTarget | null): boolean {
 		if (!(target instanceof HTMLElement)) return false;
 		const tag = target.tagName;
@@ -627,6 +639,26 @@
 		}
 	}
 </script>
+
+{#snippet sidebar()}
+	<div class="sidebar-panel">
+		<h3>Display</h3>
+		<label class="node-color-mode">
+			<span>Node tint</span>
+			<select
+				value={nodeColorMode}
+				onchange={(event) =>
+					onNodeColorModeChange(
+						(event.currentTarget as HTMLSelectElement).value as NodeColorMode
+					)}
+			>
+				<option value="category">Category</option>
+				<option value="contract">Contract</option>
+				<option value="off">Off</option>
+			</select>
+		</label>
+	</div>
+{/snippet}
 
 {#snippet palette(_paneId)}
 	<NodePalette onadd={addPrimitive} />
@@ -758,26 +790,21 @@
 				onLoadLayoutChange: onLoadDocumentLayoutChange
 			}}
 		/>
-		<label class="node-color-mode">
-			<span>Node tint</span>
-			<select
-				value={nodeColorMode}
-				onchange={(event) =>
-					onNodeColorModeChange(
-						(event.currentTarget as HTMLSelectElement).value as NodeColorMode
-					)}
-			>
-				<option value="category">Category</option>
-				<option value="contract">Contract</option>
-				<option value="off">Off</option>
-			</select>
-		</label>
 		<button
 			type="button"
 			disabled={!selectedNodeId && !selectedEdgeId}
 			onclick={deleteSelection}
 		>
 			Delete
+		</button>
+		<button
+			type="button"
+			class="sidebar-toggle"
+			aria-pressed={sidebarOpen}
+			title={sidebarOpen ? 'Close sidebar (N)' : 'Open sidebar (N)'}
+			onclick={() => handleFloatingPanelToggle('sidebar')}
+		>
+			&raquo;
 		</button>
 	</header>
 	<input
@@ -816,6 +843,8 @@
 			thickness="2px"
 			padding="0px"
 			color="#444"
+			{floatingPanels}
+			onfloatingpaneltoggle={handleFloatingPanelToggle}
 		/>
 	</div>
 </div>
@@ -888,12 +917,31 @@
 		color: inherit;
 	}
 
-	.node-color-mode {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
+	.sidebar-toggle {
+		font-weight: bold;
+	}
+
+	.sidebar-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 10px;
 		font-size: 11px;
-		margin-left: 4px;
+	}
+
+	.sidebar-panel h3 {
+		margin: 0;
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		opacity: 0.65;
+	}
+
+	.node-color-mode {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 11px;
 	}
 
 	.node-color-mode select {

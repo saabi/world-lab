@@ -4,12 +4,14 @@
 		zone: string;
 		availableZones: string[];
 		zoneLabels: Record<string, string>;
+		/** Optional — a zone with no configured label just leaves this blank. */
+		title?: string;
 		onzonechange?: (zone: string) => void;
 	}
 </script>
 
 <script lang="ts">
-	let { paneId, zone, availableZones, zoneLabels, onzonechange }: Props = $props();
+	let { paneId, zone, availableZones, zoneLabels, title, onzonechange }: Props = $props();
 
 	let menuOpen = $state(false);
 
@@ -53,7 +55,12 @@
 		aria-controls={menuListId}
 		title={`Change pane type (${paneTypeLabel})`}
 		onclick={toggleMenu}
-	></button>
+	>
+		<span aria-hidden="true">&#9662;</span>
+	</button>
+	{#if title}
+		<span class="pane-title">{title}</span>
+	{/if}
 	<ul id={menuListId} class="menu" role="menu" aria-labelledby={triggerId}>
 		{#each availableZones as z (z)}
 			<li role="none">
@@ -72,40 +79,63 @@
 </div>
 
 <style>
+	/* Real header row now (not the old zero-size, absolutely-positioned corner triangle) --
+	   the menu-trigger is a permanent fixture of every pane regardless of whether it has a
+	   title, so the row itself always takes space; the title is the part that's optional. */
 	.pane-header {
-		position: absolute;
-		top: 0;
-		left: 0;
+		position: relative;
 		z-index: 3;
-		width: 0;
-		height: 0;
-		pointer-events: none;
+		flex: 0 0 var(--pane-title-bar-height, 24px);
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		box-sizing: border-box;
+		height: var(--pane-title-bar-height, 24px);
+		padding-right: 8px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		pointer-events: auto;
 	}
 
 	.menu-trigger {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 0;
-		height: 0;
+		flex: 0 0 auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--pane-title-bar-height, 24px);
+		height: var(--pane-title-bar-height, 24px);
 		padding: 0;
-		border-style: solid;
-		border-width: 22px 22px 0 0;
-		border-color: var(--subdivide-menu-color, #4a6fa5) transparent transparent transparent;
+		border: none;
+		border-right: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 0;
 		background: transparent;
+		color: var(--subdivide-menu-color, #4a6fa5);
+		font-size: 12px;
+		line-height: 1;
 		cursor: pointer;
-		pointer-events: auto;
 		opacity: 0.85;
 	}
 
 	.menu-trigger:hover {
 		opacity: 1;
+		background: rgba(255, 255, 255, 0.06);
+	}
+
+	.pane-title {
+		flex: 1;
+		min-width: 0;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		opacity: 0.75;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.menu {
 		display: none;
 		position: absolute;
-		top: 22px;
+		top: 100%;
 		left: 0;
 		min-width: 9rem;
 		margin: 0;
