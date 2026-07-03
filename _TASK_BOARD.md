@@ -27,23 +27,18 @@ is still open.
 
 ## Active
 
-Two tasks pinned 2026-07-03, file ownership verified disjoint.
-
-- **Umami analytics for webgputoy** (parity port of scene-editor's existing integration)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-webgputoy-umami.md`
-  Owns: `apps/webgputoy/src/lib/analytics/umami.ts` (new), `apps/webgputoy/src/routes/+layout.svelte`
-  (additive only — this file already has a11y Phase A's skip-link/`<main>` landmark from
-  `5b64448`; don't rewrite it), `apps/webgputoy/.env.example`
-  Claimed by: Cursor · Status: in progress
-
 - **Geometry transforms, Slice A** (`math.normalize` + `transform.spherify` +
   `transform.normalDisplace`, as node groups over existing/new elemental math ops)
   Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-a.md`
   Owns: new module(s) under `packages/procedural-wgsl/src/modules/math/`, `packages/graph/src`
   primitive + group registration for the three new ops (additive registry entries only)
-  Claimed by: — · Status: unclaimed
+  Claimed by: Auto · Status: in progress
 
 ## Done (recent)
+
+- **Umami analytics for webgputoy** — `d8084a8` · env-gated `injectUmami`/`track` parity
+  with scene-editor; zero tracking when `PUBLIC_UMAMI_*` unset (verified on localhost:5173).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-webgputoy-umami.md`
 
 - **Toolbar reorg** — `b1c1409` · undo/redo grouped with file actions; header Delete + `»`
   toggle removed; canvas sidebar gains a Selection section with Delete.
