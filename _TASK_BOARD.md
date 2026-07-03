@@ -31,7 +31,7 @@ _(none)_
 
 ## Done (recent)
 
-- **Editor accessibility Phase B** — `be7c54b` · focus-trap action (Tab wrap, mount focus, restore on destroy);
+- **Editor accessibility Phase B** — `06e710b` · focus-trap action (Tab wrap, mount focus, restore on destroy);
   applied to DocumentList name/delete dialogs + NodeSwapMenu + PortConnectMenu; Escape wired on
   DocumentList dialogs (previously missing).
   Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-b.md`
