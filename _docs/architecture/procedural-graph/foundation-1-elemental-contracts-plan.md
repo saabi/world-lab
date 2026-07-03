@@ -510,7 +510,7 @@ swap-family question beyond the explicit "preserve current behavior" default abo
 
 ---
 
-## F1.5 — `TypeRef` compatibility layer
+## F1.5 — `TypeRef` compatibility layer ✅ done (`129d35e`)
 
 **Goal:** introduce a structural type algebra capable of integers, matrices, parameterized
 buffers/textures, and struct types, alongside the existing `DataType`, without breaking any of the

@@ -27,29 +27,22 @@ is still open.
 
 ## Active
 
-- **F1.5 — `TypeRef` compatibility layer** (Foundation 1, milestone 3 of 5; see
-  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
-  for this milestone only, do not re-open F1.1/F1.2/F1.3/F1.4a's design; widest-touching milestone
-  in Foundation 1, review closely on landing)
-  Brief: `_docs/architecture/procedural-graph/briefs/F1.5-typeref-compatibility-layer.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
-  `packages/graph/src/dataType.ts`, `packages/graph/src/coercion.ts`, `packages/graph/src/ports.ts`,
-  `packages/graph/src/portMatch.ts`, `packages/graph/src/serialize.ts`, `packages/graph/src/registry.ts`,
-  `packages/graph/src/validate.ts`, `packages/graph/src/index.ts`,
-  `packages/compiler/src/coercion.ts`, `packages/compiler/src/groupCodegen.ts`,
-  `packages/compiler/src/index.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.ts`, `packages/runtime-cpu/src/coercion.ts`,
-  `packages/runtime-cpu/src/evalGraph.ts`, `packages/runtime-cpu/src/index.ts`,
-  `packages/graph-editor/src/nodePortUtils.ts`,
-  `packages/graph-editor/src/portBindings.ts`, `packages/graph-editor/src/types.ts`,
-  `packages/mcp-server/src/index.ts`,
-  `packages/graph-editor/src/graphValidation.ts`,
-  `packages/graph-editor/src/previewBackend.ts`, `packages/graph-editor/src/nodePaletteModel.ts`,
-  `packages/graph-editor/src/irAdapter.ts`, `packages/graph-editor/src/previewBuffers.ts`,
-  and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
 
 ## Done (recent)
+
+- **F1.5 — `TypeRef` compatibility layer** — `129d35e` · exhaustive `dataTypeToTypeRef`
+  (total) + partial `typeRefToDataType`, `dataTypeToWgsl` elegantly refactored to route through
+  the new machinery rather than staying a parallel system; coercion split into
+  `resolveCoercion`(`graph`)/`emitCoercion`(`compiler`)/`applyCoercion`(`runtime-cpu`), each
+  backend's `promoteExpr`/`coerceInputValue` correctly replaced; `PortSpecInput`/
+  `NodePrimitiveInput` normalize through one shared `normalizePrimitiveInput` that correctly
+  subsumes (not duplicates) F1.2's semantics dedup, proven by a test combining both concerns;
+  new integer + matrix test primitives round-trip through `evalCPU`, generate correct WGSL, and
+  pass a real device compile *and* compute-pipeline creation (`typeRefDeviceCompile.test.ts`,
+  stronger than the gate required); narrow TypeBox conversion correctly scoped to
+  scalar/vector/struct, confirmed rejecting buffer.
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.5-typeref-compatibility-layer.md`
 
 - **F1.2 — open coordinate spaces + add semantic tags** — `3768ae2` · `SpaceId`/`SemanticTag`
   as open strings, `CoordinateSpace` kept as a deprecated alias; `dedupeCanonicalSemantics`
