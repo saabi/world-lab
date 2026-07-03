@@ -60,6 +60,7 @@
 	class="connect-menu nodrag nopan"
 	role="dialog"
 	aria-label="Connect compatible node"
+	tabindex="-1"
 	onkeydown={onKeydown}
 >
 	<input

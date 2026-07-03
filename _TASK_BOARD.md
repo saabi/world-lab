@@ -27,14 +27,14 @@ is still open.
 
 ## Active
 
-- **Editor accessibility Phase A** (landmarks, skip link, fix the two existing a11y-lint
-  warnings)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
-  Owns: `apps/webgputoy/src/routes/+layout.svelte`, `packages/graph-editor/src/NodeSwapMenu.svelte`,
-  `packages/graph-editor/src/PortConnectMenu.svelte`
-  Claimed by: Cursor · Status: in progress
+(none)
 
 ## Done (recent)
+
+- **Editor accessibility Phase A** — 8dbb2f9 · skip link + `<main id="main-content">` landmark
+  in webgputoy layout; `tabindex="-1"` on swap/connect dialog roots (dialog a11y-lint clean).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
+
 
 - **Palette drag-and-drop node placement** — `9c758cc` · draggable palette primitives drop onto
   the canvas at the cursor flow position via `screenToFlowPosition`; click-to-add unchanged.

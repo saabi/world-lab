@@ -60,6 +60,7 @@
 	class="swap-menu nodrag nopan"
 	role="dialog"
 	aria-label="Replace node"
+	tabindex="-1"
 	onkeydown={onKeydown}
 >
 	<input
