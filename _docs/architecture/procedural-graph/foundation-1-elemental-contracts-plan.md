@@ -424,7 +424,7 @@ model first).
 
 ---
 
-## F1.2 — Open coordinate spaces and semantic tags
+## F1.2 — Open coordinate spaces and semantic tags ✅ done (`3768ae2`)
 
 **Goal:** stop hardcoding planet-specific space names into the generic `packages/graph` core;
 make spaces open and separate the singular "which frame is this in" concept from pluralizable

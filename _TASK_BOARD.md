@@ -27,23 +27,21 @@ is still open.
 
 ## Active
 
-- **F1.2 — open coordinate spaces + add semantic tags** (Foundation 1, milestone 2 of 5; see
-  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
-  for this milestone only, do not re-open F1.1/F1.3/F1.4a/F1.5's design)
-  Brief: `_docs/architecture/procedural-graph/briefs/F1.2-open-spaces-semantics.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
-  `packages/graph/src/semantics.ts`, `packages/graph/src/serialize.ts`,
-  `packages/graph/src/registry.ts`, `packages/graph/src/validate.ts`, `packages/graph/src/contract.ts`,
-  `packages/graph/src/primitives/terrain/spaces.ts`, terrain/surface primitive declarations,
-  `packages/compiler/src/primitiveLoader.ts`, `packages/compiler/src/groupCodegen.ts`,
-  `packages/graph-editor/src/types.ts`, `packages/graph-editor/src/nodePortUtils.ts`,
-  `packages/graph-editor/src/irAdapter.ts`, `packages/graph-editor/src/portBindings.ts`,
-  `packages/graph-editor/src/primitiveEditor.ts`, `packages/graph-editor/src/primitiveSources.ts`,
-  `packages/graph-editor/src/markup/parseGraphMarkup.ts`,
-  and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor (mechanical field generalization)
+_No unclaimed tasks._
 
 ## Done (recent)
+
+- **F1.2 — open coordinate spaces + add semantic tags** — `3768ae2` · `SpaceId`/`SemanticTag`
+  as open strings, `CoordinateSpace` kept as a deprecated alias; `dedupeCanonicalSemantics`
+  enforced at every write path (registration, node creation, serialize/deserialize, WGSL
+  frontmatter parsing); `PLANET_SPACES` constants module; removed `primitiveLoader.ts`'s
+  hardcoded `COORDINATE_SPACES` closed-set gate entirely (a third enforcement point beyond the
+  type and `validate.ts`, found during the contract pass); consolidated three independent
+  `instantiatePorts` copies (`nodePortUtils.ts`, `primitiveEditor.ts`, `parseGraphMarkup.ts`)
+  into one canonical, exported function — beyond the brief's ask, but a real drift-risk fix;
+  `contract.ts`'s swap-family string confirmed byte-identical for every registered primitive,
+  `semantics` confirmed absent from it.
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.2-open-spaces-semantics.md`
 
 - **F1.1 — rename static `list<T>` to `tuple<T>`** — `b36f864` · clean rename across all
   brief-listed files plus two call sites Codex found beyond the brief's own list
