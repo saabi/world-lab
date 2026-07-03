@@ -59,13 +59,19 @@
 	import type { CodeViewActions } from './CodeView.svelte';
 	import type { MarkupViewActions } from './MarkupView.svelte';
 	import { createGraphHistory } from './history.svelte.js';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
 		graph?: GraphDocument;
 		onchange?: (next: GraphDocument) => void;
+		toolbarStart?: Snippet;
 	}
 
-	let { graph = $bindable(animatedWorleyPipelineGraph()), onchange }: Props = $props();
+	let {
+		graph = $bindable(animatedWorleyPipelineGraph()),
+		onchange,
+		toolbarStart
+	}: Props = $props();
 
 	const history = createGraphHistory();
 
@@ -720,6 +726,11 @@
 
 <div class="graph-editor">
 	<header class="toolbar">
+		{#if toolbarStart}
+			<div class="toolbar-start">
+				{@render toolbarStart()}
+			</div>
+		{/if}
 		<DocumentList
 			activeName={activeDocumentName}
 			readOnly={documentReadOnly}
@@ -827,6 +838,13 @@
 		padding: 6px 8px;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 		flex: 0 0 auto;
+	}
+
+	.toolbar-start {
+		display: flex;
+		align-items: center;
+		flex: 0 0 auto;
+		padding-right: 4px;
 	}
 
 	.toolbar :global(.document-list) {

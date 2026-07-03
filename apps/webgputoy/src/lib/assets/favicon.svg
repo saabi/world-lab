@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="5.7 5 368.87 246" fill-rule="evenodd">
+	<title>WebGPUToy</title>
+	<style>
+		.curve {
+			fill: none;
+			stroke-width: 8.33;
+			stroke-miterlimit: 2.61313;
+			stroke: #373435;
+		}
+		@media (prefers-color-scheme: dark) {
+			.curve {
+				stroke: #e8ecf8;
+			}
+		}
+	</style>
+	<rect x="139.71" y="5" width="100.86" height="100.86" rx="29.52" ry="29.52" fill="#814C05" />
+	<rect x="139.71" y="150.14" width="100.86" height="100.86" rx="29.52" ry="29.52" fill="#0D3FFD" />
+	<rect x="273.71" y="77.57" width="100.86" height="100.86" rx="29.52" ry="29.52" fill="#872EB9" />
+	<rect x="5.7" y="77.57" width="100.86" height="100.86" rx="29.52" ry="29.52" fill="#21770C" />
+	<path class="curve" d="M106.56 128c33.15,0 0,-72.57 33.15,-72.57" />
+	<path class="curve" d="M106.56 128c33.15,0 0,72.57 33.15,72.57" />
+	<path class="curve" d="M273.71 128c-33.14,0 0,-72.57 -33.14,-72.57" />
+	<path class="curve" d="M273.71 128c-33.14,0 0,72.57 -33.14,72.57" />
+</svg>

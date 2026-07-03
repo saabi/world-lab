@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '@world-lab/graph';
 	import GraphEditor from '@world-lab/graph-editor/GraphEditor.svelte';
+	import WebGpuToyLogo from '$lib/components/WebGpuToyLogo.svelte';
 </script>
 
 <svelte:head>
@@ -8,7 +9,11 @@
 </svelte:head>
 
 <div class="page">
-	<GraphEditor />
+	<GraphEditor>
+		{#snippet toolbarStart()}
+			<WebGpuToyLogo variant="both" theme="dark" size={1.75} decorative />
+		{/snippet}
+	</GraphEditor>
 </div>
 
 <style>
