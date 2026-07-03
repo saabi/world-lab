@@ -113,8 +113,9 @@
 
 <div class="code-view">
 	<div class="header">
-		<h2 class="title">Primitive</h2>
+		<label class="picker-label" for="code-view-primitive-picker">Primitive</label>
 		<select
+			id="code-view-primitive-picker"
 			class="picker"
 			value={moduleId ?? ''}
 			onchange={(event) => {
@@ -167,7 +168,7 @@
 		flex-wrap: wrap;
 	}
 
-	.title {
+	.picker-label {
 		margin: 0;
 		font-size: 12px;
 		font-weight: 600;

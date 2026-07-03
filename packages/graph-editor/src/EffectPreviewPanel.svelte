@@ -83,7 +83,6 @@
 	onpointerup={onPointerUp}
 	onpointerleave={onPointerUp}
 >
-	<h2 class="title">Effect preview</h2>
 	<p class="hint">Animation clock is shared across preview panes; pointer is local to this pane.</p>
 	{#if blockMessage}
 		<p class="blocked">{blockMessage}</p>
@@ -107,13 +106,6 @@
 		padding: 8px;
 		height: 100%;
 		align-items: center;
-	}
-
-	.title {
-		margin: 0;
-		align-self: flex-start;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.hint {

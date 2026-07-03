@@ -30,7 +30,6 @@
 </script>
 
 <div class="validation">
-	<h2 class="title">Validation</h2>
 	{#if markupError}
 		<p class="error">Markup: {markupError}</p>
 	{/if}
@@ -78,12 +77,6 @@
 		padding: 8px;
 		height: 100%;
 		overflow: auto;
-	}
-
-	.title {
-		margin: 0 0 6px;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.summary {

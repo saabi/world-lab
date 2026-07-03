@@ -73,7 +73,6 @@
 </script>
 
 <div class="preview">
-	<h2 class="title">GPU preview</h2>
 	{#if blockMessage}
 		<p class="blocked">{blockMessage}</p>
 	{:else if output}
@@ -94,13 +93,6 @@
 		padding: 8px;
 		height: 100%;
 		align-items: center;
-	}
-
-	.title {
-		margin: 0;
-		align-self: flex-start;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.heatmap {

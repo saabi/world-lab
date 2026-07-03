@@ -61,7 +61,6 @@
 </script>
 
 <div class="preview">
-	<h2 class="title">Surface mesh</h2>
 	<div class="surface-toggle" role="tablist" aria-label="Surface mapping">
 		<button
 			type="button"
@@ -96,13 +95,6 @@
 		padding: 8px;
 		height: 100%;
 		align-items: center;
-	}
-
-	.title {
-		margin: 0;
-		align-self: flex-start;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.surface-toggle {

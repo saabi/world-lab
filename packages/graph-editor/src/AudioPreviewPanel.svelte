@@ -12,7 +12,6 @@
 </script>
 
 <div class="audio-preview">
-	<p class="title">Audio preview</p>
 	<p class="hint">
 		{#if output}
 			Audio output from <code>{output.node}.{output.port}</code> — playback is not wired yet.
@@ -32,11 +31,6 @@
 		padding: 12px;
 		font-size: 12px;
 		color: #dbe4ff;
-	}
-
-	.title {
-		margin: 0;
-		font-weight: 600;
 	}
 
 	.hint {

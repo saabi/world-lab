@@ -79,7 +79,6 @@
 </script>
 
 <div class="markup">
-	<h2 class="title">Markup</h2>
 	<CodeMirrorEditor
 		class="code"
 		language="planet-markup"
@@ -92,16 +91,10 @@
 	.markup {
 		box-sizing: border-box;
 		display: grid;
-		grid-template-rows: auto 1fr;
+		grid-template-rows: 1fr;
 		min-height: 0;
 		padding: 8px;
 		gap: 6px;
-	}
-
-	.title {
-		margin: 0;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.code {

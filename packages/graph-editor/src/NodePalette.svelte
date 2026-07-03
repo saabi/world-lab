@@ -145,7 +145,6 @@
 
 <div class="palette">
 	<header class="palette-header">
-		<h2 class="title">Primitives</h2>
 		<input
 			class="search"
 			type="search"
@@ -214,12 +213,6 @@
 		padding: 8px 8px 6px;
 		flex: 0 0 auto;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-	}
-
-	.title {
-		margin: 0;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.search {

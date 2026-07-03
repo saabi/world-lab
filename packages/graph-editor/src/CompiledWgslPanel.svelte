@@ -53,7 +53,6 @@
 
 <div class="compiled-wgsl">
 	<header class="header">
-		<h2 class="title">Compiled WGSL</h2>
 		{#if loading}
 			<span class="status">Compiling…</span>
 		{:else if compileError}
@@ -96,15 +95,9 @@
 	.header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-end;
 		gap: 8px;
 		margin-bottom: 6px;
-	}
-
-	.title {
-		margin: 0;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.status {

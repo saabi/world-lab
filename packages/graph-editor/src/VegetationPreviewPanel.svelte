@@ -135,8 +135,6 @@
 </script>
 
 <div class="preview">
-	<h2 class="title">Vegetation Preview</h2>
-
 	<div class="controls">
 		<label class="control-row">
 			<span>Density (vec3f):</span>
@@ -199,12 +197,6 @@
 		padding: 8px;
 		height: 100%;
 		color: #dbe4ff;
-	}
-
-	.title {
-		margin: 0;
-		font-size: 12px;
-		font-weight: 600;
 	}
 
 	.controls {
