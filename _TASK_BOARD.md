@@ -27,14 +27,7 @@ is still open.
 
 ## Active
 
-Three tasks pinned 2026-07-03, file ownership verified disjoint (no package overlap; neither
-depends on another; neither touches anything in the just-landed batch above).
-
-- **Toolbar reorg** (undo/redo grouping, remove redundant `»` sidebar toggle, move Delete into
-  the canvas sidebar's own "Selection" section)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-toolbar-reorg.md`
-  Owns: `packages/graph-editor/src/GraphEditor.svelte`, `packages/graph-editor/src/DocumentList.svelte`
-  Claimed by: Cursor · Status: in progress
+Two tasks pinned 2026-07-03, file ownership verified disjoint.
 
 - **Umami analytics for webgputoy** (parity port of scene-editor's existing integration)
   Brief: `_docs/architecture/procedural-graph/briefs/M-webgputoy-umami.md`
@@ -52,8 +45,8 @@ depends on another; neither touches anything in the just-landed batch above).
 
 ## Done (recent)
 
-- **Toolbar reorg** — undo/redo grouped with file actions; header Delete + `»` toggle removed;
-  canvas sidebar gains a Selection section with Delete.
+- **Toolbar reorg** — `b1c1409` · undo/redo grouped with file actions; header Delete + `»`
+  toggle removed; canvas sidebar gains a Selection section with Delete.
   Brief: `_docs/architecture/procedural-graph/briefs/M-toolbar-reorg.md`
 
 - **Colorlab harvest Slice B (`color.chromaticAdapt`)** — `522e31a` · Bradford von Kries
