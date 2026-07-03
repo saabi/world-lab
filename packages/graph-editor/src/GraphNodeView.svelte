@@ -72,6 +72,13 @@
 		canvasContext.onReplacePrimitive(id, primitiveId);
 	}
 
+	function openConnectMenu(portId: string, direction: 'in' | 'out', dataType: string) {
+		menuOpen = false;
+		const matches =
+			direction === 'out' ? compatibleConsumers(dataType) : compatibleProducers(dataType);
+		connectMenu = { portId, direction, matches };
+	}
+
 	function onPortContextMenu(
 		event: MouseEvent,
 		portId: string,
@@ -80,12 +87,24 @@
 	) {
 		event.preventDefault();
 		event.stopPropagation();
-		menuOpen = false;
-		const matches =
-			direction === 'out'
-				? compatibleConsumers(dataType)
-				: compatibleProducers(dataType);
-		connectMenu = { portId, direction, matches };
+		openConnectMenu(portId, direction, dataType);
+	}
+
+	function onPortKeydown(
+		event: KeyboardEvent,
+		portId: string,
+		direction: 'in' | 'out',
+		dataType: string
+	) {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		event.stopPropagation();
+		openConnectMenu(portId, direction, dataType);
+	}
+
+	function portAriaLabel(direction: 'in' | 'out', name: string, dataType: string): string {
+		const role = direction === 'in' ? 'Input' : 'Output';
+		return `${role} port ${name}, ${dataType}`;
 	}
 
 	function connectPrimitive(primitiveId: string) {
@@ -146,8 +165,13 @@
 						class="port in"
 						class:issue-error={nodeData.inputIssues?.[input.id] === 'error'}
 						class:issue-warning={nodeData.inputIssues?.[input.id] === 'warning'}
+						role="button"
+						tabindex="0"
+						aria-label={portAriaLabel('in', input.name, input.dataType)}
 						oncontextmenu={(event) =>
 							onPortContextMenu(event, input.id, 'in', input.dataType)}
+						onkeydown={(event) =>
+							onPortKeydown(event, input.id, 'in', input.dataType)}
 					>
 						<Handle
 							type="target"
@@ -173,8 +197,13 @@
 				<div class="port-wrap">
 					<div
 						class="port out"
+						role="button"
+						tabindex="0"
+						aria-label={portAriaLabel('out', output.name, output.dataType)}
 						oncontextmenu={(event) =>
 							onPortContextMenu(event, output.id, 'out', output.dataType)}
+						onkeydown={(event) =>
+							onPortKeydown(event, output.id, 'out', output.dataType)}
 					>
 						<span class="type">{output.dataType}</span>
 						<span>{output.name}</span>
@@ -296,6 +325,16 @@
 		align-items: center;
 		gap: 4px;
 		cursor: context-menu;
+		border-radius: 3px;
+	}
+
+	.port:focus {
+		outline: 1px solid rgba(93, 140, 255, 0.65);
+		outline-offset: 2px;
+	}
+
+	.port:focus:not(:focus-visible) {
+		outline: none;
 	}
 
 	.port.in {
