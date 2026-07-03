@@ -318,14 +318,13 @@ guessed:
   (Ctrl+Z/Shift+Z/Y undo-redo, Ctrl+D duplicate, Ctrl+C/V copy-paste, Delete/Backspace) with
   zero in-app discoverability — no shortcut reference, no hint in any `aria-label`. Colorlab's
   pattern: a "Keyboard" tab in its gesture-reference popover, `<dl>` two-column shortcut table.
-- **Pointer-only custom controls — scope narrowed by verification (2026-07-03).** Select and
-  arrow-key move are **already fully working**, confirmed by reading `@xyflow/svelte`'s own
-  source directly (`NodeWrapper.svelte`'s `onKeyDown` already handles both, with an
-  `aria-live` announce message on move) — `GraphCanvas.svelte` never disables this, so it's
-  free, not a gap. The real, confirmed gap is narrower: **ports have zero keyboard affordance**
-  — `GraphNodeView.svelte`'s port divs have no `tabindex`/`onkeydown`, so the only way to open
-  the existing right-click quick-connect menu (`PortConnectMenu.svelte`) is a pointer. Brief
-  (Phase C): `M-editor-a11y-phase-c.md`.
+- ~~Pointer-only custom controls~~ ✅ Phase C done (2026-07-03, `009f97f`) — scope was
+  narrower than first thought: select/arrow-key move were already free via xyflow's own
+  defaults (verified by reading its source directly). The real gap — ports had zero keyboard
+  affordance — is fixed: `tabindex="0"` + `aria-label` on every port, Enter/Space opens the
+  existing `PortConnectMenu` via a shared `openConnectMenu` helper (extracted so right-click
+  and keyboard produce identical `matches`, no duplicated logic), plus `role="button"` and
+  `:focus-visible` styling. Brief: `M-editor-a11y-phase-c.md`.
 - **Text readability: 100% hardcoded `px` font sizes, zero `rem`.** Confirmed by grep: 17
   `font-size: Npx` rules in just `GraphEditor.svelte` + `DocumentList.svelte` alone (6 + 11),
   zero `rem` usage anywhere in `packages/graph-editor`. Same root cause colorlab hit — a root
