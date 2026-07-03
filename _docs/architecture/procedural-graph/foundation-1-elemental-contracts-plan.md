@@ -1,19 +1,21 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Parent:**
+**Status:** proposed implementation plan, not yet approved · **Revision:** 2 (2026-07-03) —
+incorporates a verified external review; see [Revision history](#revision-history) · **Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
-resources/frame execution), Foundation 3 (generic kernels), Foundation 4 (command graph), and any
-follow-on brief for generic compute-dispatch, generic feedback, or graph-authorable instancing.
+resources/frame execution), Foundation 3 (generic kernels), Foundation 4 (generic command/resource
+planner), and any follow-on brief for generic compute-dispatch, generic feedback, or
+graph-authorable instancing.
 
 ## Why this document exists
 
 The architecture review correctly diagnoses five structural problems and proposes fixes, but
-states them as recommendations ("adopt the primitive implementation union...") without a
-migration sequence, without file-level evidence of blast radius, and without test gates — the
-same rigor [implementation-plan.md](./implementation-plan.md) gives the M0–M17 spine. This
-document supplies that rigor for Foundation 1 specifically, grounded in direct investigation of
-the current code (three parallel research passes plus personal verification), not assumption.
+states them as recommendations without a migration sequence, without file-level evidence of blast
+radius, and without test gates — the same rigor [implementation-plan.md](./implementation-plan.md)
+gives the M0–M17 spine. This document supplies that rigor, grounded in direct investigation of the
+current code (three parallel research passes, personal verification, and one full external review
+pass whose every finding was independently re-verified against the code before acceptance).
 
 **Explicit goal restated, since it shapes every sequencing decision below:** this project's
 purpose was never "ship planet rendering" or "ship particle rendering" fast — it's building the
@@ -22,424 +24,464 @@ means correctness and migration safety take priority over speed here. Every sub-
 is sequenced so the live planet renderer (`apps/scene-editor`, gated per `AGENTS.md`) and every
 already-shipped, already-tested graph-editor feature keep working throughout, not just at the end.
 
+## Revision history
+
+**Revision 2** incorporates a verified external review of revision 1. Every finding below was
+independently re-checked against the plan text and the live code before acceptance — none were
+taken on faith:
+
+- Split what was a single "F1.4" into **F1.4a** (exports/execution-roots + document migration,
+  in scope here) and an explicit **Foundation 4** pointer (the generic command/resource/hazard
+  planner, out of scope — revision 1 asked F1.4 to build Foundation-2/3/4 machinery while also
+  declaring that machinery out of scope, an internal contradiction).
+- Changed F1.3's group reference from embedding `GroupDefinition` directly to a `groupId: string`
+  plus an external registry — embedding the definition would force `packages/graph` to import
+  compiled group values from `packages/procedural-wgsl`, which already depends on `graph`,
+  creating a real package cycle (verified against `transform.spherify`'s actual registration).
+- Added an explicit v1→v2 `GraphDocument` migration ([F1.4a](#f14a--unify-execution-roots--migrate-legacy-documents)) after finding that
+  legacy field-only graphs (e.g. `graphBuilders.ts`'s `defaultPreviewGraph()`) have **no** sink or
+  kernel node at all — their only execution-root signal is `consumers`. Revision 1's "parse and
+  discard" compatibility note would have silently broken every graph shaped like this.
+- Narrowed F1.1 to a pure rename (`list<T>` → `tuple<T>`) and removed the interim
+  `storageBuffer<T>` type revision 1 proposed, which would have been deleted the moment F1.5
+  landed. Runtime buffer element-typing now belongs to F1.5/Foundation 2 outright.
+- Changed the coordinate-space model from a single `SemanticTag = string` field to two concepts —
+  `space?: SpaceId` (still singular; a port is in exactly one frame) and `semantics?: SemanticTag[]`
+  (plural; orthogonal properties like unit or color-space that can coexist with a space) — matching
+  the parent review's own "ports may carry multiple semantic tags" and its own `"color:linear-srgb"`
+  example, which revision 1 had collapsed and mislabeled as `"unit:linear-srgb"`.
+- Fixed the structural-node migration list: `stage.vertex` has a real, working WGSL function
+  (`vertexStage`, confirmed in `packages/procedural-wgsl/src/modules/pipeline/vertexStage.ts`) and
+  stays `kind: 'wgsl-function'` until Foundation 3 gives kernels a real shape — revision 1 wrongly
+  grouped it with the genuinely-structural nodes. `geometry.fullscreenPlane`, which revision 1's own
+  evidence section correctly identified as comment-only, was missing from the fix list — added.
+- Corrected the `DataType ↔ TypeRef` mapping from general bidirectional to `DataType → TypeRef`
+  (total) plus `TypeRef → optional display alias` (partial) — a `TypeRef` describing a struct,
+  parameterized buffer, or texture format has no corresponding legacy string to map back to.
+- Resolved the TypeBox-reuse question revision 1 left open: **keep `TypeRef` separate from
+  TypeBox**, with a narrow conversion function for the compatible scalar/vector/struct value-schema
+  subset. TypeBox describes serializable values and UI schemas; GPU types additionally carry
+  address space, access, texture format, usage, and layout semantics TypeBox has no model for.
+- Replaced the blanket "byte-identical output" parity claim with four explicit categories (see
+  [Parity-gate categories](#parity-gate-categories)), applied per gate item instead of one phrase
+  covering WGSL text, rendered pixels, and cache signatures alike.
+- Adopted the reviewed sequencing: **F1.1 → F1.2 → F1.5 → F1.3 → F1.4a**, not the original
+  numeric order — F1.5 moved earlier because F1.3's resource/kernel placeholder variants and
+  F1.1's (now deferred) buffer element-typing both want `TypeRef` to already exist, avoiding a
+  second round of placeholder churn.
+
+## Parity-gate categories
+
+Referenced throughout instead of a single "byte-identical" claim, since different artifacts need
+different verification:
+
+1. **Byte-identical WGSL** — for compiled shader text, where compilation semantics are unchanged.
+2. **Numeric/pixel-equivalent runtime results** — for CPU-evaluated values and GPU-rendered
+   output; exact for CPU floats, visually-indistinguishable for rendered pixels.
+3. **Canonical v2 serialization after migration** — for saved documents; not byte-identical to
+   the old v1 text (the schema is intentionally changing), but round-trips losslessly and is
+   itself stable/canonical once migrated.
+4. **Browser visual gate** — for existing image/mesh/vegetation samples, a human-verified render
+   check, not headless-green alone.
+
 ## Sequencing rationale
 
-The five sub-problems have materially different migration risk, verified by direct investigation,
-not estimated:
+The five sub-problems have materially different migration risk, verified by direct investigation:
 
 | Sub-problem | Verified blast radius | Risk |
 |---|---|---|
-| F1.1 static/runtime collection split (`list<T>`) | **Zero production primitives use it today** (exhaustive grep) | Lowest — free redesign |
-| F1.2 open semantic spaces (`CoordinateSpace`) | 30 port declarations, 1 conversion primitive, editor already treats it as an opaque string | Low |
-| F1.3 primitive-implementation union (`NodePrimitive`) | Dispatch logic concentrated in exactly 3 files; touches registration shape of 138 primitives (mechanical, not logical, change) | Medium |
-| F1.4 unified execution roots (`outputs`/`consumers`/role-detection) | 6+ files depend on `GraphDocument.consumers`; `PipelineGraphPlan` hardcodes a fixed node-search chain; depends on F1.3 for a clean implementation | High |
-| F1.5 structural `TypeRef` (`DataType`) | 5 exhaustiveness-checked functions, a promotion rule copy-pasted identically in 3 files, needs real design for types that don't exist yet (matrix, integer, parameterized buffer/texture) | Highest |
+| F1.1 rename `list<T>` → `tuple<T>` | **Zero production primitives use it today** (exhaustive grep) | Lowest — free rename |
+| F1.2 open semantic spaces | 30 port declarations, 1 conversion primitive, editor already treats space as opaque | Low |
+| F1.5 `TypeRef` compatibility layer | Additive alongside `DataType`; no existing primitive changes behavior | Low-medium, but needed early by F1.3/F1.1 |
+| F1.3 primitive-implementation union + group registry | Dispatch logic concentrated in exactly 3 files; touches registration shape of 138 primitives (mechanical) | Medium |
+| F1.4a unify execution roots + v1→v2 migration | 6+ files depend on `GraphDocument.consumers`; legacy field-only graphs have no other execution-root signal | High |
 
-Sequence: **F1.1 → F1.2 → F1.3 → F1.4 → F1.5** — lowest-risk, most-isolated wins first, building
-confidence and shared vocabulary before the two changes that touch the widest surface. F1.3 is
-placed before F1.4 deliberately: once structural nodes carry a real `kind` tag, "kernel/pass/sink
-nodes are the only execution roots" becomes a direct check on that tag, not another string-based
-role convention layered on top of the ones being retired.
+**Sequence: F1.1 → F1.2 → F1.5 → F1.3 → F1.4a.** F1.5 moved ahead of F1.3 because F1.3's
+`resource`/`kernel`/`command` placeholder variants (and F1.1's deferred buffer-element-typing) both
+want `TypeRef` to exist first — doing F1.5 later would mean designing those placeholders twice.
+F1.4a stays last: it's the highest-blast-radius change and benefits most from F1.3's `kind` tagging
+already being in place, so "kernel/pass/sink nodes are execution roots" is a direct tag check, not
+another string-based convention layered on the ones being retired.
+
+**Foundation 4** (replacing `PipelineGraphPlan`'s hardcoded chain-search with a fully generic
+command/resource/hazard planner) is explicitly **not** part of Foundation 1. F1.4a only teaches the
+planner to *discover* today's one pipeline shape generically (via `kind` tags instead of primitive-id
+strings); it does not build the resource-lifetime/hazard-validation model a truly generic planner
+needs — that model doesn't exist until Foundations 2 and 3 land.
 
 ---
 
-## F1.1 — Split static collections from runtime buffers
+## F1.1 — Rename static collections; defer runtime buffers
 
 **Goal:** stop conflating "unroll N statically-wired edges at compile time" with "loop over a
-runtime GPU storage buffer" — two different lifetime/indexing/codegen semantics currently
-selected by an *implicit* signal (edge count), not an explicit type.
+runtime GPU storage buffer." Scope narrowed to the static half only — the runtime half needs a
+real element-typed buffer representation, which is F1.5/Foundation 2's job, not this one's.
 
 **Verified current state:**
 - `ListDataType = 'list<f32>' | 'list<vec2f>' | 'list<vec3f>' | 'list<vec4f>'` — a closed,
   non-parameterized set (`packages/graph/src/types.ts:18`).
-- Two lowering strategies already exist and are dispatched by *edge count*, not type:
-  multiple edges → static unroll into a WGSL `array<T, N>` constructor
-  (`packages/compiler/src/groupCodegen.ts:341-354`, `packages/runtime-webgpu/src/emitGraphEval.ts:359-372`);
-  a single edge from a `storageBuffer` port → a runtime `for` loop over `arrayLength(&buffer)`
-  (`groupCodegen.ts:328-338,406-414`, `emitGraphEval.ts:346-356,411-424`). If N>1 edges happen to
-  include a storage-buffer source, it still unrolls — the dynamic path only triggers on exactly
-  one edge.
+- Two lowering strategies already exist, dispatched by *edge count*, not type: multiple edges →
+  static unroll into a WGSL `array<T, N>` constructor (`packages/compiler/src/groupCodegen.ts:341-354`,
+  `packages/runtime-webgpu/src/emitGraphEval.ts:359-372`); a single edge from a `storageBuffer`
+  port → a runtime `for` loop over `arrayLength(&buffer)` (`groupCodegen.ts:328-338,406-414`,
+  `emitGraphEval.ts:346-356,411-424`). If N>1 edges happen to include a storage-buffer source, it
+  still unrolls — the dynamic path only triggers on exactly one edge.
 - **Confirmed by exhaustive grep: zero registered production primitives declare a `list<T>`
   input port.** The only users are test fixtures (`packages/graph/src/validateMultipleInputs.test.ts:82`,
   `packages/runtime-webgpu/src/emitGraphEval.test.ts`). This is wired infrastructure with no real
   caller — the lowest-risk possible migration target.
-- `flow.forEach`/`flow.map`/`flow.reduce` container nodes: zero code exists, purely aspirational
-  (`primitive-library.md` lists them "💭 discussed (not yet pinned)").
-- Vegetation candidate generation (`packages/runtime-cpu/src/vegetation.ts::generateVegetationCandidates`)
-  has no graph-level exposure at all today — confirms this is genuinely greenfield, not a hidden
-  dependency.
+- `flow.forEach`/`flow.map`/`flow.reduce` container nodes: zero code exists, purely aspirational.
+- Vegetation candidate generation has no graph-level exposure at all today — confirms this is
+  genuinely greenfield, not a hidden dependency.
 
 **Fix:**
-1. Introduce `tuple<T>` (or `staticList<T>`) as the explicit compile-time-unroll type — same
-   codegen as today's static-unroll path, just an honest name instead of an overloaded `list<T>`.
-2. For the runtime case, don't invent a parallel `buffer<T>`/`span<T>` type from scratch — the
-   `storageBuffer` `DataType` already exists and the dynamic-loop codegen already keys off it.
-   The actual gap is that `storageBuffer` carries no *element type* parameter today. Add one
-   (e.g. `{ kind: 'buffer', element: TypeRef, access, usages }` once F1.5 lands, or a narrower
-   `storageBuffer<T>` string-parameterized interim if F1.5 hasn't landed yet — decide this when
-   F1.5's design is concrete, don't block F1.1 on it).
-3. Retire the 4 hardcoded `list<f32/vec2f/vec3f/vec4f>` literals once `tuple<T>` exists and the
-   codegen paths key off the new, explicit types instead of edge-count inference.
-4. Migrate the existing test fixtures (`test.listSum` etc.) to the new types — this is the entire
+1. Rename `list<f32>`/`list<vec2f>`/`list<vec3f>`/`list<vec4f>` to `tuple<f32>`/`tuple<vec2f>`/
+   `tuple<vec3f>`/`tuple<vec4f>` (or `staticList<T>` — pick one name and use it consistently).
+   Codegen is otherwise unchanged: this is the existing static-unroll path, honestly named.
+2. **Do not** touch the runtime storage-buffer loop path in this sub-milestone. It keeps working
+   exactly as today (single edge from a `storageBuffer` port triggers the loop) — untyped, as it
+   already is. Do not invent an interim `storageBuffer<T>` or `buffer<T>` type here; that type
+   belongs to F1.5 (once `TypeRef` exists to give it a real element type) or Foundation 2 (once
+   resources are generic). An interim type here would just be deleted the moment either lands.
+3. Migrate the existing test fixtures (`test.listSum` etc.) to `tuple<T>` — this is the entire
    compatibility surface, since nothing else references `list<T>`.
 
 **Test gate:**
 1. `tuple<T>` compiles to the same static-unroll WGSL as today's multi-edge `list<T>` case
-   (string-identical output for the existing test graphs, just re-typed).
-2. The runtime storage-buffer loop path is reachable via an *explicit* type declaration, not edge
-   counting — a test with exactly one edge from a non-buffer source must NOT silently take the
-   loop path (today it can't either, but make this a named invariant, not an accident of the
-   current edge-count check).
+   (parity category 1: byte-identical WGSL, just re-typed).
+2. The runtime storage-buffer loop path's behavior is unchanged — a regression test pins today's
+   exact behavior (single edge, storage-buffer source → loop; anything else → static unroll)
+   so a later sub-milestone can't silently change it without a failing test.
 3. `check` and `test` green for `graph`, `compiler`, `runtime-webgpu`, full workspace.
-4. No behavior change for any shipped feature (there are none using `list<T>` to regress).
 
-**Out of scope:** actually building `flow.forEach`/`map`/`reduce` container nodes — that's
-Foundation 3/4 territory (needs the generic kernel and command-graph work first). This
-sub-milestone only fixes the *type* split; container nodes are a separate, later brief.
+**Out of scope:** an explicit runtime buffer/element-type representation (F1.5 or Foundation 2).
+Building `flow.forEach`/`map`/`reduce` container nodes (needs Foundation 3/4's kernel and command
+model first).
 
 ---
 
-## F1.2 — Open semantic/coordinate spaces
+## F1.2 — Open coordinate spaces and semantic tags
 
 **Goal:** stop hardcoding planet-specific space names into the generic `packages/graph` core;
-make spaces open, library-registered identifiers.
+make spaces open and separate the singular "which frame is this in" concept from pluralizable
+semantic properties like units or color space, which can coexist with a space on the same port.
 
 **Verified current state:**
 - `CoordinateSpace` is a closed union of exactly 8 values, **100% planet/terrain-specific**
-  (`packages/graph/src/types.ts:22-31`): `'none' | 'world_dir' | 'body_dir' | 'world_pos' |
-  'body_pos' | 'ideal_fragment_body_dir' | 'height_meters' | 'world_radius_meters' | 'scale_ctx'`.
-- Only **30 port declarations** across the entire codebase use a non-default space — 21 in
-  terrain primitives, 6 in surface primitives, 2 generic (`space: 'none'`, explicit). Zero
-  color/audio/other-domain primitives use this mechanism at all.
+  (`packages/graph/src/types.ts:22-31`).
+- Only **30 port declarations** across the entire codebase use a non-default space — 21 terrain,
+  6 surface, 2 generic (`space: 'none'`, explicit). Zero color/audio/other-domain primitives use
+  this mechanism at all today.
 - Validation (`packages/graph/src/validate.ts:98-102`) is a simple rule: if either port's space
-  is `'none'`, the edge is allowed; if both are non-`'none'`, they must match exactly. No
-  conversion graph exists.
-- Exactly **one** conversion primitive exists in the whole codebase:
-  `terrain.worldNormal` (`packages/graph/src/primitives/terrain/worldNormal.ts`), converting
-  `body_dir → world_dir`.
+  is `'none'`, the edge is allowed; if both are non-`'none'`, they must match exactly.
+- Exactly **one** conversion primitive exists in the whole codebase: `terrain.worldNormal`
+  (`body_dir → world_dir`).
 - The graph-editor already treats `space` as an opaque string for display/validation-reporting
-  purposes (`graphValidation.ts`, `portBindings.ts`, `primitiveSources.ts`) — **no editor UI
-  changes are needed** for this migration.
+  (`graphValidation.ts`, `portBindings.ts`, `primitiveSources.ts`) — **no editor UI changes are
+  needed** for this migration.
+- The parent review's own model is explicit that ports carry *multiple* semantic tags
+  simultaneously (`elemental-webgpu-architecture-review.md:139,142`: `"space:world"`, `"unit:m"`,
+  `"color:linear-srgb"` as independent, co-occurring tags) — a single `SemanticTag: string` field
+  cannot express a port that is simultaneously in `body_pos` space *and* measured in meters *and*
+  tagged linear-sRGB. Space (a mutually-exclusive choice of frame) and general semantic tags
+  (additive, co-occurring properties) are different shapes and need different fields.
 - **Real coupling to watch:** `packages/graph/src/contract.ts:20` folds space into the
-  swap-family *contract* string (`` `${dataType}${space ? `@${space}` : ''}` ``) — two primitives
-  with the same data type but different spaces currently can't swap for each other unless they
-  share an explicit `role` override. This needs an explicit decision (below), not silent carry-over.
+  swap-family *contract* string — two primitives with the same data type but different spaces
+  currently can't swap for each other unless they share an explicit `role` override.
 
 **Fix:**
-1. Replace `CoordinateSpace`'s closed union with `type SemanticTag = string` in `packages/graph`'s
-   core types.
-2. Keep the exact-match-or-`'none'` validation rule unchanged initially (it already works and
-   nothing here needs to get smarter yet — this sub-milestone is about *openness*, not about
-   building a conversion graph).
-3. Move the 8 existing planet-specific values out of core registration and into
-   library-registered constants (e.g. a `terrain` or `planet` semantic-tag module that the
-   terrain primitives import from, rather than the core type union enumerating them).
-4. **Decide the `contract.ts` question explicitly, don't let it default:** either (a) keep space
-   in the swap-family contract string as today (simplest, preserves current swap behavior
-   exactly), or (b) extract space into a separate compatibility layer so primitives differing
-   only by space become swappable when a `role` override already applies. Recommendation: (a) for
-   this sub-milestone — preserve current behavior exactly, revisit (b) only if a concrete need
-   surfaces, since it's a behavior change beyond "make spaces open."
+1. Replace `CoordinateSpace` with two separate fields on `PortSpec`:
+   - `space?: SpaceId` (`SpaceId = string`) — still singular, open instead of closed. A port is in
+     exactly one coordinate frame; this stays a discriminant, not a set.
+   - `semantics?: SemanticTag[]` (`SemanticTag = string`) — plural, for orthogonal properties
+     (e.g. `"unit:m"`, `"color:linear-srgb"`) that can co-occur with a space or with each other.
+2. Keep the exact-match-or-`'none'` validation rule for `space` unchanged initially — this
+   sub-milestone is about openness, not a conversion graph. `semantics` starts unvalidated
+   (informational/display-only) until a real need for semantic-tag validation surfaces.
+3. Move the 8 existing planet-specific `space` values out of core registration and into
+   library-registered constants (a `terrain`/`planet` module the terrain primitives import from).
+4. **Decide the `contract.ts` question explicitly:** keep `space` in the swap-family contract
+   string as today (preserves current swap behavior exactly); revisit only if a concrete need for
+   cross-space swapping surfaces. `semantics` does not participate in swap-family contracts at all
+   initially (it's additive metadata, not a mechanical-compatibility signal).
 
 **Test gate:**
-1. All 30 existing port declarations produce identical validation results on existing graphs
-   (space-mismatch still fires exactly where it does today, exact-match still passes).
-2. A new test registers a non-terrain semantic tag (e.g. a hypothetical `"unit:linear-srgb"` for
-   color) from outside `packages/graph`'s core and proves the core validates it correctly without
-   knowing what it means — the actual proof that spaces are now open, not just renamed.
-3. `check` and `test` green for `graph`, `graph-editor`, full workspace.
-4. `terrain.worldNormal` and every terrain/surface primitive using space continue to validate and
-   compile identically (parity check against current behavior, not just "doesn't crash").
+1. All 30 existing `space` port declarations produce identical validation results on existing
+   graphs (parity category 2: identical validation outcomes, not just "doesn't crash").
+2. A new test registers a non-terrain `space` value (e.g. a hypothetical audio-domain frame) from
+   outside `packages/graph`'s core and proves the core validates it correctly without knowing what
+   it means.
+3. A new test attaches `semantics: ['color:linear-srgb']` to a port alongside a `space` value on
+   the *same* port, proving the two are independent and co-occur cleanly — the actual proof this
+   is no longer a single collapsed tag.
+4. `check` and `test` green for `graph`, `graph-editor`, full workspace.
 
-**Out of scope:** building a general conversion graph between arbitrary spaces (only one
-conversion primitive exists today; a real conversion-graph model is speculative until more than
-one domain actually needs it). Resolving the `contract.ts` swap-family question beyond the
-explicit "preserve current behavior" default above.
+**Out of scope:** validating `semantics` compatibility on edges (informational only for now).
+Building a general conversion graph between arbitrary spaces. Resolving the `contract.ts`
+swap-family question beyond the explicit "preserve current behavior" default above.
 
 ---
 
-## F1.3 — Discriminated primitive-implementation union
+## F1.5 — `TypeRef` compatibility layer
 
-**Goal:** stop forcing every primitive to declare a `wgsl: WgslSourceRef`, even structural nodes
-that have no WGSL function at all.
+**Goal:** introduce a structural type algebra capable of integers, matrices, parameterized
+buffers/textures, and struct types, alongside the existing `DataType`, without breaking any of the
+138 currently-registered primitives — moved ahead of F1.3 because F1.3's resource/kernel/command
+placeholder variants, and F1.1's deferred buffer element-typing, both want this to exist first.
 
 **Verified current state:**
-- `NodePrimitive.wgsl: WgslSourceRef` is a **required** field (`packages/graph/src/primitive.ts:71`)
-  — there is no way to register a primitive without one. `evalCPU` is already correctly optional
-  (line 74); only `wgsl` has this problem.
-- Structural nodes already work around this by registering placeholder WGSL modules whose entire
-  body is a comment. The file's own header names the problem directly:
+- `DataType` is a flat union of exactly 20 literal values across four categories (value, external
+  resource, pipeline resource, list) — `packages/graph/src/types.ts:5-19`.
+- **No integer types exist at all** — `packages/compiler/src/groupCodegen.ts` explicitly throws
+  on integer param schemas, a deliberate, acknowledged deferral, not an oversight.
+- **No matrix types exist at all.**
+- The vec2f→vec3f promotion rule is copy-pasted identically in three files:
+  `packages/runtime-webgpu/src/emitGraphEval.ts:108-114`, `packages/compiler/src/groupCodegen.ts:32-38`,
+  `packages/runtime-cpu/src/evalGraph.ts:32-38` — a latent bug risk independent of this migration.
+- Five files contain exhaustive `DataType` switches (`_exhaustive: never` grep): `irAdapter.ts`,
+  `graphValidation.ts`, `nodePaletteModel.ts`, `previewBuffers.ts`, `previewBackend.ts` — all in
+  `graph-editor`.
+- The WGSL↔DataType mapping is well-isolated in one small table
+  (`packages/graph/src/dataType.ts:5-14`) — the self-describing-WGSL mechanism the parent review
+  wants to keep is already a clean chokepoint, not scattered.
+- **TypeBox decision, resolved:** `packages/schema`'s `TSchema` is already a real, structural,
+  composable type system, currently used only for primitive *params*. Keep `TypeRef` **separate**
+  from TypeBox rather than extending it for ports. TypeBox describes serializable JSON-like values
+  and UI-form schemas; GPU port types additionally need address space, read/write access, texture
+  dimension/format/sample-type, storage-texture access, buffer usage flags, and layout/alignment
+  semantics — none of which TypeBox has a model for. Forcing GPU resource types into TypeBox would
+  mean either bolting on extensive non-standard annotations or building parallel structures anyway,
+  defeating the reuse motivation. Provide a narrow, explicit conversion function for the subset that
+  *does* overlap cleanly — plain scalar/vector/struct **value** schemas — rather than a general
+  TypeBox↔TypeRef bridge.
+- 138 primitive registrations only declare `dataType: 'f32'`-style port specs — mechanically
+  simple to migrate; the real complexity is in the ~37 non-primitive files with dispatch logic.
+
+**Fix:**
+1. Introduce `TypeRef` as the parent review specifies (scalar/vector/matrix/array/struct/buffer/
+   texture/sampler/mesh/command discriminated union), **alongside** `DataType`, not replacing it.
+2. Add a **one-directional-total, one-directional-partial** mapping, not a general bidirectional
+   one: `DataType → TypeRef` is total (every existing `DataType` value has a canonical `TypeRef`);
+   `TypeRef → DataType` is a **partial, optional** "display alias" lookup that only succeeds for
+   `TypeRef` values that happen to correspond to an existing `DataType` (a `TypeRef` describing an
+   arbitrary struct, a parameterized buffer, or a specific texture format has no legacy string to
+   map back to, and must not be forced into one).
+3. Consolidate the triplicated `promoteExpr()`/`coerceInputValue()` copies into one shared,
+   `TypeRef`-aware promotion function used by all three call sites.
+4. Migrate the 5 exhaustive-switch files last, once `TypeRef` is proven via new primitives.
+5. Prove one new primitive using an integer port and one using a matrix type end-to-end (compiles,
+   evaluates on CPU, runs on GPU) as the acceptance bar for "the closed type system is actually
+   fixed," not just "the union got bigger."
+6. Add the narrow TypeBox-compatible conversion (scalar/vector/struct value schemas only) as a
+   separate, explicitly-scoped helper — not a general bridge, per the resolved question above.
+
+**Test gate:**
+1. All 138 existing primitive registrations validate and compile identically via the
+   `DataType → TypeRef` mapping (parity category 1/2 as applicable) — zero behavior change.
+2. The consolidated promotion function produces identical output to all three current copies for
+   every existing promotion case.
+3. A new test primitive using an integer port and one using a matrix type both round-trip through
+   `evalCPU` and compile to correct WGSL.
+4. A test proves `TypeRef → DataType` correctly returns "no alias" for a `TypeRef` shape that has
+   no legacy equivalent (e.g. a struct type), rather than throwing or guessing.
+5. `check` and `test` green for every package, full workspace.
+
+**Out of scope:** the full WebGPU capability/validation model (Foundation 2). Storage/texture
+usage-flag inference from edges (Foundation 2). Removing `DataType` — it stays as a convenience
+alias layer indefinitely. A general TypeBox↔TypeRef bridge beyond the narrow value-schema subset.
+
+---
+
+## F1.3 — Discriminated primitive-implementation union + external group registry
+
+**Goal:** stop forcing every primitive to declare a `wgsl: WgslSourceRef`, even structural nodes
+with no WGSL function at all — without creating a package dependency cycle between `graph` and
+`procedural-wgsl`.
+
+**Verified current state:**
+- `NodePrimitive.wgsl: WgslSourceRef` is a **required** field (`packages/graph/src/primitive.ts:71`).
+  `evalCPU` is already correctly optional; only `wgsl` has this problem.
+- Structural nodes work around this by registering placeholder WGSL modules whose entire body is
+  a comment. The file's own header names the problem directly:
   `packages/procedural-wgsl/src/modules/pipeline/structural.ts:1` — *"Pipeline nodes with no
-  standalone WGSL — honest structural markers (no empty fn stubs)."* Every one of
-  `buffer.persist`, `stage.fragment`, `target.display`, `target.mesh`,
-  `geometry.fullscreenPlane` declares a module whose only content is `// (no WGSL — structural
-  node)` (lines 11-38 of that file). This is the concrete, already-visible symptom of the
-  conflation, not a hypothetical one.
+  standalone WGSL — honest structural markers (no empty fn stubs)."* This applies to
+  `buffer.persist`, `stage.fragment`, `target.display`, `target.mesh`, and
+  `geometry.fullscreenPlane` — **five** nodes, verified by reading `structural.ts` directly.
+- **`stage.vertex` is different and must not be grouped with the five above:** it has a real,
+  working WGSL function (`vertexStage`, in `packages/procedural-wgsl/src/modules/pipeline/vertexStage.ts`,
+  an actual identity clip-projection over `plane_grid_position`). It stays `kind: 'wgsl-function'`
+  — a transitional classification — until Foundation 3 defines a real kernel shape for it. Do not
+  reclassify it as structural and do not remove its module.
 - `primitive.wgsl.moduleId`/`.entry` is read directly in exactly **3 files**:
   `packages/compiler/src/codegen.ts`, `packages/compiler/src/groupCodegen.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.ts` — the actual dispatch logic is concentrated, not
-  scattered, which is good news for this migration.
-- Groups (`transform.spherify` etc.) already compile to *real* generated WGSL via
-  `buildGroupModule`/`groupToFunction` (`packages/procedural-wgsl/src/groups/`) at build time —
-  **this is not a correctness bug**, a group-backed primitive is already indistinguishable from a
-  hand-written one by the time it's registered. What's missing is a *type-level* marker
-  distinguishing "this primitive's WGSL was authored by hand" from "this primitive's WGSL was
-  compiled from a group" — which matters for the already-requested editor capability ("Functions
-  representing group nodes must be decomposable into its components and editable upon request,"
-  per `pending_issues.md`) — the editor needs to know a node *is* a group to offer "zoom in and
-  edit" UX, not just that it happens to have a WGSL module.
-- 138 `registerPrimitive` calls across ~91 files (`packages/graph/src/primitives/`) — each is a
-  small, mechanical registration; migrating them is low-complexity-per-file, the real work is in
-  the 3 dispatch files above and the 5 structural-node registrations that currently fake a module.
+  `packages/runtime-webgpu/src/emitGraphEval.ts` — dispatch logic is concentrated, not scattered.
+- **Group ownership boundary, verified:** `GroupDefinition` the *type* lives in `packages/graph`,
+  but the compiled group *values* (e.g. `TRANSFORM_SPHERIFY_GROUP`) live in `packages/procedural-wgsl`
+  (`packages/procedural-wgsl/src/groups/transform.spherify.ts`), which already depends on `graph`
+  (confirmed in `procedural-wgsl/package.json`). The actual current primitive registration for
+  `transform.spherify` (`packages/graph/src/primitives/transform/spherify.ts`) references its WGSL
+  by **string** `moduleId`, not by importing the compiled group value — it does not currently
+  import anything from `procedural-wgsl`. Embedding `definition: GroupDefinition` directly in
+  `NodePrimitive.implementation` would force that registration file to import the compiled group
+  value from `procedural-wgsl`, creating `graph → procedural-wgsl → graph`, a real cycle.
+- 138 `registerPrimitive` calls across ~91 files — each is a small, mechanical registration.
 
 **Fix:**
 1. Introduce the discriminated union:
    ```ts
    type PrimitiveImplementation =
      | { kind: 'wgsl-function'; moduleId: string; entry: string }
-     | { kind: 'group'; definition: GroupDefinition }
+     | { kind: 'group'; groupId: string }
      | { kind: 'host-input'; binding: HostBinding }
      | { kind: 'resource'; descriptor: ResourceDescriptor }
      | { kind: 'kernel'; stage: 'vertex' | 'fragment' | 'compute' }
      | { kind: 'command'; command: GpuCommandKind }
      | { kind: 'sink'; sink: PresentationSinkKind };
    ```
-   `ResourceDescriptor`/`GpuCommandKind`/`PresentationSinkKind` are placeholders here —
-   Foundations 2–4 define their real shapes. For F1.3, only `wgsl-function`, `group`, and `sink`
-   need concrete definitions (they cover every primitive that exists today); the others can be
-   `never`-typed stubs until their foundation lands, so the union compiles now without
-   prematurely designing resource/kernel/command semantics this sub-milestone doesn't own.
-2. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl`
-   field — **do not remove `wgsl` yet.** Make `wgsl` optional and derive it from `implementation`
-   for `wgsl-function`/`group` kinds, so the 3 dispatch files can migrate one at a time without a
-   flag-day cutover.
-3. Migrate the 5 structural-node registrations (`buffer.persist`, `stage.vertex`,
-   `stage.fragment`, `target.display`, `target.mesh`) to `kind: 'sink'` or a temporary
-   `kind: 'command'` placeholder (whichever fits better per-node — `target.display`/`target.mesh`
-   are sinks; `stage.vertex`/`stage.fragment` are more naturally kernels, but since `kernel`'s real
-   shape is Foundation 3's job, park them as an explicit `kind: 'unmigrated-stage'` placeholder
-   rather than guessing Foundation 3's design here). Delete their fake WGSL modules
-   (`structural.ts`'s comment-only bodies) once nothing reads `.wgsl` for these nodes anymore.
-4. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on
-   `implementation.kind` instead of assuming `.wgsl` exists — for `wgsl-function`/`group` kinds
-   this is a direct rename of the existing code path; for `sink`/placeholder kinds, the dispatch
-   should skip WGSL generation entirely (today it presumably already special-cases these via
-   role metadata elsewhere — replace that special-casing with the direct `kind` check).
+   Note `{ kind: 'group'; groupId: string }` — a reference, not an embedded `GroupDefinition`.
+   `ResourceDescriptor`/`GpuCommandKind`/`PresentationSinkKind` are placeholders (Foundations 2–4
+   define their real shapes, now informed by `TypeRef` from F1.5); only `wgsl-function`, `group`,
+   and `sink` need concrete definitions for F1.3, since they cover every primitive that exists today.
+2. Add a **group registry** — a small provider (in `packages/graph`, or its own package if that
+   proves cleaner once attempted) mapping `groupId → GroupDefinition`, populated at startup from
+   wherever compiled group values are actually produced (today: `procedural-wgsl`). Primitive
+   registrations reference groups by `groupId` string, exactly matching the existing pattern of
+   referencing WGSL modules by string `moduleId` — no new dependency direction. The editor resolves
+   `groupId` through this registry for "zoom in and expand" UX without `graph` importing
+   `procedural-wgsl` directly.
+3. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl` field
+   — do not remove `wgsl` yet. Make it optional and derive it from `implementation` for
+   `wgsl-function`/`group` kinds, so the 3 dispatch files migrate one at a time.
+4. Migrate the structural-node registrations to `kind: 'sink'` or a temporary `kind: 'command'`
+   placeholder: `buffer.persist`, `stage.fragment`, `target.display`, `target.mesh`,
+   `geometry.fullscreenPlane` — **five nodes, `stage.vertex` excluded** (stays `wgsl-function` per
+   the verified-state note above). Delete the fake WGSL modules for the five once nothing reads
+   `.wgsl` for them.
+5. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on `implementation.kind`.
 
 **Test gate:**
 1. Every existing `wgsl-function` and `group`-backed primitive compiles to byte-identical WGSL
-   before and after (this is a structural/type-level change, not a codegen behavior change).
-2. The 5 structural nodes no longer have a registered WGSL module at all (confirm via a test that
-   `getPrimitive('target.mesh').wgsl` is undefined, not a placeholder).
+   before and after (parity category 1).
+2. The five genuinely-structural nodes no longer have a registered WGSL module; `stage.vertex`
+   still does and is unaffected.
 3. A new test proves the compiler's dispatch skips non-function/non-group kinds without
-   attempting to link/resolve a WGSL module for them (this is the actual bug the fake-module
-   workaround was hiding — today, does anything break if a structural node's placeholder module
-   accidentally *were* linked? Verify this explicitly, since it's exactly the kind of silent
-   failure the review is warning about).
-4. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
+   attempting to link/resolve a WGSL module for them.
+4. A new test proves the group registry resolves `groupId` correctly for the editor's "expand
+   group" path without `packages/graph` importing `packages/procedural-wgsl` — check this via a
+   dependency-direction assertion (e.g. a lint/import-graph check), not just behavior.
+5. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
    workspace.
 
-**Out of scope:** designing `ResourceDescriptor`/`GpuCommandKind`/real kernel semantics (Foundation
-2/3/4's job). Migrating `stage.vertex`/`stage.fragment` to a final `kind: 'kernel'` shape (parked
-as a placeholder until Foundation 3 defines what a kernel actually is).
+**Out of scope:** designing `ResourceDescriptor`/`GpuCommandKind`/real kernel semantics
+(Foundation 2/3/4). Migrating `stage.vertex`/`stage.fragment` to a final `kind: 'kernel'` shape.
 
 ---
 
-## F1.4 — Unify execution roots
+## F1.4a — Unify execution roots + migrate legacy documents
 
 **Goal:** replace `GraphDocument.outputs` + `GraphDocument.consumers` + role-metadata node
-detection — three overlapping, already-reconciled-by-hand mechanisms — with one rule: exports
-name reusable values, kernel/pass/sink nodes (per F1.3's `kind` tag) are the only execution roots.
+detection with one rule — exports name reusable values, kernel/pass/sink nodes (per F1.3's `kind`
+tag) are the only execution roots — **and** ship a real `GraphDocument` schema migration so no
+existing saved graph silently loses its execution roots. This is **not** Foundation 4: it does not
+build a generic resource/hazard-validation planner, only generic *root discovery* for today's one
+pipeline shape.
 
 **Verified current state:**
 - `GraphDocument` has both `outputs: GraphOutput[]` and `consumers: ProceduralConsumer[]` as
-  separate top-level fields (`packages/graph/src/types.ts:87-94`).
-- `ProceduralConsumer.outputs: string[]` references `GraphOutput.name` by string — `consumers`
-  already depends on `outputs` existing, which is itself a sign these were never truly
-  independent concepts.
-- **Direct, damning evidence of the conflation:** `PipelineStage = 'compute' | 'vertex' |
-  'fragment' | 'mesh-gen'` (`packages/graph/src/types.ts:71`) — `'mesh-gen'` is listed as a
-  pipeline *stage*, when it's actually a compute-kernel role or standard-library group, exactly
-  matching the review's complaint verbatim. This isn't a hypothetical smell, it's a literal type
-  definition in the shipped code.
-- A *third*, parallel execution-root mechanism already exists: `isPipelineTarget`/`isMeshTarget`
-  detect sink nodes via `metadata.role === 'pipelineTarget' | 'meshTarget'`
-  (`packages/graph/src/pipeline.ts`, `packages/graph/src/meshTarget.ts`) — string-tag role
-  detection, independent of both `outputs` and `consumers`.
-- The project has *already* had to build reconciliation logic to paper over the drift between
-  these three sources: `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`
-  (`packages/graph/src/pipeline.ts`) exist specifically because `outputs`/`consumers` can go
-  stale relative to what's actually wired in the graph. I personally had to add a fourth,
-  near-duplicate mechanism (`deriveMeshTargets`, parallel to `derivePipelinePresentations`) this
-  session for `target.mesh`, and a local `augmentGraphForMeshGen` step to synthesize `outputs`
-  entries on the fly because `sliceGraph` demands named outputs that `deriveMeshTargets` doesn't
-  produce automatically — this sub-milestone is the fix for the exact friction I hit directly.
-- `GraphDocument.consumers` is read in 6 files:
-  `compiler/src/compileGraph.ts`, `graph/src/pipeline.ts`, `graph-editor/src/compiledWgsl.ts`,
-  `graph-editor/src/irAdapter.ts`, `graph-editor/src/markup/printGraph.ts`,
-  `graph-editor/src/graphCompileSignature.ts` — every one of the editor's major surfaces
-  (compiled-WGSL view, IR adapter, markup export, compile-signature/caching) touches this, making
-  this the **highest-stakes regression surface in the whole Foundation 1 plan.**
-- `PipelineGraphPlan` hardcodes a fixed-chain node search: `findNode(doc, 'target.display')`,
-  `findNode(doc, 'buffer.persist')` (`packages/runtime-webgpu/src/pipelineGraph.ts:189,215`),
-  plus direct `.primitive !== 'stage.vertex'`/`'stage.fragment'` string checks — this can only
-  ever recognize the one pipeline shape it was written for.
+  separate top-level fields. `ProceduralConsumer.outputs: string[]` references `GraphOutput.name`
+  by string — `consumers` already depends on `outputs` existing.
+- **Direct evidence of the conflation:** `PipelineStage = 'compute' | 'vertex' | 'fragment' |
+  'mesh-gen'` — `'mesh-gen'` is listed as a pipeline *stage*, when it's a compute-kernel role or
+  standard-library group.
+- A *third*, parallel execution-root mechanism exists: `isPipelineTarget`/`isMeshTarget` detect
+  sink nodes via `metadata.role` string tags, independent of both `outputs` and `consumers`.
+- The project already has reconciliation logic (`effectiveOutputs`/`effectiveConsumers`/
+  `derivePipelineConsumers`/`deriveMeshTargets`) built specifically to paper over drift between
+  these sources.
+- `GraphDocument.consumers` is read in 6 files across `compiler` and `graph-editor` — every major
+  editor surface (compiled-WGSL view, IR adapter, markup export, compile-signature caching)
+  touches this, making it the highest-stakes regression surface in Foundation 1.
+- `PipelineGraphPlan` hardcodes fixed-chain node search: `findNode(doc, 'target.display')`,
+  `findNode(doc, 'buffer.persist')`, plus direct `.primitive !== 'stage.vertex'` string checks.
+- **Legacy documents with no sink/kernel node at all, verified:**
+  `packages/graph-editor/src/graphBuilders.ts:131-158`'s `defaultPreviewGraph()` is a pure value
+  chain (`procedural.uv → noise.perlin3d → math.remap`) with **zero** `target.*`/`stage.*` nodes.
+  Its *only* execution-root declaration is `consumers: [{ type: 'preview', outputs: ['field'] }]`.
+  A rule of "only kernel/pass/sink nodes are execution roots" has literally nothing to walk from
+  for this graph and any graph shaped like it — a real, not hypothetical, breakage risk.
 
 **Fix:**
-1. Define the rule precisely: **exports** (`GraphDocument.outputs`, unchanged) name reusable
-   values for APIs/groups/tests/external consumers. **Kernel/pass/sink nodes** (identified by
-   F1.3's `implementation.kind`, not role-metadata strings) are the *only* execution roots —
-   runtime execution is derived by walking backward from every reachable kernel/pass/sink node,
-   full stop.
-2. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a *document-level* field. Anything it
-   currently encodes (which pipeline stage consumes which output) is already derivable from the
-   graph's own wiring once sink/kernel nodes carry their real `kind` — don't re-invent a parallel
-   metadata channel, derive it.
-3. Rewrite `PipelineGraphPlan`'s hardcoded search into the generic planner the review specifies:
-   find sink/pass roots → derive ordered commands within each pass → derive resource read/write
-   sets → validate hazards/stage constraints → topologically order passes → allocate resources →
-   compile only reachable kernels → encode commands. No branch may reference `'target.display'`,
-   `'buffer.persist'`, `'stage.vertex'`, `'stage.fragment'`, `'target.mesh'`, or any other specific
-   primitive id by name — it should work for any current or future sink/kernel primitive purely
-   from `implementation.kind` and graph wiring.
-4. Update all 6 files reading `.consumers` to derive the same information from reachable
-   kernel/pass/sink nodes instead — this is the actual migration work, one file at a time, with a
-   parity test per file before moving to the next.
-5. Provide a compatibility read path for existing serialized documents that still have a
-   `consumers` array on disk (old saved graphs/samples) — parse and discard it, or fold it
-   forward into the derived model once on load, so no user's saved work breaks.
+1. Define the rule: **exports** (`GraphDocument.outputs`, unchanged) name reusable values.
+   **Kernel/pass/sink nodes** (via F1.3's `implementation.kind`) are the only execution roots for
+   *rendering/compute execution* — runtime execution derives from walking backward from every
+   reachable kernel/pass/sink node.
+2. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function:
+   - For documents whose only execution-root signal is a `consumers: [{ type: 'preview', ... }]`
+     entry (no sink node present), **synthesize a sink node** on migration (e.g. a
+     `preview.fieldSink`-equivalent kind, wired from the referenced output) so the new rule has
+     something concrete to walk from. Do not just parse-and-discard `consumers`.
+   - For documents that already have real `target.*`/`stage.*` sink nodes, migration drops the
+     now-redundant `consumers` array and keeps the nodes as-is.
+   - Keep graph-schema versioning (`GraphDocument.version`) and artifact/serialization-format
+     versioning as separate concerns — a schema-version bump does not imply every serialized
+     artifact (e.g. exported markup) changes shape for unrelated reasons.
+3. Build a **fixture corpus** covering every bundled sample graph in `graphBuilders.ts` plus at
+   least one hand-written v1 document matching each distinct legacy shape found (sink-bearing,
+   consumer-only, mixed) — migrate each through v1→v2 and assert the synthesized/derived result
+   still produces the same rendered/compiled output as before migration.
+4. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
+   is proven — new documents are always v2, authored without `consumers`.
+5. Update the 6 files reading `.consumers` to read post-migration v2 documents instead, one file
+   at a time, with a parity test per file.
+6. Narrow planner change only: teach `PipelineGraphPlan` to discover today's fixed pipeline shape
+   (geometry → persist → vertex → fragment → display) by walking `implementation.kind` tags
+   instead of hardcoded primitive-id strings. **Do not** attempt to generalize the planner beyond
+   this one shape — a planner for arbitrary sink/kernel topologies needs the resource/hazard model
+   Foundation 2/3 don't provide yet. That generalization is Foundation 4, explicitly out of scope.
 
 **Test gate:**
-1. **The highest-priority gate in this entire plan:** every already-shipped feature that
-   currently depends on `consumers`/`outputs`/role-detection — image-pipeline preview, mesh-gen
-   preview, compiled-WGSL view, markup export, graph validation, undo/redo compile-signature
-   caching — produces **byte-identical output** on every existing bundled sample graph, before
-   and after this migration. Not "looks right" — diffed against captured baseline output.
-2. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` and their
-   ilk are deleted, not just superseded — if the new unified model still needs a reconciliation
-   step, that's a sign the unification isn't actually done.
-3. A new test wires an entirely novel sink kind (invented for the test, not `target.display` or
-   `target.mesh`) and proves the generic planner finds and executes it with zero code changes to
-   the planner itself — the actual proof "no planner branch knows about planes, cube faces,
-   vegetation, particles, or ShaderToy," per the review's own acceptance bar.
-4. Loading an old saved document (pre-migration serialization, with a `consumers` array) still
-   opens and behaves identically in the editor.
-5. `check` and `test` green for every package, full workspace, with special attention to
-   `graph-editor`'s test suite given it's the widest-touched consumer.
+1. Every already-shipped feature depending on `consumers`/`outputs`/role-detection — image-pipeline
+   preview, mesh-gen preview, compiled-WGSL view, markup export, graph validation, undo/redo
+   compile-signature caching — matches its **appropriate** parity category per the taxonomy above:
+   byte-identical WGSL for compiled shader text; pixel-equivalent for rendered previews; canonical
+   v2 serialization (not byte-identical v1 text) for markup export; a browser visual gate for the
+   bundled samples. Not one blanket "byte-identical" claim across all of these.
+2. The full fixture corpus (every bundled sample + hand-written legacy-shape documents) migrates
+   v1→v2 with no loss of execution roots, verified by the synthesized-sink-node mechanism for
+   consumer-only documents specifically.
+3. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
+   deleted, not superseded.
+4. A new test wires a novel sink kind (invented for the test) and proves `PipelineGraphPlan`'s
+   discovery step finds it via `implementation.kind` alone — proving root *discovery* is generic,
+   while acknowledging (per scope above) the planner's *shape* is still the one fixed chain.
+5. Loading an old v1 saved document still opens and behaves identically after migration.
+6. `check` and `test` green for every package, full workspace, with special attention to
+   `graph-editor`.
 
-**Out of scope:** the generic resource/pass/hazard-validation model itself (Foundation 2) — this
-sub-milestone only needs *enough* of a generic planner to replace the hardcoded chain-search, not
-the full resource-lifetime/hazard model the review describes for Foundation 2.
-
----
-
-## F1.5 — Structural `TypeRef`
-
-**Goal:** replace the closed 20-value `DataType` string union with a structural type algebra
-capable of integers, matrices, parameterized buffers/textures, and struct types — without
-breaking any of the 138 currently-registered primitives.
-
-**Verified current state:**
-- `DataType` is a flat union of exactly 20 literal values across four categories:
-  `ValueDataType` (`f32`/`vec2f`/`vec3f`/`vec4f`/`bool`), `ResourceDataType`
-  (`image`/`mesh`/`audio`), `PipelineResourceType` (`geometry`/`varyings`/`texture`/
-  `vertexBuffer`/`indexBuffer`/`renderTarget`/`bindGroup`/`storageBuffer`), and `ListDataType`
-  (superseded by F1.1) — `packages/graph/src/types.ts:5-19`.
-- **No integer types exist at all.** `packages/compiler/src/groupCodegen.ts` explicitly throws
-  `'Group param mappings do not support integer schemas (i32 graph ports are out of scope)'` —
-  this was a deliberate, acknowledged deferral, not an oversight.
-- **No matrix types exist at all** — not even as an internal representation.
-- Vectors are three separate hardcoded literals (`vec2f`/`vec3f`/`vec4f`), no width
-  parameterization; the only "promotion" rule is a hardcoded vec2f→vec3f case, and — worth
-  fixing regardless of the type-system question — **this exact rule is copy-pasted identically
-  in three separate files**: `packages/runtime-webgpu/src/emitGraphEval.ts:108-114`,
-  `packages/compiler/src/groupCodegen.ts:32-38`, `packages/runtime-cpu/src/evalGraph.ts:32-38`.
-  Three independently-maintained copies of the same rule is a latent bug risk on its own,
-  independent of whether `TypeRef` ever lands.
-- Exhaustiveness-checked functions that must be updated for any new type value (confirmed via
-  `_exhaustive: never` grep, all in `graph-editor`): `previewBuffers.ts::previewFamily()`,
-  and via the `DataType`→WGSL mapping: `dataType.ts::dataTypeToWgsl()`. Five files total contain
-  exhaustive DataType switches: `irAdapter.ts`, `graphValidation.ts`, `nodePaletteModel.ts`,
-  `previewBuffers.ts`, `previewBackend.ts`.
-- The WGSL↔DataType mapping is well-isolated in one small table
-  (`packages/graph/src/dataType.ts:5-14`, `VALUE_TYPE_ALIASES`) — this is the *good* news: the
-  self-describing-WGSL mechanism the review explicitly wants to keep is already a small, clean
-  chokepoint, not scattered.
-- `packages/schema` (TypeBox-based `TSchema`) is **already** a real, structural, composable type
-  system — currently used only for primitive *params*, never for *ports*. This raises an open
-  design question worth deciding explicitly rather than defaulting either way: should ports adopt
-  the same TypeBox-based representation params already use (one shared structural-type engine),
-  or does GPU-facing port typing (buffers, textures, storage access, usage flags) diverge enough
-  from author-facing param typing (defaults, ranges, widgets) that they should stay deliberately
-  separate systems? **Recommendation: decide this before writing any `TypeRef` code** — it
-  materially changes whether F1.5 is "extend TypeBox" or "build a new parallel algebra."
-- 138 primitive registrations only declare `dataType: 'f32'`-style port specs — mechanically
-  simple to migrate per-file; the real complexity is entirely in the ~37 non-primitive files with
-  actual dispatch logic.
-
-**Fix:**
-1. **First, resolve the TypeBox-reuse question above** — this is a real architectural fork, not
-   a detail, and shouldn't be decided implicitly by whoever writes the first line of code.
-2. Introduce `TypeRef` as the review specifies (scalar/vector/matrix/array/struct/buffer/texture/
-   sampler/mesh/command discriminated union), **alongside** `DataType`, not replacing it yet. Add
-   a canonical `DataType ↔ TypeRef` mapping so every existing primitive keeps working unchanged
-   through a compatibility shim while new primitives can opt into the richer surface.
-3. Consolidate the triplicated `promoteExpr()`/`coerceInputValue()` copies into one shared,
-   `TypeRef`-aware promotion function used by all three call sites — this is worth doing even in
-   isolation, since three drifting copies of the same rule is already a bug risk today.
-4. Migrate the 5 exhaustive-switch files last, once `TypeRef` is proven via new primitives (don't
-   touch working, shipped exhaustiveness checks until the new type surface has real test coverage
-   behind it).
-5. Decide integer and matrix support scope now that it's unblocked: at minimum, prove one new
-   primitive using an integer port and one using a matrix type end-to-end (compiles, evaluates on
-   CPU, runs on GPU) as the acceptance bar for "the closed type system problem is actually fixed,"
-   not just "the union got bigger."
-
-**Test gate:**
-1. All 138 existing primitive registrations validate and compile identically via the
-   `DataType ↔ TypeRef` compatibility shim — zero behavior change for anything that exists today.
-2. The consolidated promotion function produces identical output to all three current copies for
-   every existing promotion case (vec2f→vec3f), proving the consolidation is behavior-preserving,
-   not just a refactor with new bugs.
-3. A new test primitive using an integer port and a new test primitive using a matrix type both
-   round-trip through evalCPU and compile to correct WGSL — the actual proof the closed-type
-   problem is fixed.
-4. The 5 exhaustiveness-check files compile with the new type surface present, with no behavior
-   change for any existing `DataType` value.
-5. `check` and `test` green for every package, full workspace — this sub-milestone touches the
-   most files, so this is the widest gate in the plan.
-
-**Out of scope:** designing the full WebGPU capability/validation model (adapter feature
-negotiation, limits) — that's Foundation 2. Storage/texture *usage-flag inference from edges* —
-Foundation 2 territory once resources are generic. Removing `DataType` entirely — it stays as a
-convenience alias layer indefinitely, per the review's own "editor may display short aliases...
-without storing the alias as the semantic type."
+**Out of scope:** the generic resource/pass/hazard-validation model (Foundation 2). Generalizing
+`PipelineGraphPlan` beyond discovery of today's one pipeline shape (Foundation 4). Any new sink/
+kernel topology beyond what already exists.
 
 ---
 
 ## Definition of done for Foundation 1
 
-All five sub-milestones' test gates pass, plus:
+All five sub-milestones' test gates pass (in execution order: F1.1, F1.2, F1.5, F1.3, F1.4a), plus:
 
-- Every already-shipped, already-tested feature (image pipeline, mesh-gen preview, vegetation
-  preview, geometry transforms, params-as-inputs, undo/redo, document save/load) produces
-  identical behavior on its existing test suite and bundled sample graphs — verified by full
-  `check`/`test`/`build` across the workspace, not spot-checked.
+- Every already-shipped, already-tested feature produces output matching its correct parity
+  category (see [Parity-gate categories](#parity-gate-categories)) on its existing test suite and
+  bundled sample graphs — verified by full `check`/`test`/`build`, not spot-checked.
 - The live planet renderer (`apps/scene-editor`) is never touched by this plan except through
-  `CoordinateSpace`'s generalization (F1.2) — and even there, the 8 planet-specific values move
-  to library registration with identical validation behavior, not a rewrite. If any change here
-  risks `/scene`'s live rendering gates, stop and treat it as its own reviewed decision, per
-  `AGENTS.md`.
-- No new primitive/consumer/feature work lands in the *old* shape while this is in progress —
-  every new primitive or consumer added during Foundation 1 should use the *new* contracts as
-  they land, so the migration surface doesn't keep growing underneath the plan.
-- A follow-up document exists (not written yet, deliberately — premature before Foundation 1
-  proves the approach) sequencing Foundation 2 (generic resources/frame execution) the same way.
+  F1.2's space generalization, with identical validation behavior, not a rewrite.
+- The F1.4a fixture corpus (every bundled sample + hand-written legacy-shape documents) migrates
+  v1→v2 with no execution-root loss.
+- No new primitive/consumer/feature work lands in the *old* shape while this is in progress.
+- A follow-up document sequences Foundation 2 the same way — not written yet, deliberately,
+  before Foundation 1 proves the approach.
 
 ## What this document deliberately does not do
 
-It does not propose starting Foundation 2, 3, or 4 — those depend on F1.3's primitive-kind tagging
-and F1.4's unified execution roots landing first, per the dependency chain in the parent review.
-It does not resolve the TypeBox-reuse question for you — that's flagged as a decision this plan
-surfaces, not one it makes. It does not estimate calendar time — per this project's stated
-priority, the gate is correctness and migration safety, not speed.
+It does not propose starting Foundation 2, 3, or 4 — Foundation 4 in particular (the generic
+command/resource/hazard planner) is explicitly named throughout as out of scope for F1.4a. It does
+not estimate calendar time — per this project's stated priority, the gate is correctness and
+migration safety, not speed.
