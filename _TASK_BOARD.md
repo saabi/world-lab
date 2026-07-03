@@ -27,7 +27,24 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F1.4a — unify execution roots + migrate legacy documents** (Foundation 1, milestone 5 of 5,
+  **final milestone**; see `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md`
+  — frozen/approved for this milestone only; highest-blast-radius milestone in Foundation 1,
+  review very closely on landing; includes two required bundled sample graphs for manual visual
+  verification, per standing instruction — do not skip Gate item 3)
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.4a-unify-execution-roots.md`
+  Owns: `packages/graph/src/serialize.ts`, `packages/graph/src/types.ts`,
+  `packages/graph/src/graphIds.ts` (new, relocated from graph-editor), `packages/graph/src/pipeline.ts`,
+  `packages/graph/src/meshTarget.ts`, `packages/graph/src/primitives/`,
+  `packages/compiler/src/compileGraph.ts`, `packages/compiler/src/sinkAdapters.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineVertex.ts`,
+  `packages/runtime-webgpu/src/sinkHandlers.ts`,
+  `packages/graph-editor/src/graphIds.ts`, `packages/graph-editor/src/irAdapter.ts`,
+  `packages/graph-editor/src/compiledWgsl.ts`, `packages/graph-editor/src/graphCompileSignature.ts`,
+  `packages/graph-editor/src/markup/printGraph.ts`, `packages/graph-editor/src/graphBuilders.ts`,
+  `packages/graph-editor/src/samples.ts`,
+  and their test files
+  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 
