@@ -248,14 +248,50 @@ export function evaluateMeshGenCpu(req: MeshGenRequest): GeneratedMesh {
 	return { positions, normals, indices, vertexCount, indexCount: indices.length };
 }
 
-function findOutputName(doc: GraphDocument, output: PortRef): string {
-	const match = doc.outputs.find(
-		(candidate) => candidate.from.node === output.node && candidate.from.port === output.port
-	);
-	if (!match) {
-		throw new Error(`Output port is not declared in graph.outputs: ${output.node}.${output.port}`);
+const MESHGEN_POSITION_OUTPUT = '__meshgen_position';
+const MESHGEN_NORMAL_OUTPUT = '__meshgen_normal';
+
+function augmentGraphForMeshGen(req: MeshGenRequest): {
+	doc: GraphDocument;
+	sliceOutputNames: string[];
+} {
+	let doc = req.graph;
+	const sliceOutputNames: string[] = [];
+
+	function ensureOutput(ref: PortRef, syntheticName: string): string {
+		const existing = doc.outputs.find(
+			(candidate) => candidate.from.node === ref.node && candidate.from.port === ref.port
+		);
+		if (existing) {
+			return existing.name;
+		}
+		doc = {
+			...doc,
+			outputs: [...doc.outputs, { name: syntheticName, from: ref }]
+		};
+		return syntheticName;
 	}
-	return match.name;
+
+	sliceOutputNames.push(ensureOutput(req.position, MESHGEN_POSITION_OUTPUT));
+	if (req.normal) {
+		sliceOutputNames.push(ensureOutput(req.normal, MESHGEN_NORMAL_OUTPUT));
+	}
+
+	return { doc, sliceOutputNames };
+}
+
+function mergeMeshGenGraphParams(...fieldSets: GraphParamField[][]): GraphParamField[] {
+	const merged = new Map<string, GraphParamField>();
+	for (const fields of fieldSets) {
+		for (const field of meshGenGraphParams(fields)) {
+			merged.set(`${field.nodeId}:${field.paramName}`, field);
+		}
+	}
+	return [...merged.values()];
+}
+
+function meshVertexCount(gridSize: number, faceCount: number): number {
+	return gridSize * gridSize * faceCount;
 }
 
 function meshGenGraphParams(fields: GraphParamField[]): GraphParamField[] {
@@ -352,19 +388,21 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
 /** Assemble the WGSL compute shader for mesh generation. */
 export async function assembleMeshGenShader(req: MeshGenRequest): Promise<string> {
-	const outputName = findOutputName(req.graph, req.position);
-	const slice = sliceGraph(req.graph, { outputs: [outputName] });
+	const { doc: augmentedDoc, sliceOutputNames } = augmentGraphForMeshGen(req);
+	const slice = sliceGraph(augmentedDoc, { outputs: sliceOutputNames });
 	const generated = await generateWgsl(slice, createStandardLibraryResolver());
 	const positionEmitted = emitGraphVec3Eval(req.graph, req.position, { faceExpr: 'face' });
-	const graphParams = meshGenGraphParams(positionEmitted.params);
 
 	let normalBody: string[] | null = null;
 	let normalExpr: string | null = null;
+	const paramSources: GraphParamField[][] = [positionEmitted.params];
 	if (req.normal) {
 		const normalEmitted = emitGraphVec3Eval(req.graph, req.normal, { faceExpr: 'face' });
 		normalBody = normalEmitted.body;
 		normalExpr = normalEmitted.resultExpr;
+		paramSources.push(normalEmitted.params);
 	}
+	const graphParams = mergeMeshGenGraphParams(...paramSources);
 
 	return buildMeshGenComputeShader(
 		generated.code,
@@ -394,10 +432,19 @@ async function readBufferF32(device: GPUDevice, buffer: GPUBuffer, floatCount: n
 
 /** GPU compute mesh generation; matches CPU reference when a device is present. */
 export async function executeMeshGen(device: GPUDevice, req: MeshGenRequest): Promise<GeneratedMesh> {
-	const cpuReference = evaluateMeshGenCpu(req);
+	const vertexCount = meshVertexCount(req.gridSize, req.faceCount);
+	const indices = buildMeshIndices(req.gridSize, req.faceCount);
+	const indexCount = indices.length;
+
 	const shaderCode = await assembleMeshGenShader(req);
 	const positionEmitted = emitGraphVec3Eval(req.graph, req.position, { faceExpr: 'face' });
-	const graphParams = meshGenGraphParams(positionEmitted.params);
+	const normalEmitted = req.normal
+		? emitGraphVec3Eval(req.graph, req.normal, { faceExpr: 'face' })
+		: null;
+	const graphParams = mergeMeshGenGraphParams(
+		positionEmitted.params,
+		normalEmitted?.params ?? []
+	);
 
 	const module = device.createShaderModule({ label: 'mesh-gen', code: shaderCode });
 	const pipeline = device.createComputePipeline({
@@ -415,7 +462,7 @@ export async function executeMeshGen(device: GPUDevice, req: MeshGenRequest): Pr
 	});
 	device.queue.writeBuffer(uniformBuffer, 0, uniformData.buffer, uniformData.byteOffset, uniformData.byteLength);
 
-	const positionBytes = cpuReference.vertexCount * 3 * 4;
+	const positionBytes = vertexCount * 3 * 4;
 	const positionBuffer = createStorageBuffer(device, {
 		label: 'mesh-gen-positions',
 		size: alignTo(positionBytes, 16),
@@ -436,7 +483,7 @@ export async function executeMeshGen(device: GPUDevice, req: MeshGenRequest): Pr
 		]
 	});
 
-	const workgroups = Math.ceil(cpuReference.vertexCount / 64);
+	const workgroups = Math.ceil(vertexCount / 64);
 	const encoder = device.createCommandEncoder({ label: 'mesh-gen' });
 	const pass = encoder.beginComputePass({ label: 'mesh-gen' });
 	pass.setPipeline(pipeline);
@@ -446,8 +493,8 @@ export async function executeMeshGen(device: GPUDevice, req: MeshGenRequest): Pr
 	device.queue.submit([encoder.finish()]);
 	await device.queue.onSubmittedWorkDone();
 
-	const gpuPositions = await readBufferF32(device, positionBuffer, cpuReference.vertexCount * 3);
-	const gpuNormals = await readBufferF32(device, normalBuffer, cpuReference.vertexCount * 3);
+	const gpuPositions = await readBufferF32(device, positionBuffer, vertexCount * 3);
+	const gpuNormals = await readBufferF32(device, normalBuffer, vertexCount * 3);
 
 	uniformBuffer.destroy();
 	positionBuffer.destroy();
@@ -456,8 +503,8 @@ export async function executeMeshGen(device: GPUDevice, req: MeshGenRequest): Pr
 	return {
 		positions: gpuPositions,
 		normals: gpuNormals,
-		indices: cpuReference.indices,
-		vertexCount: cpuReference.vertexCount,
-		indexCount: cpuReference.indexCount
+		indices,
+		vertexCount,
+		indexCount
 	};
 }

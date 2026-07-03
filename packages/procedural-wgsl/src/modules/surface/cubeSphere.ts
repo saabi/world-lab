@@ -13,6 +13,10 @@ fn normalize3(v: vec3<f32>) -> vec3<f32> {
 
 fn cubeSphere(uv: vec2<f32>, face: i32) -> vec3<f32> {
 	return normalize3(cubeFaceUvToPoint(face, uv.x, uv.y));
+}
+
+fn cubeSphere_normal(uv: vec2<f32>, face: i32) -> vec3<f32> {
+	return cubeSphere(uv, face);
 }`;
 
 export const SURFACE_CUBE_SPHERE_MODULE = {

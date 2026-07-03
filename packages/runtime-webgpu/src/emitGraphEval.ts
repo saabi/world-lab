@@ -53,6 +53,18 @@ function paramField(nodeId: string, paramName: string): string {
 	return `p_${sanitizeId(nodeId)}_${sanitizeId(paramName)}`;
 }
 
+function wgslEntryForOutput(
+	primitive: NonNullable<ReturnType<typeof getPrimitive>>,
+	outPort: { id: string; name: string },
+	valueOutputs: { id: string; name: string }[]
+): string {
+	const base = primitive.wgsl.entry;
+	if (valueOutputs.length <= 1) return base;
+	const primary = valueOutputs[0]!;
+	if (outPort.id === primary.id || outPort.name === primary.name) return base;
+	return `${base}_${outPort.name}`;
+}
+
 function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
 	const nodeMap = new Map(doc.nodes.map((node) => [node.id, node]));
 	const incoming = new Map<string, Set<string>>();
@@ -400,15 +412,21 @@ function emitGraphEval(
 				for (const outPort of valueOutputs) {
 					const lhsVar = portVar(node.id, outPort.id);
 					const lhsType = dataTypeToWgsl(outPort.dataType);
+					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
+					const loopExpr = loopCallExpr.replace(
+						`${primitive.wgsl.entry}(`,
+						`${entry}(`
+					);
 					body.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
 					body.push(`let ${loopCountName} = arrayLength(&${loopVarName});`);
 					body.push(`for (var ${loopIndexName}: u32 = 0u; ${loopIndexName} < ${loopCountName}; ${loopIndexName} = ${loopIndexName} + 1u) {`);
-					body.push(`\t${lhsVar} = ${lhsVar} + ${loopCallExpr};`);
+					body.push(`\t${lhsVar} = ${lhsVar} + ${loopExpr};`);
 					body.push(`}`);
 				}
 			} else {
 				for (const outPort of valueOutputs) {
-					const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
+					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
+					const callExpr = `${entry}(${argValues.join(', ')})`;
 					const lhsType = dataTypeToWgsl(outPort.dataType);
 					body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 				}

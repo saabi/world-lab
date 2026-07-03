@@ -1,7 +1,7 @@
 import { getPrimitive, paramInputPorts, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
-import { emitGraphScalarEval, emitGraphVec4Eval } from './emitGraphEval.js';
+import { emitGraphScalarEval, emitGraphVec3Eval, emitGraphVec4Eval } from './emitGraphEval.js';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
@@ -340,5 +340,26 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 		const emitted = emitGraphVec4Eval(graph, { node: 'n_combine', port: 'value' });
 		expect(emitted.body.join('\n')).toContain('combineVec3fF32(v_n_xyz_value, 1.0)');
+	});
+
+	it('uses per-output WGSL entries for multi-output surface primitives', () => {
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [snapshotNode('n_uv', 'procedural.uv'), snapshotNode('n_plane', 'surface.plane')],
+			edges: [
+				{
+					id: 'e_uv_plane',
+					from: { node: 'n_uv', port: 'uv' },
+					to: { node: 'n_plane', port: 'uv' }
+				}
+			],
+			outputs: [],
+			consumers: []
+		};
+
+		const position = emitGraphVec3Eval(graph, { node: 'n_plane', port: 'position' }, { faceExpr: '0' });
+		const normal = emitGraphVec3Eval(graph, { node: 'n_plane', port: 'normal' }, { faceExpr: '0' });
+		expect(position.body.join('\n')).toContain('plane(');
+		expect(normal.body.join('\n')).toContain('plane_normal(');
 	});
 });

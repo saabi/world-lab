@@ -207,7 +207,8 @@ export async function renderMeshGenPreview(input: MeshGenPreviewInput): Promise<
 	let mesh: GeneratedMesh;
 	try {
 		mesh = await executeMeshGen(device, request);
-	} catch {
+	} catch (error) {
+		console.warn('Mesh preview GPU path failed; falling back to CPU mesh generation.', error);
 		mesh = evaluateMeshGenCpu(request);
 	}
 	const pipeline = createRenderPipeline(device, format);
