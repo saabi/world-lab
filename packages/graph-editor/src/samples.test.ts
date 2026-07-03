@@ -10,10 +10,11 @@ import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js
 
 describe('graph-editor samples registry', () => {
 	it('contains the Worley, cosine-palette, and mesh samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(4);
+		expect(GRAPH_SAMPLES.length).toBe(5);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
+		expect(getGraphSample('mesh-rigid-transforms')?.label).toContain('Rigid transforms');
 		expect(getGraphSample('default-scalar')).toBeUndefined();
 	});
 
@@ -115,6 +116,32 @@ describe('graph-editor samples registry', () => {
 		const rot = graph.nodes.find((node) => node.id === 'n_rot');
 		expect(rot?.params).toMatchObject({ rotationX: 0.65 });
 		expect(deriveMeshTargets(graph)).toHaveLength(1);
+	});
+
+	it('builds a rigid-transforms mesh sample chaining scale, rotate, and translate', () => {
+		const graph = getGraphSample('mesh-rigid-transforms')!.build();
+		expect(validateGraphFull(graph).ok).toBe(true);
+		expect(graph.nodes.map((node) => node.primitive)).toEqual(
+			expect.arrayContaining([
+				'transform.scale',
+				'transform.rotate',
+				'transform.translate',
+				'target.mesh'
+			])
+		);
+		const request = resolveMeshPreviewRequest(
+			graph,
+			enumeratePreviewBuffers(graph).find((buffer) => buffer.dataType === 'mesh')!
+		);
+		expect(request?.position).toEqual({ node: 'n_translate', port: 'position' });
+		const mesh = evaluateMeshGenCpu({
+			graph,
+			position: request!.position,
+			normal: request!.normal,
+			gridSize: request!.gridSize,
+			faceCount: request!.faceCount
+		});
+		expect(mesh.vertexCount).toBeGreaterThan(0);
 	});
 
 	it('exposes every sample as a read-only GraphArtifact that validates', () => {

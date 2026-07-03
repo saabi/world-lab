@@ -5,6 +5,7 @@ import {
 	cosinePaletteEffectGraph,
 	defaultPreviewGraph,
 	displacedSphereMeshGraph,
+	rigidTransformsMeshGraph,
 	rotatedPlaneMeshGraph
 } from './graphBuilders.js';
 import { createGraphArtifact, type GraphArtifact } from './graphArtifact.js';
@@ -36,6 +37,11 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'mesh-rotated-plane',
 		label: 'Mesh — Rotated plane',
 		build: rotatedPlaneMeshGraph
+	},
+	{
+		id: 'mesh-rigid-transforms',
+		label: 'Mesh — Rigid transforms (plane)',
+		build: rigidTransformsMeshGraph
 	}
 ];
 

@@ -273,6 +273,48 @@ export function rotatedPlaneMeshGraph(): GraphDocument {
 	};
 }
 
+/**
+ * Mesh preview sample: plane through scale → rotate → translate → target.mesh.
+ * Demonstrates all Slice B rigid transforms in one graph.
+ */
+export function rigidTransformsMeshGraph(): GraphDocument {
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 160 }),
+			snapshotNode('n_plane', 'surface.plane', { x: 200, y: 140 }),
+			snapshotNode('n_factor', 'constant.f32', { x: 200, y: 280 }, { value: 1.6 }),
+			snapshotNode('n_scale', 'transform.scale', { x: 420, y: 160 }),
+			snapshotNode('n_rot', 'transform.rotate', { x: 640, y: 140 }, {
+				rotationX: 0.55,
+				rotationY: 0.35,
+				rotationZ: 0
+			}),
+			snapshotNode('n_off_x', 'constant.f32', { x: 640, y: 280 }, { value: 0 }),
+			snapshotNode('n_off_y', 'constant.f32', { x: 640, y: 340 }, { value: 0.4 }),
+			snapshotNode('n_off_z', 'constant.f32', { x: 640, y: 400 }, { value: 0.15 }),
+			snapshotNode('n_offset', 'vector.vec3f', { x: 820, y: 320 }),
+			snapshotNode('n_translate', 'transform.translate', { x: 1020, y: 180 }),
+			snapshotNode('n_mesh', 'target.mesh', { x: 1240, y: 160 }, { gridSize: 28, faceCount: 1 })
+		],
+		edges: [
+			edge('e_uv_plane', 'n_uv', 'procedural.uv', 'n_plane', 'surface.plane', 0, 0),
+			edge('e_plane_scale', 'n_plane', 'surface.plane', 'n_scale', 'transform.scale', 0, 0),
+			edge('e_factor_scale', 'n_factor', 'constant.f32', 'n_scale', 'transform.scale', 0, 1),
+			edge('e_scale_rot', 'n_scale', 'transform.scale', 'n_rot', 'transform.rotate', 0, 0),
+			edge('e_rot_trans', 'n_rot', 'transform.rotate', 'n_translate', 'transform.translate', 0, 0),
+			edge('e_off_x', 'n_off_x', 'constant.f32', 'n_offset', 'vector.vec3f', 0, 0),
+			edge('e_off_y', 'n_off_y', 'constant.f32', 'n_offset', 'vector.vec3f', 0, 1),
+			edge('e_off_z', 'n_off_z', 'constant.f32', 'n_offset', 'vector.vec3f', 0, 2),
+			edge('e_offset_trans', 'n_offset', 'vector.vec3f', 'n_translate', 'transform.translate', 0, 1),
+			edge('e_trans_mesh', 'n_translate', 'transform.translate', 'n_mesh', 'target.mesh', 0, 0),
+			edge('e_plane_norm', 'n_plane', 'surface.plane', 'n_mesh', 'target.mesh', 0, 1)
+		],
+		outputs: [],
+		consumers: []
+	};
+}
+
 export function primaryPreviewOutput(doc: GraphDocument): PortRef | null {
 	return doc.outputs[0]?.from ?? pipelineFieldOutput(doc);
 }
