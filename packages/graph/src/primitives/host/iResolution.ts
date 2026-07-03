@@ -1,15 +1,18 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const iResolution: NodePrimitive = {
+const iResolution: NodePrimitiveInput = {
 	id: 'host.iResolution',
 	category: 'ShaderToy',
 	inputs: [],
 	outputs: [{ name: 'resolution', dataType: 'vec2f', metadata: { semantic: 'target-resolution' } }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'host.iResolution', entry: 'i_resolution' },
+	implementation: {
+		kind: 'host-input',
+		binding: { context: 'write-target', key: 'iResolution' }
+	},
 	metadata: {
 		keywords: ['Inputs', 'ShaderToy'],
 		help: 'Render target resolution in pixels (ShaderToy iResolution).'

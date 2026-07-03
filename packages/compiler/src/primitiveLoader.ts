@@ -758,6 +758,11 @@ export function loadWgslPrimitive(input: LoadWgslPrimitiveInput): LoadedWgslPrim
 		inputs,
 		outputs,
 		params,
+		implementation: {
+			kind: 'wgsl-function',
+			moduleId: input.moduleId,
+			entry: signature.name
+		},
 		wgsl: {
 			moduleId: input.moduleId,
 			entry: signature.name,

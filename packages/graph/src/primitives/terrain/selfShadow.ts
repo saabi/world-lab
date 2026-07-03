@@ -1,11 +1,11 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, pureParam, ratioRParam } from './_params.js';
 import { PLANET_SPACES } from './spaces.js';
 
-const selfShadow: NodePrimitive = {
+const selfShadow: NodePrimitiveInput = {
 	id: 'terrain.selfShadow',
 	category: 'terrain',
 	inputs: [

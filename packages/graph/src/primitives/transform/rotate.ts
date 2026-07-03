@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { planeGridEulerRotate } from '../pipeline/planeGrid.js';
 import { registerPrimitive } from '../../registry.js';
 
@@ -20,7 +20,7 @@ export function evalRotate(
 	);
 }
 
-const rotate: NodePrimitive = {
+const rotate: NodePrimitiveInput = {
 	id: 'transform.rotate',
 	category: 'transform',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],

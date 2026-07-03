@@ -32,16 +32,24 @@ is still open.
   `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
   for this milestone only, do not re-open F1.1/F1.2/F1.5/F1.4a's design; review closely on landing)
   Brief: `_docs/architecture/procedural-graph/briefs/F1.3-primitive-implementation-union.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
-  `packages/graph/src/registry.ts`, `packages/graph/src/pipeline.ts`,
-  `packages/graph/src/meshTarget.ts`,
+  Owns: `packages/graph/src/implementation.ts`, `packages/graph/src/primitive.ts`,
+  `packages/graph/src/registry.ts`, `packages/graph/src/index.ts`,
+  `packages/graph/src/pipeline.ts`, `packages/graph/src/meshTarget.ts`,
+  `packages/graph/src/primitives/`,
+  `packages/procedural-wgsl/src/index.ts`, `packages/procedural-wgsl/src/modules/index.ts`,
   `packages/procedural-wgsl/src/modules/pipeline/structural.ts`,
+  `packages/procedural-wgsl/src/modules/pipeline/stubs.ts`,
   `packages/procedural-wgsl/src/modules/host/`, `packages/procedural-wgsl/src/modules/procedural/`,
   `packages/procedural-wgsl/src/resolver.ts`, `packages/procedural-wgsl/src/groups/`,
   `packages/compiler/src/codegen.ts`, `packages/compiler/src/groupCodegen.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/compiler/src/primitiveLoader.ts`, `packages/compiler/src/sinkAdapters.ts`,
+  `packages/compiler/src/index.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/runtime-webgpu/src/moduleResolver.ts`, `packages/runtime-webgpu/src/sinkHandlers.ts`,
+  `packages/runtime-webgpu/src/index.ts`, `packages/graph-editor/src/groupResolver.ts`,
+  `packages/graph-editor/src/primitiveSources.ts`, `packages/graph-editor/src/index.ts`,
+  `packages/mcp-server/src/index.ts`,
   and their test files
-  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 

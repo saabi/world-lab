@@ -15,3 +15,4 @@ export * from './markup/printGraph.js';
 export * from './markup/parseGraphMarkup.js';
 export * from './primitiveEditor.js';
 export * from './primitiveSources.js';
+export * from './groupResolver.js';

@@ -1,15 +1,18 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const fragCoord: NodePrimitive = {
+const fragCoord: NodePrimitiveInput = {
 	id: 'host.fragCoord',
 	category: 'ShaderToy',
 	inputs: [],
 	outputs: [{ name: 'coord', dataType: 'vec2f', metadata: { semantic: 'pixel' } }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'host.fragCoord', entry: 'frag_coord' },
+	implementation: {
+		kind: 'host-input',
+		binding: { context: 'stage-builtin', key: 'fragCoord', stages: ['fragment'] }
+	},
 	metadata: {
 		keywords: ['Inputs', 'ShaderToy'],
 		help: 'Fragment pixel coordinates (ShaderToy fragCoord / iMouse.xy).'

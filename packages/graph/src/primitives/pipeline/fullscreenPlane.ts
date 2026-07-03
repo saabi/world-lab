@@ -1,16 +1,16 @@
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planeGridMeshPositions } from './planeGrid.js';
 import { fullscreenPlaneParams } from './plane.js';
 
 /** Back-compat alias for a 2x2 `geometry.plane` used by saved S0 fullscreen graphs. */
-const fullscreenPlane: NodePrimitive = {
+const fullscreenPlane: NodePrimitiveInput = {
 	id: 'geometry.fullscreenPlane',
 	category: 'geometry/source',
 	inputs: [],
 	outputs: [{ name: 'mesh', dataType: 'geometry', metadata: { semantic: 'plane-grid' } }],
 	params: fullscreenPlaneParams,
-	wgsl: { moduleId: 'geometry.plane', entry: 'planeGrid' },
+	implementation: { kind: 'legacy-structural', marker: 'geometry.fullscreenPlane' },
 	evalCPU(ctx) {
 		const resU = typeof ctx.params.resU === 'number' ? ctx.params.resU : 2;
 		const resV = typeof ctx.params.resV === 'number' ? ctx.params.resV : 2;

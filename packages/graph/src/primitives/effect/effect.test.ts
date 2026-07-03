@@ -8,8 +8,8 @@ describe('effect.cosinePalette primitive', () => {
 		expect(prim).toBeDefined();
 		expect(prim!.category).toBe('ShaderToy');
 		expect(prim!.outputs[0]?.dataType).toBe('vec4f');
-		expect(prim!.wgsl.moduleId).toBe('effect.cosinePalette');
-		expect(prim!.wgsl.entry).toBe('cosine_palette');
+		expect(prim!.wgsl!.moduleId).toBe('effect.cosinePalette');
+		expect(prim!.wgsl!.entry).toBe('cosine_palette');
 	});
 
 	it('evalCPU matches cosine palette formula at origin', () => {

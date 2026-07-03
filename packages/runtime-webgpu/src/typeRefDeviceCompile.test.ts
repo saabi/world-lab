@@ -60,19 +60,21 @@ function testShader(): string {
 	const matrix = testPrimitive(MATRIX_ID);
 	const integerType = typeRefToWgsl(integer.inputs[0]!.type!);
 	const matrixType = typeRefToWgsl(matrix.inputs[0]!.type!);
+	const integerEntry = integer.wgsl!.entry;
+	const matrixEntry = matrix.wgsl!.entry;
 	return `
-fn ${integer.wgsl.entry}(value: ${integerType}) -> ${integerType} {
+fn ${integerEntry}(value: ${integerType}) -> ${integerType} {
 	return value;
 }
 
-fn ${matrix.wgsl.entry}(value: ${matrixType}) -> ${matrixType} {
+fn ${matrixEntry}(value: ${matrixType}) -> ${matrixType} {
 	return value;
 }
 
 @compute @workgroup_size(1)
 fn main() {
-	let integerResult: ${integerType} = ${integer.wgsl.entry}(7i);
-	let matrixResult: ${matrixType} = ${matrix.wgsl.entry}(
+	let integerResult: ${integerType} = ${integerEntry}(7i);
+	let matrixResult: ${matrixType} = ${matrixEntry}(
 		mat3x3<f32>(
 			vec3<f32>(1.0, 0.0, 0.0),
 			vec3<f32>(0.0, 1.0, 0.0),

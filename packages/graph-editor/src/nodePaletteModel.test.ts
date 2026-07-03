@@ -25,6 +25,7 @@ function mockPrimitive(
 		inputs: [{ name: 'a', dataType: 'f32' }],
 		outputs: [{ name: 'out', dataType: 'f32' }],
 		params: emptyParams,
+		implementation: { kind: 'wgsl-function', moduleId: id, entry: id },
 		wgsl: { moduleId: id, entry: id },
 		metadata: {
 			...(opts.role ? { role: opts.role } : {}),

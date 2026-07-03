@@ -1,5 +1,6 @@
 import {
 	getPrimitive,
+	callableWgslSource,
 	dataTypeToWgsl,
 	describePortType,
 	formatPortDefaultWgsl,
@@ -12,6 +13,7 @@ import {
 	typeRefToWgsl,
 	type DataType,
 	type GraphDocument,
+	type HostBinding,
 	type Node,
 	type PortTypeLike,
 	type PortRef,
@@ -61,15 +63,46 @@ function paramField(nodeId: string, paramName: string): string {
 }
 
 function wgslEntryForOutput(
-	primitive: NonNullable<ReturnType<typeof getPrimitive>>,
+	base: string,
 	outPort: { id: string; name: string },
 	valueOutputs: { id: string; name: string }[]
 ): string {
-	const base = primitive.wgsl.entry;
 	if (valueOutputs.length <= 1) return base;
 	const primary = valueOutputs[0]!;
 	if (outPort.id === primary.id || outPort.name === primary.name) return base;
 	return `${base}_${outPort.name}`;
+}
+
+function emitHostInput(
+	node: Node,
+	binding: HostBinding,
+	opts: EmitGraphEvalOptions | undefined
+): string {
+	const outPort = node.outputs[0];
+	if (!outPort) {
+		throw new Error(`Host-input primitive ${node.primitive} is missing its output port`);
+	}
+	const variable = portVar(node.id, outPort.id);
+
+	if (binding.context === 'invocation' && binding.key === 'uv') {
+		return `let ${variable} = vec2<f32>(u, v);`;
+	}
+	if (binding.context === 'invocation' && binding.key === 'metricPosition') {
+		const expr = opts?.positionExpr ?? 'vec3<f32>(u, v, 0.0)';
+		return `let ${variable}: vec3<f32> = ${expr};`;
+	}
+	if (binding.context === 'stage-builtin' && binding.key === 'fragCoord') {
+		return `let ${variable} = ${opts?.fragCoordExpr ?? 'position.xy'};`;
+	}
+	if (binding.context === 'write-target' && binding.key === 'iResolution') {
+		return `let ${variable} = ${opts?.iResolutionExpr ?? 'u.iResolution'};`;
+	}
+	if (binding.context === 'playback' && binding.key === 'iTime') {
+		return `let ${variable}: f32 = ${opts?.iTimeExpr ?? 'u.iTime'};`;
+	}
+	throw new Error(
+		`Unsupported host binding in this evaluation context: ${binding.context}.${binding.key}`
+	);
 }
 
 function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
@@ -236,54 +269,15 @@ function emitGraphEval(
 			throw new Error(`Unknown primitive: ${node.primitive}`);
 		}
 
-		if (node.primitive === 'procedural.uv') {
-			const uvPort = node.outputs[0];
-			if (!uvPort) {
-				throw new Error('procedural.uv missing output port');
-			}
-			body.push(`let ${portVar(node.id, uvPort.id)} = vec2<f32>(u, v);`);
+		if (primitive.implementation.kind === 'host-input') {
+			body.push(emitHostInput(node, primitive.implementation.binding, opts));
 			continue;
 		}
-
-		if (opts?.shaderToy && node.primitive === 'host.fragCoord') {
-			const outPort = node.outputs[0];
-			if (!outPort) {
-				throw new Error('host.fragCoord missing output port');
-			}
-			body.push(
-				`let ${portVar(node.id, outPort.id)} = ${opts.fragCoordExpr ?? 'position.xy'};`
+		const wgsl = callableWgslSource(primitive);
+		if (!wgsl) {
+			throw new Error(
+				`Expression node ${node.id} requires a callable primitive; got ${primitive.implementation.kind}`
 			);
-			continue;
-		}
-
-		if (opts?.shaderToy && node.primitive === 'host.iResolution') {
-			const outPort = node.outputs[0];
-			if (!outPort) {
-				throw new Error('host.iResolution missing output port');
-			}
-			body.push(
-				`let ${portVar(node.id, outPort.id)} = ${opts.iResolutionExpr ?? 'u.iResolution'};`
-			);
-			continue;
-		}
-
-		if (opts?.shaderToy && node.primitive === 'host.iTime') {
-			const outPort = node.outputs[0];
-			if (!outPort) {
-				throw new Error('host.iTime missing output port');
-			}
-			body.push(`let ${portVar(node.id, outPort.id)}: f32 = ${opts.iTimeExpr ?? 'u.iTime'};`);
-			continue;
-		}
-
-		if (node.primitive === 'procedural.metricPosition') {
-			const posPort = node.outputs[0];
-			if (!posPort) {
-				throw new Error('procedural.metricPosition missing output port');
-			}
-			const expr = opts?.positionExpr ?? 'vec3<f32>(u, v, 0.0)';
-			body.push(`let ${portVar(node.id, posPort.id)}: vec3<f32> = ${expr};`);
-			continue;
 		}
 
 		const argValues: string[] = [];
@@ -293,7 +287,7 @@ function emitGraphEval(
 		let loopIndexName = '';
 		let loopCallExpr = '';
 
-		for (const binding of inferArguments(doc, node, primitive.wgsl.arguments)) {
+		for (const binding of inferArguments(doc, node, wgsl.arguments)) {
 			if (binding.source === 'param' && binding.name === 'face' && opts?.faceExpr) {
 				argValues.push(`i32(${opts.faceExpr})`);
 				continue;
@@ -360,7 +354,7 @@ function emitGraphEval(
 						loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 						
 						// The call inside the loop uses buf[i] instead of the tuple argument
-						loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
+						loopCallExpr = `${wgsl.entry}(${loopVarName}[${loopIndexName}])`;
 						continue;
 					}
 				}
@@ -430,9 +424,9 @@ function emitGraphEval(
 				for (const outPort of valueOutputs) {
 					const lhsVar = portVar(node.id, outPort.id);
 					const lhsType = typeRefToWgsl(resolvePortType(outPort));
-					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
+					const entry = wgslEntryForOutput(wgsl.entry, outPort, valueOutputs);
 					const loopExpr = loopCallExpr.replace(
-						`${primitive.wgsl.entry}(`,
+						`${wgsl.entry}(`,
 						`${entry}(`
 					);
 					body.push(`var ${lhsVar}: ${lhsType} = ${lhsType === 'f32' ? '0.0' : `${lhsType}()`};`);
@@ -443,7 +437,7 @@ function emitGraphEval(
 				}
 			} else {
 				for (const outPort of valueOutputs) {
-					const entry = wgslEntryForOutput(primitive, outPort, valueOutputs);
+					const entry = wgslEntryForOutput(wgsl.entry, outPort, valueOutputs);
 					const callExpr = `${entry}(${argValues.join(', ')})`;
 					const lhsType = typeRefToWgsl(resolvePortType(outPort));
 					body.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);

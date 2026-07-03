@@ -4,6 +4,7 @@
 // Depends only on graph + schema + compiler; no Svelte/renderer dependency.
 
 import {
+	callableWgslSource,
 	describePortType,
 	getPrimitive,
 	listPrimitives as listRegisteredPrimitives,
@@ -39,7 +40,8 @@ export interface NodeDescription {
 	params: Record<string, unknown>;
 	inputs: PortInfo[];
 	outputs: PortInfo[];
-	wgslEntry: string;
+	implementationKind: string;
+	wgslEntry?: string;
 }
 
 function formatValidationIssue(issue: ValidationIssue): string {
@@ -98,6 +100,7 @@ export function describeNode(primitiveId: string): NodeDescription | null {
 
 	const paramKeys = paramKeysFromSchema(primitive.params as { properties?: Record<string, unknown> });
 	const params = Object.fromEntries(paramKeys.map((key) => [key, null]));
+	const wgsl = callableWgslSource(primitive);
 
 	return {
 		id: primitive.id,
@@ -113,6 +116,7 @@ export function describeNode(primitiveId: string): NodeDescription | null {
 			name: port.name,
 			dataType: describePortType(port)
 		})),
-		wgslEntry: primitive.wgsl.entry
+		implementationKind: primitive.implementation.kind,
+		...(wgsl ? { wgslEntry: wgsl.entry } : {})
 	};
 }

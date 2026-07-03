@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { PLANET_SPACES } from '../terrain/spaces.js';
 import { cubeFaceUvToPosition } from './cubeFaceMath.js';
@@ -13,7 +13,7 @@ function normalize3(v: [number, number, number]): [number, number, number] {
 	return [v[0] / len, v[1] / len, v[2] / len];
 }
 
-const cubeSphere: NodePrimitive = {
+const cubeSphere: NodePrimitiveInput = {
 	id: 'surface.cubeSphere',
 	category: 'surface',
 	inputs: [{ name: 'uv', dataType: 'vec2f' }],

@@ -1,4 +1,4 @@
-import { getPrimitive } from '@world-lab/graph';
+import { callableWgslSource, getPrimitive } from '@world-lab/graph';
 
 import type { GraphSlice } from './slice.js';
 
@@ -30,7 +30,8 @@ export async function generateWgsl(
 		if (!prim) {
 			throw new Error(`Unknown primitive: ${node.primitive}`);
 		}
-		roots.push(prim.wgsl.moduleId);
+		const wgsl = callableWgslSource(prim);
+		if (wgsl) roots.push(wgsl.moduleId);
 	}
 
 	const emitted = new Set<string>();

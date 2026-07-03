@@ -89,6 +89,16 @@ describe('mesh target derivation', () => {
 				faceCount: 6
 			}
 		]);
+
+		const implementation = getPrimitive('target.mesh')!.implementation;
+		expect(implementation.kind).toBe('sink');
+		if (implementation.kind !== 'sink') return;
+		const invocation = implementation.sink.deriveInvocation(graph, meshNode);
+		expect(invocation?.dependencies).toEqual([
+			portRef('n_plane', 'position'),
+			portRef('n_plane', 'normal')
+		]);
+		expect(invocation?.payload).toEqual(deriveMeshTargets(graph)[0]);
 	});
 
 	it('skips mesh targets missing the normal input', () => {

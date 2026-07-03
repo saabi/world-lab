@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, pureParam, ratioRParam } from './_params.js';
 import { PLANET_SPACES } from './spaces.js';
@@ -30,7 +30,7 @@ export function evalHeightRemap(
 	return params.radius + height;
 }
 
-const heightRemap: NodePrimitive = {
+const heightRemap: NodePrimitiveInput = {
 	id: 'terrain.heightRemap',
 	category: 'terrain',
 	inputs: [

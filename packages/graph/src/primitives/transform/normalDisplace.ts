@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalNormalDisplace(
@@ -16,7 +16,7 @@ export function evalNormalDisplace(
 	];
 }
 
-const normalDisplace: NodePrimitive = {
+const normalDisplace: NodePrimitiveInput = {
 	id: 'transform.normalDisplace',
 	category: 'transform',
 	inputs: [
@@ -26,7 +26,7 @@ const normalDisplace: NodePrimitive = {
 	],
 	outputs: [{ name: 'position', dataType: 'vec3f' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'transform.normalDisplace', entry: 'normalDisplace' },
+	implementation: { kind: 'group', groupId: 'transform.normalDisplace' },
 	metadata: {
 		role: 'positionTransform',
 		help: 'Displace a position along a normal by a scalar height (mul + add).',

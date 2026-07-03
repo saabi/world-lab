@@ -1,6 +1,7 @@
 import {
 	getPrimitive,
 	canonicalDataType,
+	callableWgslSource,
 	dataTypeToWgsl,
 	dedupeCanonicalSemantics,
 	formatPortDefaultWgsl,
@@ -13,6 +14,7 @@ import {
 	type PortTypeLike,
 	type DataType,
 	type GraphDocument,
+	type GroupResolver,
 	type Node,
 	type PortRef,
 	type GroupDefinition,
@@ -283,12 +285,18 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 
 		const primitive = getPrimitive(node.primitive);
 		if (!primitive) throw new Error(`Unknown primitive: ${node.primitive}`);
+		const wgsl = callableWgslSource(primitive);
+		if (!wgsl) {
+			throw new Error(
+				`Group node ${node.id} requires a callable primitive; got ${primitive.implementation.kind}`
+			);
+		}
 
-		dependencies.add(primitive.wgsl.moduleId);
+		dependencies.add(wgsl.moduleId);
 
 		// Resolve input arguments for the node's function call
 		const argValues: string[] = [];
-		const bindings = primitive.wgsl.arguments ?? [];
+		const bindings = wgsl.arguments ?? [];
 
 		// If arguments metadata isn't explicitly defined, infer it
 		const actualBindings = bindings.length > 0 ? bindings : [
@@ -343,7 +351,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 							loopIndexName = `i_${sanitizeId(node.id)}_${sanitizeId(inputPort.id)}`;
 							
 							// The call inside the loop uses buf[i] instead of the tuple argument
-							loopCallExpr = `${primitive.wgsl.entry}(${loopVarName}[${loopIndexName}])`;
+							loopCallExpr = `${wgsl.entry}(${loopVarName}[${loopIndexName}])`;
 							continue;
 						}
 					}
@@ -428,7 +436,7 @@ export function groupToFunction(def: GroupDefinition): { wgsl: string; frontmatt
 			}
 		} else {
 			for (const outPort of node.outputs) {
-				const callExpr = `${primitive.wgsl.entry}(${argValues.join(', ')})`;
+				const callExpr = `${wgsl.entry}(${argValues.join(', ')})`;
 				const lhsType = typeRefToWgsl(resolvePortType(outPort));
 				bodyLines.push(`let ${portVar(node.id, outPort.id)}: ${lhsType} = ${callExpr};`);
 			}
@@ -507,4 +515,11 @@ ${yamlOutputs}${yamlParams}${yamlRole}${yamlHelp}${yamlUsage}
 ---*/`;
 
 	return { wgsl, frontmatter };
+}
+
+export async function groupToFunctionById(
+	groupId: string,
+	resolver: GroupResolver
+): Promise<{ wgsl: string; frontmatter: string }> {
+	return groupToFunction(await resolver.resolve(groupId));
 }

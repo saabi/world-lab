@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
 const PERM = buildPermutationTable();
@@ -130,7 +130,7 @@ export function evalSimplex3d(x: number, y: number, z: number): number {
 	return 32 * (n0 + n1 + n2 + n3);
 }
 
-const simplex: NodePrimitive = {
+const simplex: NodePrimitiveInput = {
 	id: 'noise.simplex',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],

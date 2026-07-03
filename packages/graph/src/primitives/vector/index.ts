@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 type VectorType = 'vec2f' | 'vec3f' | 'vec4f';
@@ -24,7 +24,7 @@ function entrySuffix(inputType: VectorType): string {
 	return inputType.replace('v', 'V');
 }
 
-const constantF32: NodePrimitive = {
+const constantF32: NodePrimitiveInput = {
 	id: 'constant.f32',
 	category: 'constant',
 	inputs: [],
@@ -48,7 +48,7 @@ const constantF32: NodePrimitive = {
 	}
 };
 
-const vec2f: NodePrimitive = {
+const vec2f: NodePrimitiveInput = {
 	id: 'vector.vec2f',
 	category: 'vector',
 	inputs: [
@@ -64,7 +64,7 @@ const vec2f: NodePrimitive = {
 	}
 };
 
-const vec3f: NodePrimitive = {
+const vec3f: NodePrimitiveInput = {
 	id: 'vector.vec3f',
 	category: 'vector',
 	inputs: [
@@ -81,7 +81,7 @@ const vec3f: NodePrimitive = {
 	}
 };
 
-const vec4f: NodePrimitive = {
+const vec4f: NodePrimitiveInput = {
 	id: 'vector.vec4f',
 	category: 'vector',
 	inputs: [
@@ -111,7 +111,7 @@ function componentPrimitive(
 	inputType: 'vec2f' | 'vec3f' | 'vec4f',
 	component: 'x' | 'y' | 'z' | 'w',
 	index: number
-): NodePrimitive {
+): NodePrimitiveInput {
 	return {
 		id,
 		category: 'vector',
@@ -135,7 +135,7 @@ function binaryVectorPrimitive(
 	operation: 'add' | 'sub',
 	inputType: VectorType,
 	size: number
-): NodePrimitive {
+): NodePrimitiveInput {
 	const id = `vector.${operation}.${inputType}`;
 	return {
 		id,
@@ -167,7 +167,7 @@ function scalarVectorPrimitive(
 	operation: 'mulScalar' | 'divScalar',
 	inputType: VectorType,
 	size: number
-): NodePrimitive {
+): NodePrimitiveInput {
 	const id = `vector.${operation}.${inputType}`;
 	return {
 		id,
@@ -196,7 +196,7 @@ function scalarVectorPrimitive(
 	};
 }
 
-function dotPrimitive(inputType: VectorType, size: number): NodePrimitive {
+function dotPrimitive(inputType: VectorType, size: number): NodePrimitiveInput {
 	const id = `vector.dot.${inputType}`;
 	return {
 		id,
@@ -219,7 +219,7 @@ function dotPrimitive(inputType: VectorType, size: number): NodePrimitive {
 	};
 }
 
-function lengthPrimitive(inputType: VectorType, size: number): NodePrimitive {
+function lengthPrimitive(inputType: VectorType, size: number): NodePrimitiveInput {
 	const id = `vector.length.${inputType}`;
 	return {
 		id,
@@ -240,7 +240,7 @@ function lengthPrimitive(inputType: VectorType, size: number): NodePrimitive {
 	};
 }
 
-function normalizePrimitive(inputType: VectorType, size: number): NodePrimitive {
+function normalizePrimitive(inputType: VectorType, size: number): NodePrimitiveInput {
 	const id = `vector.normalize.${inputType}`;
 	return {
 		id,
@@ -262,7 +262,7 @@ function normalizePrimitive(inputType: VectorType, size: number): NodePrimitive 
 	};
 }
 
-function mixPrimitive(inputType: VectorType, size: number): NodePrimitive {
+function mixPrimitive(inputType: VectorType, size: number): NodePrimitiveInput {
 	const id = `vector.mix.${inputType}`;
 	return {
 		id,
@@ -294,7 +294,7 @@ function scalarInput(inputs: Record<string, unknown>, name: string, defaultValue
 	return value === undefined || value === null ? defaultValue : Number(value);
 }
 
-function combineVec2fF32Primitive(): NodePrimitive {
+function combineVec2fF32Primitive(): NodePrimitiveInput {
 	return {
 		id: 'vector.combine.vec2f_f32',
 		category: 'vector',
@@ -320,7 +320,7 @@ function combineVec2fF32Primitive(): NodePrimitive {
 	};
 }
 
-function combineVec3fF32Primitive(): NodePrimitive {
+function combineVec3fF32Primitive(): NodePrimitiveInput {
 	return {
 		id: 'vector.combine.vec3f_f32',
 		category: 'vector',
@@ -346,7 +346,7 @@ function combineVec3fF32Primitive(): NodePrimitive {
 	};
 }
 
-function combineVec2fF32F32Primitive(): NodePrimitive {
+function combineVec2fF32F32Primitive(): NodePrimitiveInput {
 	return {
 		id: 'vector.combine.vec2f_f32_f32',
 		category: 'vector',
@@ -374,7 +374,7 @@ function combineVec2fF32F32Primitive(): NodePrimitive {
 	};
 }
 
-function combineVec2fVec2fPrimitive(): NodePrimitive {
+function combineVec2fVec2fPrimitive(): NodePrimitiveInput {
 	return {
 		id: 'vector.combine.vec2f_vec2f',
 		category: 'vector',
@@ -400,7 +400,7 @@ function combineVec2fVec2fPrimitive(): NodePrimitive {
 	};
 }
 
-function combinePrimitives(): NodePrimitive[] {
+function combinePrimitives(): NodePrimitiveInput[] {
 	return [
 		combineVec2fF32Primitive(),
 		combineVec3fF32Primitive(),
@@ -409,8 +409,8 @@ function combinePrimitives(): NodePrimitive[] {
 	];
 }
 
-function vectorMathPrimitives(): NodePrimitive[] {
-	const primitives: NodePrimitive[] = [];
+function vectorMathPrimitives(): NodePrimitiveInput[] {
+	const primitives: NodePrimitiveInput[] = [];
 	for (const { type, size } of VECTOR_SPECS) {
 		primitives.push(
 			binaryVectorPrimitive('add', type, size),

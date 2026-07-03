@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import {
 	DEFAULT_PLANE_GRID_TRANSFORM,
@@ -64,7 +64,7 @@ const planeParams = createPlaneParams();
 const fullscreenPlaneParams = createPlaneParams(2, 2);
 
 /** Parametric resU×resV plane grid geometry source (instanceable). */
-const plane: NodePrimitive = {
+const plane: NodePrimitiveInput = {
 	id: 'geometry.plane',
 	category: 'geometry/source',
 	inputs: [],

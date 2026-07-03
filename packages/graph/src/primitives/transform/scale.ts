@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalScale(position: readonly number[], factor: number): number[] {
@@ -12,7 +12,7 @@ export function evalScale(position: readonly number[], factor: number): number[]
 	];
 }
 
-const scale: NodePrimitive = {
+const scale: NodePrimitiveInput = {
 	id: 'transform.scale',
 	category: 'transform',
 	inputs: [
@@ -21,7 +21,7 @@ const scale: NodePrimitive = {
 	],
 	outputs: [{ name: 'position', dataType: 'vec3f' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'transform.scale', entry: 'scale' },
+	implementation: { kind: 'group', groupId: 'transform.scale' },
 	metadata: {
 		role: 'positionTransform',
 		help: 'Uniformly scale a position by a scalar factor (`vector.mulScalar.vec3f`).',

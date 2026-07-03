@@ -1,15 +1,18 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
-const uv: NodePrimitive = {
+const uv: NodePrimitiveInput = {
 	id: 'procedural.uv',
 	category: 'Input',
 	inputs: [],
 	outputs: [{ name: 'uv', dataType: 'vec2f', space: 'none' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'procedural.uv', entry: 'uv' },
+	implementation: {
+		kind: 'host-input',
+		binding: { context: 'invocation', key: 'uv' }
+	},
 	metadata: {
 		help: 'Surface UV coordinates supplied by the procedural evaluation context.'
 	},

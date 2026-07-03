@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import graphPackage from '../../graph/package.json' with { type: 'json' };
 
 import { listPrimitives } from '../../graph/src/registry.js';
+import { callableWgslSource } from '../../graph/src/primitive.js';
 import '../../graph/src/primitives/index.js';
 
 import {
 	createStandardLibraryResolver,
+	createStandardLibraryGroupResolver,
 	PROCEDURAL_WGSL_PACKAGE,
 	STANDARD_LIBRARY_MODULES
 } from './index.js';
@@ -19,8 +22,6 @@ const RESOLVER_ONLY_WGSL_MODULE_IDS: readonly string[] = [
 
 /** Module id → exported entry fn name (matches graph primitive `wgsl.entry`). */
 const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
-	'procedural.uv': 'uv',
-	'procedural.metricPosition': 'metricPosition',
 	'noise.perlin3d': 'perlin3d',
 	'noise.value2d': 'value2d',
 	'noise.perlin2d': 'perlin2d',
@@ -91,7 +92,10 @@ function registeredWgslModuleIds(): string[] {
 	return [
 		...new Set(
 			listPrimitives()
-				.map((primitive) => primitive.wgsl.moduleId)
+				.flatMap((primitive) => {
+					const wgsl = callableWgslSource(primitive);
+					return wgsl ? [wgsl.moduleId] : [];
+				})
 				.filter((moduleId) => moduleId.length > 0)
 		)
 	].sort();
@@ -143,6 +147,22 @@ describe('@world-lab/procedural-wgsl', () => {
 	it('createStandardLibraryResolver throws for unknown ids', async () => {
 		const resolver = createStandardLibraryResolver();
 		await expect(resolver.resolve('missing.module')).rejects.toThrow('Unknown module: missing.module');
+	});
+
+	it('resolves every canonical group without reversing the package dependency', async () => {
+		const resolver = createStandardLibraryGroupResolver();
+		for (const id of [
+			'math.remap',
+			'sdf.opSubtract',
+			'transform.normalDisplace',
+			'transform.scale',
+			'transform.spherify',
+			'transform.translate'
+		]) {
+			await expect(resolver.resolve(id)).resolves.toMatchObject({ id });
+		}
+
+		expect(graphPackage.dependencies).not.toHaveProperty('@world-lab/procedural-wgsl');
 	});
 
 	it('noise.fbm declares a dependency on noise.perlin3d', () => {

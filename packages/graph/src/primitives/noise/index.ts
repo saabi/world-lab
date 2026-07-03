@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import {
 	evalBlue2d,
@@ -13,7 +13,7 @@ import {
 
 const noiseMeta = { keywords: ['Fields'], pure: true, deterministic: true };
 
-const value2d: NodePrimitive = {
+const value2d: NodePrimitiveInput = {
 	id: 'noise.value2d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],
@@ -30,7 +30,7 @@ const value2d: NodePrimitive = {
 	}
 };
 
-const perlin2d: NodePrimitive = {
+const perlin2d: NodePrimitiveInput = {
 	id: 'noise.perlin2d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],
@@ -47,7 +47,7 @@ const perlin2d: NodePrimitive = {
 	}
 };
 
-const perlin2dDeriv: NodePrimitive = {
+const perlin2dDeriv: NodePrimitiveInput = {
 	id: 'noise.perlin2dDeriv',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],
@@ -65,7 +65,7 @@ const perlin2dDeriv: NodePrimitive = {
 	}
 };
 
-const worley2d: NodePrimitive = {
+const worley2d: NodePrimitiveInput = {
 	id: 'noise.worley2d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],
@@ -82,7 +82,7 @@ const worley2d: NodePrimitive = {
 	}
 };
 
-const voronoi2d: NodePrimitive = {
+const voronoi2d: NodePrimitiveInput = {
 	id: 'noise.voronoi2d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],
@@ -102,7 +102,7 @@ const voronoi2d: NodePrimitive = {
 	}
 };
 
-const blue2d: NodePrimitive = {
+const blue2d: NodePrimitiveInput = {
 	id: 'noise.blue2d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec2f' }],

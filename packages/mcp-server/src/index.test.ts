@@ -59,7 +59,8 @@ describe('@world-lab/mcp-server', () => {
 			name: 'uv',
 			dataType: 'vec2f'
 		});
-		expect(description!.wgslEntry).toBe('uv');
+		expect(description!.implementationKind).toBe('host-input');
+		expect(description!.wgslEntry).toBeUndefined();
 	});
 
 	it('describeNode returns null for unknown primitives', () => {

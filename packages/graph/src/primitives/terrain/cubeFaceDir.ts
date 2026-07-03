@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { PLANET_SPACES } from './spaces.js';
 
@@ -32,7 +32,7 @@ function cubeFaceUvToUnitDir(face: number, u: number, v: number): [number, numbe
 	return [pos[0] / len, pos[1] / len, pos[2] / len];
 }
 
-const cubeFaceDir: NodePrimitive = {
+const cubeFaceDir: NodePrimitiveInput = {
 	id: 'surface.cubeFaceDir',
 	category: 'surface',
 	inputs: [{ name: 'uv', dataType: 'vec2f' }],

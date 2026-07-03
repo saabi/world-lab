@@ -1,13 +1,13 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalSdfCircle(px: number, py: number, radius: number): number {
 	return Math.hypot(px, py) - radius;
 }
 
-const circle: NodePrimitive = {
+const circle: NodePrimitiveInput = {
 	id: 'sdf.circle',
 	category: 'SDF',
 	inputs: [{ name: 'p', dataType: 'vec2f' }],

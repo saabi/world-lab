@@ -236,7 +236,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 		const loaded = loadWgslPrimitive({ moduleId: 'g.scaleOffset', source: `${frontmatter}\n${wgsl}` });
 		expect(loaded.primitive.inputs.map((port) => port.name)).toEqual(['x']);
-		expect(loaded.primitive.wgsl.arguments?.map((arg) => `${arg.name}:${arg.source}`)).toEqual([
+		expect(loaded.primitive.wgsl!.arguments?.map((arg) => `${arg.name}:${arg.source}`)).toEqual([
 			'x:input',
 			'scale:param'
 		]);
@@ -283,7 +283,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 		const loaded = loadWgslPrimitive({ moduleId: 'g.boolGate', source: `${frontmatter}\n${wgsl}` });
 		expect(loaded.primitive.params.properties?.enabled).toBeDefined();
-		expect(loaded.primitive.wgsl.arguments?.find((arg) => arg.name === 'enabled')?.source).toBe(
+		expect(loaded.primitive.wgsl!.arguments?.find((arg) => arg.name === 'enabled')?.source).toBe(
 			'param'
 		);
 	});

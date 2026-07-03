@@ -1,11 +1,11 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { planetRadiusParam, scaleMppInput } from './_params.js';
 import { PLANET_SPACES } from './spaces.js';
 
-const normalEstimator: NodePrimitive = {
+const normalEstimator: NodePrimitiveInput = {
 	id: 'terrain.normalEstimator',
 	category: 'terrain',
 	inputs: [

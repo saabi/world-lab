@@ -1,15 +1,18 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const iTime: NodePrimitive = {
+const iTime: NodePrimitiveInput = {
 	id: 'host.iTime',
 	category: 'ShaderToy',
 	inputs: [],
 	outputs: [{ name: 'time', dataType: 'f32', metadata: { semantic: 'time' } }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'host.iTime', entry: 'i_time' },
+	implementation: {
+		kind: 'host-input',
+		binding: { context: 'playback', key: 'iTime' }
+	},
 	metadata: {
 		keywords: ['Inputs', 'ShaderToy'],
 		help: 'Elapsed animation time in seconds (ShaderToy iTime).'

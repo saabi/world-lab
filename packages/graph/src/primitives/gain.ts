@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 import { evalBias } from './bias.js';
 
@@ -12,7 +12,7 @@ export function evalGain(x: number, gain: number): number {
 	return 0.5 + 0.5 * evalBias(2 * x - 1, 1 - gain);
 }
 
-const gain: NodePrimitive = {
+const gain: NodePrimitiveInput = {
 	id: 'math.gain',
 	category: 'math',
 	inputs: [{ name: 'x', dataType: 'f32' }],

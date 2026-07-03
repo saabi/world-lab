@@ -1,16 +1,16 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { evalNormalizeVec3 } from '../normalize.js';
 
-const spherify: NodePrimitive = {
+const spherify: NodePrimitiveInput = {
 	id: 'transform.spherify',
 	category: 'transform',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],
 	outputs: [{ name: 'position', dataType: 'vec3f' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'transform.spherify', entry: 'spherify' },
+	implementation: { kind: 'group', groupId: 'transform.spherify' },
 	metadata: {
 		role: 'positionTransform',
 		help: 'Normalize vertex positions onto the unit sphere (`math.normalize`).',

@@ -24,6 +24,7 @@ describe('resolveNodeInspectorHelp', () => {
 			inputs: [],
 			outputs: [],
 			params: Type.Object({}),
+			implementation: { kind: 'wgsl-function', moduleId: 'test.node', entry: 'test' },
 			wgsl: { moduleId: 'test.node', entry: 'test' },
 			metadata: { description: 'A test primitive.' }
 		});
@@ -37,6 +38,11 @@ describe('resolveNodeInspectorHelp', () => {
 			inputs: [{ name: 'position', dataType: 'vec2f' as const }],
 			outputs: [{ name: 'value', dataType: 'f32' as const }],
 			params: Type.Object({}),
+			implementation: {
+				kind: 'wgsl-function' as const,
+				moduleId: 'noise.worley2d',
+				entry: 'worley2d'
+			},
 			wgsl: { moduleId: 'noise.worley2d', entry: 'worley2d' }
 		};
 		expect(generateInspectorSummary(primitive)).toBe('noise primitive · vec2f → f32');

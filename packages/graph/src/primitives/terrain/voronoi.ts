@@ -1,11 +1,11 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { freqParam, planetRadiusParam, pureParam, scaleMppInput } from './_params.js';
 import { PLANET_SPACES } from './spaces.js';
 
-const voronoi: NodePrimitive = {
+const voronoi: NodePrimitiveInput = {
 	id: 'terrain.voronoi',
 	category: 'terrain',
 	inputs: [

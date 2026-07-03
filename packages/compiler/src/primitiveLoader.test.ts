@@ -104,6 +104,11 @@ const EXPECTED_PERLIN: NodePrimitive = {
 			[X_SECTIONS]: [{ id: 'frequency', label: 'Frequency', order: 10, collapsed: false }],
 		},
 	),
+	implementation: {
+		kind: 'wgsl-function',
+		moduleId: 'noise.perlin3d',
+		entry: 'perlin3d'
+	},
 	wgsl: {
 		moduleId: 'noise.perlin3d',
 		entry: 'perlin3d',
@@ -163,7 +168,7 @@ describe('@world-lab/compiler loadWgslPrimitive', () => {
 		expect(loaded.primitive.inputs.map((port) => port.name)).toEqual(['position']);
 		expect(loaded.primitive.inputs[0]?.metadata?.wgslType).toBe('vec3<f32>');
 		expect(loaded.primitive.outputs[0]?.metadata?.wgslType).toBe('f32');
-		expect(loaded.primitive.wgsl.arguments).toEqual([
+		expect(loaded.primitive.wgsl!.arguments).toEqual([
 			{ name: 'position', source: 'input' },
 			{ name: 'scale', source: 'param' },
 		]);
@@ -205,7 +210,7 @@ fn scalar_params(count: i32, enabled: bool) -> f32 { return 0.0; }`;
 		const { primitive } = loadWgslPrimitive({ moduleId: 'test.scalar-params', source });
 		expect(check(primitive.params, { count: 4, enabled: false })).toBe(true);
 		expect(check(primitive.params, { count: 4.5, enabled: false })).toBe(false);
-		expect(primitive.wgsl.arguments).toEqual([
+		expect(primitive.wgsl!.arguments).toEqual([
 			{ name: 'count', source: 'param' },
 			{ name: 'enabled', source: 'param' },
 		]);
@@ -246,7 +251,7 @@ fn ignored() -> f32 { return 0.0; }`;
 			source,
 			reader,
 		});
-		expect(loaded.primitive.wgsl.entry).toBe('custom');
+		expect(loaded.primitive.wgsl!.entry).toBe('custom');
 		expect(loaded.primitive.inputs).toEqual([
 			{ name: 'x', dataType: 'f32', metadata: { wgslType: 'f32' } },
 		]);
@@ -264,7 +269,7 @@ outputs:
 ---*/
 fn only_fn(x: f32) -> f32 { return x; }`;
 		const loaded = loadWgslPrimitive({ moduleId: 'mod.single', source });
-		expect(loaded.primitive.wgsl.entry).toBe('only_fn');
+		expect(loaded.primitive.wgsl!.entry).toBe('only_fn');
 	});
 
 	it('requires entry when multiple functions are present', () => {
@@ -292,7 +297,7 @@ outputs:
 // fn also_ignored() -> f32
 fn real(x: f32) -> f32 { return x; }`;
 		const loaded = loadWgslPrimitive({ moduleId: 'mod.comments', source });
-		expect(loaded.primitive.wgsl.entry).toBe('real');
+		expect(loaded.primitive.wgsl!.entry).toBe('real');
 		expect(loaded.imports).toEqual([]);
 	});
 

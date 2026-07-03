@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalHsv2rgb(h: number, s: number, v: number): [number, number, number] {
@@ -33,7 +33,7 @@ export function evalHsv2rgb(h: number, s: number, v: number): [number, number, n
 	return [r + m, g + m, b + m];
 }
 
-const hsv2rgb: NodePrimitive = {
+const hsv2rgb: NodePrimitiveInput = {
 	id: 'color.hsv2rgb',
 	category: 'Colour',
 	inputs: [],

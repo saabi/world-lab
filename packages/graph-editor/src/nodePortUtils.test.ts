@@ -19,6 +19,11 @@ describe('@world-lab/graph-editor nodePortUtils', () => {
 			],
 			outputs: [],
 			params: Type.Object({}),
+			implementation: {
+				kind: 'wgsl-function',
+				moduleId: 'test.semantic-instantiation',
+				entry: 'semanticInstantiation'
+			},
 			wgsl: { moduleId: 'test.semantic-instantiation', entry: 'semanticInstantiation' }
 		};
 

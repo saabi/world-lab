@@ -1,10 +1,10 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { PLANET_SPACES } from './spaces.js';
 
-const pbrLighting: NodePrimitive = {
+const pbrLighting: NodePrimitiveInput = {
 	id: 'material.pbrLighting',
 	category: 'material',
 	inputs: [

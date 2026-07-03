@@ -1,9 +1,9 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const plane: NodePrimitive = {
+const plane: NodePrimitiveInput = {
 	id: 'surface.plane',
 	category: 'surface',
 	inputs: [{ name: 'uv', dataType: 'vec2f' }],

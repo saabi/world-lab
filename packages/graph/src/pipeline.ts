@@ -1,4 +1,5 @@
 import { getPrimitive } from './registry.js';
+import type { SinkDefinition } from './implementation.js';
 import type { GraphDocument, GraphOutput, Node, PortRef, ProceduralConsumer } from './types.js';
 
 const PIPELINE_TARGET_ROLE = 'pipelineTarget';
@@ -55,7 +56,10 @@ function outputNameForField(
 	return PIPELINE_IMAGE_OUTPUT_NAME;
 }
 
-function presentationForDisplay(doc: GraphDocument, displayNode: Node): PipelinePresentation | null {
+export function presentationForDisplay(
+	doc: GraphDocument,
+	displayNode: Node
+): PipelinePresentation | null {
 	const fieldOutput = fieldOutputForDisplay(doc, displayNode);
 	if (!fieldOutput) return null;
 
@@ -72,6 +76,20 @@ function presentationForDisplay(doc: GraphDocument, displayNode: Node): Pipeline
 		}
 	};
 }
+
+export const DISPLAY_SINK_DEFINITION: SinkDefinition = {
+	kind: 'display',
+	deriveInvocation(doc, node) {
+		const payload = presentationForDisplay(doc, node);
+		if (!payload) return null;
+		return {
+			sinkKind: 'display',
+			nodeId: node.id,
+			dependencies: [payload.fieldOutput],
+			payload
+		};
+	}
+};
 
 /** Structural pipeline chains that terminate at a render target (e.g. display ← fragment ← field). */
 export function derivePipelinePresentations(doc: GraphDocument): PipelinePresentation[] {

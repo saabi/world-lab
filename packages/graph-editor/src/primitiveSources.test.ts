@@ -8,7 +8,9 @@ import {
 	isBuiltinPrimitive,
 	isEditablePrimitive,
 	isFabricatedReturnZeroStub,
+	HOST_INPUT_NOTICE,
 	resetPrimitiveSources,
+	SINK_NODE_NOTICE,
 	STRUCTURAL_NODE_NOTICE,
 	STUB_MARKER
 } from './primitiveSources.js';
@@ -84,6 +86,11 @@ describe('@world-lab/graph-editor primitiveSources', () => {
 		expect(source).toContain(STRUCTURAL_NODE_NOTICE);
 		expect(source).not.toMatch(/fn\s+fragmentStage\([^)]*\)\s*\{\s*\}/);
 		expect(source).not.toContain(STUB_MARKER);
+	});
+
+	it('distinguishes host inputs and sinks from structural nodes', () => {
+		expect(getDefaultPrimitiveSource('host.iTime')).toContain(HOST_INPUT_NOTICE);
+		expect(getDefaultPrimitiveSource('target.display')).toContain(SINK_NODE_NOTICE);
 	});
 
 	it('never returns fabricated return 0.0 entry stubs for registered primitives', () => {

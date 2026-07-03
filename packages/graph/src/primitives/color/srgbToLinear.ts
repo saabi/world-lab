@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 const SRGB_GAMMA = 2.2;
@@ -9,7 +9,7 @@ export function evalSrgbToLinear(rgb: readonly [number, number, number]): [numbe
 	return rgb.map((channel) => Math.pow(channel, SRGB_GAMMA)) as [number, number, number];
 }
 
-const srgbToLinear: NodePrimitive = {
+const srgbToLinear: NodePrimitiveInput = {
 	id: 'color.srgbToLinear',
 	category: 'Colour',
 	inputs: [{ name: 'srgb', dataType: 'vec3f' }],

@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
 const PERM = buildPermutationTable();
@@ -84,7 +84,7 @@ function lerp(a: number, b: number, t: number): number {
 	return a + t * (b - a);
 }
 
-const perlin3dPrimitive: NodePrimitive = {
+const perlin3dPrimitive: NodePrimitiveInput = {
 	id: 'noise.perlin3d',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],

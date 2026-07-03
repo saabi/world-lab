@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalSdfBox(px: number, py: number, hx: number, hy: number): number {
@@ -9,7 +9,7 @@ export function evalSdfBox(px: number, py: number, hx: number, hy: number): numb
 	return Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) + Math.min(Math.max(dx, dy), 0);
 }
 
-const box: NodePrimitive = {
+const box: NodePrimitiveInput = {
 	id: 'sdf.box',
 	category: 'SDF',
 	inputs: [{ name: 'p', dataType: 'vec2f' }],

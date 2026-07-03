@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import {
 	evalLabToXyz,
@@ -31,7 +31,7 @@ function vec3Primitive(
 	entry: string,
 	evalFn: (v: readonly [number, number, number]) => readonly [number, number, number],
 	help: string
-): NodePrimitive {
+): NodePrimitiveInput {
 	return {
 		id,
 		category: 'Colour',

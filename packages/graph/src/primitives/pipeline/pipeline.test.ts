@@ -43,7 +43,11 @@ describe('pipeline geometry primitives', () => {
 		const plane = getPrimitive('geometry.plane')!;
 		expect(fullscreen.id).not.toBe(plane.id);
 		expect(fullscreen.outputs).toEqual(plane.outputs);
-		expect(fullscreen.wgsl).toEqual(plane.wgsl);
+		expect(fullscreen.implementation).toEqual({
+			kind: 'legacy-structural',
+			marker: 'geometry.fullscreenPlane'
+		});
+		expect(fullscreen.wgsl).toBeUndefined();
 		expect(Value.Create(fullscreenPlaneParams)).toEqual({
 			resU: 2,
 			resV: 2,

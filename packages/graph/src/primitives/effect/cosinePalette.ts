@@ -1,9 +1,9 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
-const cosinePalette: NodePrimitive = {
+const cosinePalette: NodePrimitiveInput = {
 	id: 'effect.cosinePalette',
 	category: 'ShaderToy',
 	inputs: [

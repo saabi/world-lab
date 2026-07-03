@@ -2,19 +2,21 @@ import './fullscreenPlane.js';
 import './plane.js';
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
+import { DISPLAY_SINK_DEFINITION } from '../../pipeline.js';
+import { MESH_SINK_DEFINITION } from '../../meshTarget.js';
 
 const noParams = Type.Object({});
 
-const primitives: NodePrimitive[] = [
+const primitives: NodePrimitiveInput[] = [
 	{
 		id: 'buffer.persist',
 		category: 'buffer',
 		inputs: [{ name: 'in', dataType: 'geometry', metadata: { semantic: 'geometry-resource' } }],
 		outputs: [{ name: 'out', dataType: 'geometry', metadata: { semantic: 'persistent-geometry-resource' } }],
 		params: noParams,
-		wgsl: { moduleId: 'buffer.persist', entry: 'persistGeometry' },
+		implementation: { kind: 'legacy-structural', marker: 'buffer.persist' },
 		metadata: {
 			description: 'Caches a generated geometry resource across frames.',
 			pure: true,
@@ -45,7 +47,7 @@ const primitives: NodePrimitive[] = [
 		],
 		outputs: [{ name: 'texture', dataType: 'texture', metadata: { semantic: 'rgba-texture' } }],
 		params: noParams,
-		wgsl: { moduleId: 'stage.fragment', entry: 'fragmentStage' },
+		implementation: { kind: 'legacy-structural', marker: 'stage.fragment' },
 		metadata: {
 			description: 'Fragment stage node that writes a field color into a texture resource.',
 			pure: false,
@@ -59,7 +61,7 @@ const primitives: NodePrimitive[] = [
 		inputs: [{ name: 'color', dataType: 'texture', metadata: { semantic: 'presentable-color-texture' } }],
 		outputs: [],
 		params: noParams,
-		wgsl: { moduleId: 'target.display', entry: 'displayTarget' },
+		implementation: { kind: 'sink', sink: DISPLAY_SINK_DEFINITION },
 		metadata: {
 			description: 'Display target sink for presenting the pipeline color output.',
 			pure: false,
@@ -79,7 +81,7 @@ const primitives: NodePrimitive[] = [
 			gridSize: Type.Integer({ minimum: 2, default: 24 }),
 			faceCount: Type.Integer({ minimum: 1, maximum: 6, default: 1 })
 		}),
-		wgsl: { moduleId: 'target.mesh', entry: 'meshTarget' },
+		implementation: { kind: 'sink', sink: MESH_SINK_DEFINITION },
 		metadata: {
 			description: 'Mesh preview sink — tessellates wired position/normal fields for geometry preview.',
 			pure: false,

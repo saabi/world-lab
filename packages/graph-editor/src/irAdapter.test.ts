@@ -1,6 +1,11 @@
 import '@world-lab/graph';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { getPrimitive, registerPrimitive, type GraphDocument } from '@world-lab/graph';
+import {
+	getPrimitive,
+	registerPrimitive,
+	type GraphDocument,
+	type SinkDefinition
+} from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 import {
 	applyEditIntent,
@@ -25,6 +30,91 @@ function emptyDoc(): GraphDocument {
 describe('@world-lab/graph-editor irAdapter', () => {
 	beforeEach(() => {
 		resetIdCounters();
+	});
+
+	it('preserves compatibility-sink params and resolves named output dependencies', () => {
+		const sourceId = 'test.compatibilitySinkSource';
+		const sinkId = 'test.compatibilitySink';
+		const params = Type.Object({ outputName: Type.String({ default: 'height' }) });
+		const sink: SinkDefinition = {
+			kind: 'compatibility',
+			deriveInvocation(doc, node) {
+				const outputName = node.params?.outputName;
+				if (typeof outputName !== 'string') return null;
+				const output = doc.outputs.find((candidate) => candidate.name === outputName);
+				if (!output) return null;
+				return {
+					sinkKind: this.kind,
+					nodeId: node.id,
+					dependencies: [output.from],
+					payload: { outputName }
+				};
+			}
+		};
+
+		if (!getPrimitive(sourceId)) {
+			registerPrimitive({
+				id: sourceId,
+				category: 'test',
+				inputs: [],
+				outputs: [],
+				params,
+				wgsl: { moduleId: sourceId, entry: 'compatibilitySinkSource' }
+			});
+		}
+		if (!getPrimitive(sinkId)) {
+			registerPrimitive({
+				id: sinkId,
+				category: 'test',
+				inputs: [],
+				outputs: [],
+				params,
+				implementation: { kind: 'sink', sink }
+			});
+		}
+
+		const doc: GraphDocument = {
+			version: '1',
+			nodes: [
+				{
+					id: 'n_source',
+					primitive: sourceId,
+					params: { outputName: 'height' },
+					inputs: [],
+					outputs: []
+				},
+				{
+					id: 'n_value',
+					primitive: 'math.add',
+					inputs: [],
+					outputs: [
+						{
+							id: 'value',
+							name: 'value',
+							direction: 'out',
+							dataType: 'f32'
+						}
+					]
+				}
+			],
+			edges: [],
+			outputs: [{ name: 'height', from: { node: 'n_value', port: 'value' } }],
+			consumers: []
+		};
+		const replaced = applyEditIntent(doc, {
+			kind: 'replace-node-primitive',
+			nodeId: 'n_source',
+			primitiveId: sinkId
+		});
+		const sinkNode = replaced.nodes.find((node) => node.id === 'n_source')!;
+		expect(sinkNode.params).toEqual({ outputName: 'height' });
+
+		const implementation = getPrimitive(sinkId)!.implementation;
+		expect(implementation.kind).toBe('sink');
+		if (implementation.kind !== 'sink') return;
+		const invocation = implementation.sink.deriveInvocation(replaced, sinkNode);
+		expect(invocation?.dependencies).toEqual([{ node: 'n_value', port: 'value' }]);
+		expect(invocation?.payload).toEqual({ outputName: 'height' });
 	});
 
 	it('adds and removes nodes through applyEditIntent', () => {

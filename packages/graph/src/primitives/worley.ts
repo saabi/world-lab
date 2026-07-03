@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
 function hash3(ix: number, iy: number, iz: number): number {
@@ -38,7 +38,7 @@ export function evalWorley3d(x: number, y: number, z: number): number {
 	return minDist;
 }
 
-const worley: NodePrimitive = {
+const worley: NodePrimitiveInput = {
 	id: 'noise.worley',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],

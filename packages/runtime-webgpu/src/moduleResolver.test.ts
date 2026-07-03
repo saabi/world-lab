@@ -1,5 +1,5 @@
 import { generateWgsl, sliceGraph } from '@world-lab/compiler';
-import { listPrimitives } from '@world-lab/graph';
+import { callableWgslSource, listPrimitives } from '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 
 import { createStandardLibraryResolver, STANDARD_LIBRARY_MODULES } from './moduleResolver.js';
@@ -15,7 +15,12 @@ describe('@world-lab/runtime-webgpu moduleResolver', () => {
 	it('resolves every registered graph primitive WGSL module id', async () => {
 		const resolver = createStandardLibraryResolver();
 		const moduleIds = [
-			...new Set(listPrimitives().map((primitive) => primitive.wgsl.moduleId))
+			...new Set(
+				listPrimitives().flatMap((primitive) => {
+					const wgsl = callableWgslSource(primitive);
+					return wgsl ? [wgsl.moduleId] : [];
+				})
+			)
 		].sort();
 
 		for (const moduleId of moduleIds) {

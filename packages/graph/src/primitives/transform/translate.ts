@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalTranslate(position: readonly number[], offset: readonly number[]): number[] {
@@ -11,7 +11,7 @@ export function evalTranslate(position: readonly number[], offset: readonly numb
 	];
 }
 
-const translate: NodePrimitive = {
+const translate: NodePrimitiveInput = {
 	id: 'transform.translate',
 	category: 'transform',
 	inputs: [
@@ -20,7 +20,7 @@ const translate: NodePrimitive = {
 	],
 	outputs: [{ name: 'position', dataType: 'vec3f' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'transform.translate', entry: 'translate' },
+	implementation: { kind: 'group', groupId: 'transform.translate' },
 	metadata: {
 		role: 'positionTransform',
 		help: 'Translate a position by a vec3f offset (`vector.add.vec3f`).',

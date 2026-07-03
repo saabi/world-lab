@@ -60,6 +60,39 @@ function previewGraph(): GraphDocument {
 }
 
 describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
+	it('dispatches host inputs by binding metadata rather than primitive id', () => {
+		const primitiveId = 'test.playbackClock';
+		try {
+			registerPrimitive({
+				id: primitiveId,
+				category: 'test',
+				inputs: [],
+				outputs: [{ name: 'value', dataType: 'f32' }],
+				params: Type.Object({}),
+				implementation: {
+					kind: 'host-input',
+					binding: { context: 'playback', key: 'iTime' }
+				}
+			});
+		} catch {
+			// Shared test registry may already contain it.
+		}
+		const graph: GraphDocument = {
+			version: '1',
+			nodes: [snapshotNode('n_clock', primitiveId)],
+			edges: [],
+			outputs: [{ name: 'value', from: { node: 'n_clock', port: 'value' } }],
+			consumers: []
+		};
+		const emitted = emitGraphScalarEval(
+			graph,
+			{ node: 'n_clock', port: 'value' },
+			{ shaderToy: true, iTimeExpr: 'host.time' }
+		);
+		expect(emitted.body).toEqual(['let v_n_clock_value: f32 = host.time;']);
+		expect(emitted.resultExpr).toBe('v_n_clock_value');
+	});
+
 	it('emits evaluate body for uv → perlin → remap', () => {
 		const graph = previewGraph();
 		const emitted = emitGraphScalarEval(graph, { node: 'n_remap', port: 'value' });

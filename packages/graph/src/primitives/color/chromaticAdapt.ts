@@ -1,11 +1,11 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { D50, D65 } from './constants.js';
 import { evalChromaticAdapt } from './evalColorlab.js';
 
-const chromaticAdapt: NodePrimitive = {
+const chromaticAdapt: NodePrimitiveInput = {
 	id: 'color.chromaticAdapt',
 	category: 'Colour',
 	inputs: [

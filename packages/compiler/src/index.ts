@@ -14,3 +14,4 @@ export * from './compileGraph.js';
 export * from './stageEntry.js';
 export * from './groupCodegen.js';
 export * from './coercion.js';
+export * from './sinkAdapters.js';

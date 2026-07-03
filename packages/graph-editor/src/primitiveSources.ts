@@ -1,4 +1,9 @@
-import { getPrimitive, type NodePrimitive } from '@world-lab/graph';
+import {
+	callableWgslSource,
+	getPrimitive,
+	type NodePrimitive,
+	type WgslSourceRef
+} from '@world-lab/graph';
 import { Value } from '@world-lab/schema';
 import { STANDARD_LIBRARY_MODULES } from '@world-lab/procedural-wgsl';
 
@@ -14,13 +19,8 @@ const STUB_MARKER = 'return 0.0;';
 
 /** Honest notice for pipeline nodes with no standalone WGSL module. */
 export const STRUCTURAL_NODE_NOTICE = '(no WGSL — structural node)';
-
-const STRUCTURAL_PIPELINE_ROLES = new Set([
-	'pipelineGeometrySource',
-	'pipelineBuffer',
-	'pipelineStage',
-	'pipelineTarget'
-]);
+export const HOST_INPUT_NOTICE = '(no WGSL — host-provided input)';
+export const SINK_NODE_NOTICE = '(no WGSL — sink node)';
 
 const sourceOverrides = new Map<string, string>();
 
@@ -32,10 +32,14 @@ function hasYamlFrontmatter(source: string): boolean {
 	return /^\s*\/\*---/.test(source);
 }
 
-function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string {
+function formatBuiltinSource(
+	primitive: NodePrimitive,
+	wgsl: WgslSourceRef,
+	wgslBody: string
+): string {
 	const lines = [
 		`id: ${primitive.id}`,
-		`entry: ${primitive.wgsl.entry}`,
+		`entry: ${wgsl.entry}`,
 		`category: ${primitive.category}`
 	];
 
@@ -95,17 +99,14 @@ function formatBuiltinSource(primitive: NodePrimitive, wgslBody: string): string
 	return `/*---\n${lines.join('\n')}\n---*/\n${wgslBody.trim()}\n`;
 }
 
-function isStructuralPipelinePrimitive(primitive: NodePrimitive): boolean {
-	const role = primitive.metadata?.role;
-	return role !== undefined && STRUCTURAL_PIPELINE_ROLES.has(role);
-}
-
-function isFabricatedPipelineStub(source: string): boolean {
-	return /fn\s+\w+\([^)]*\)\s*\{\s*\}/.test(source);
-}
-
 function formatStructuralNodeNotice(primitive: NodePrimitive): string {
-	return `/*---\nid: ${primitive.id}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\nrole: ${primitive.metadata?.role ?? 'structural'}\n---*/\n// ${STRUCTURAL_NODE_NOTICE}\n`;
+	const notice =
+		primitive.implementation.kind === 'host-input'
+			? HOST_INPUT_NOTICE
+			: primitive.implementation.kind === 'sink'
+				? SINK_NODE_NOTICE
+				: STRUCTURAL_NODE_NOTICE;
+	return `/*---\nid: ${primitive.id}\ncategory: ${primitive.category}\nimplementation: ${primitive.implementation.kind}\nrole: ${primitive.metadata?.role ?? 'structural'}\n---*/\n// ${notice}\n`;
 }
 
 function resolveBuiltinWgslBody(moduleId: string): string | null {
@@ -137,24 +138,21 @@ export function getDefaultPrimitiveSource(moduleId: string): string {
 	if (!primitive) {
 		throw new Error(`Unknown primitive: ${moduleId}`);
 	}
-
-	const wgslBody = resolveBuiltinWgslBody(primitive.wgsl.moduleId);
-	if (wgslBody === null) {
-		if (isStructuralPipelinePrimitive(primitive)) {
-			return formatStructuralNodeNotice(primitive);
-		}
-		return `/*---\nid: ${moduleId}\nentry: ${primitive.wgsl.entry}\ncategory: ${primitive.category}\n---*/\n// No WGSL source available for this module.\n`;
+	const wgsl = callableWgslSource(primitive);
+	if (!wgsl) {
+		return formatStructuralNodeNotice(primitive);
 	}
 
-	if (isStructuralPipelinePrimitive(primitive) && isFabricatedPipelineStub(wgslBody)) {
-		return formatStructuralNodeNotice(primitive);
+	const wgslBody = resolveBuiltinWgslBody(wgsl.moduleId);
+	if (wgslBody === null) {
+		return `/*---\nid: ${moduleId}\nentry: ${wgsl.entry}\ncategory: ${primitive.category}\n---*/\n// No WGSL source available for this module.\n`;
 	}
 
 	if (hasYamlFrontmatter(wgslBody)) {
 		return `${wgslBody.trim()}\n`;
 	}
 
-	return formatBuiltinSource(primitive, wgslBody);
+	return formatBuiltinSource(primitive, wgsl, wgslBody);
 }
 
 export function getPrimitiveSource(moduleId: string): string {

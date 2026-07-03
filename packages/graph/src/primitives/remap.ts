@@ -1,9 +1,9 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
-const remap: NodePrimitive = {
+const remap: NodePrimitiveInput = {
 	id: 'math.remap',
 	category: 'math',
 	inputs: [{ name: 'x', dataType: 'f32' }],
@@ -14,7 +14,7 @@ const remap: NodePrimitive = {
 		outMin: quantity('none', { default: 0 }),
 		outMax: quantity('none', { default: 1 })
 	}),
-	wgsl: { moduleId: 'math.remap', entry: 'remap' },
+	implementation: { kind: 'group', groupId: 'math.remap' },
 	metadata: {
 		help: 'Linearly map x from [inMin, inMax] to [outMin, outMax].',
 		pure: true,

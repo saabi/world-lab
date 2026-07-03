@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalSdfSegment(
@@ -22,7 +22,7 @@ export function evalSdfSegment(
 	return Math.hypot(dx, dy);
 }
 
-const segment: NodePrimitive = {
+const segment: NodePrimitiveInput = {
 	id: 'sdf.segment',
 	category: 'SDF',
 	inputs: [

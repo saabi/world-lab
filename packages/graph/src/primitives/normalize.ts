@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
 export function evalNormalizeVec3(v: readonly number[]): number[] {
@@ -14,7 +14,7 @@ export function evalNormalizeVec3(v: readonly number[]): number[] {
 	return [x / len, y / len, z / len];
 }
 
-const normalize: NodePrimitive = {
+const normalize: NodePrimitiveInput = {
 	id: 'math.normalize',
 	category: 'math',
 	inputs: [{ name: 'v', dataType: 'vec3f' }],

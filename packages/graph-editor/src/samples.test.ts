@@ -1,6 +1,11 @@
 import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { deriveMeshTargets, validateGraph, validateGraphFull } from '@world-lab/graph';
+import {
+	deriveMeshTargets,
+	getPrimitive,
+	validateGraph,
+	validateGraphFull
+} from '@world-lab/graph';
 import { evaluateMeshGenCpu } from '@world-lab/runtime-webgpu';
 
 import { defaultPreviewGraph } from './graphBuilders.js';
@@ -142,6 +147,26 @@ describe('graph-editor samples registry', () => {
 			faceCount: request!.faceCount
 		});
 		expect(mesh.vertexCount).toBeGreaterThan(0);
+	});
+
+	it('derives sink invocations identical to mesh descriptors for every mesh sample', () => {
+		const implementation = getPrimitive('target.mesh')!.implementation;
+		expect(implementation.kind).toBe('sink');
+		if (implementation.kind !== 'sink') return;
+
+		for (const sample of GRAPH_SAMPLES) {
+			const graph = sample.build();
+			const meshNode = graph.nodes.find((node) => node.primitive === 'target.mesh');
+			if (!meshNode) continue;
+			const descriptors = deriveMeshTargets(graph);
+			expect(descriptors, sample.id).toHaveLength(1);
+			const invocation = implementation.sink.deriveInvocation(graph, meshNode);
+			expect(invocation?.payload, sample.id).toEqual(descriptors[0]);
+			expect(invocation?.dependencies, sample.id).toEqual([
+				descriptors[0]!.position,
+				descriptors[0]!.normal
+			]);
+		}
 	});
 
 	it('exposes every sample as a read-only GraphArtifact that validates', () => {

@@ -28,3 +28,4 @@ export * from './vegetationBuffer.js';
 export * from './surfaceMesh.js';
 export * from './frameGraph/types.js';
 export * from './frameGraph/order.js';
+export * from './sinkHandlers.js';

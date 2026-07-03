@@ -1,6 +1,6 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../../primitive.js';
+import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 
 export function evalOpUnion(a: number, b: number): number {
@@ -15,7 +15,7 @@ export function evalOpIntersect(a: number, b: number): number {
 	return Math.max(a, b);
 }
 
-const opSubtract: NodePrimitive = {
+const opSubtract: NodePrimitiveInput = {
 	id: 'sdf.opSubtract',
 	category: 'SDF',
 	inputs: [
@@ -24,7 +24,7 @@ const opSubtract: NodePrimitive = {
 	],
 	outputs: [{ name: 'distance', dataType: 'f32' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'sdf.opSubtract', entry: 'opSubtract' },
+	implementation: { kind: 'group', groupId: 'sdf.opSubtract' },
 	metadata: {
 		keywords: ['Geometry', 'SDF'],
 		pure: true,

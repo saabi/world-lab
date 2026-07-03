@@ -1,15 +1,18 @@
 import { Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 
-const metricPosition: NodePrimitive = {
+const metricPosition: NodePrimitiveInput = {
 	id: 'procedural.metricPosition',
 	category: 'procedural',
 	inputs: [],
 	outputs: [{ name: 'position', dataType: 'vec3f', space: 'none' }],
 	params: Type.Object({}),
-	wgsl: { moduleId: 'procedural.metricPosition', entry: 'metricPosition' },
+	implementation: {
+		kind: 'host-input',
+		binding: { context: 'invocation', key: 'metricPosition' }
+	},
 	metadata: {
 		help: 'World/metric position from the procedural evaluation context.'
 	},

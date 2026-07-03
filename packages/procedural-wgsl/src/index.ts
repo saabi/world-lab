@@ -36,10 +36,6 @@ export {
 	NOISE_SIMPLEX_SOURCE,
 	NOISE_WORLEY_MODULE,
 	NOISE_WORLEY_SOURCE,
-	PROCEDURAL_METRIC_POSITION_MODULE,
-	PROCEDURAL_METRIC_POSITION_SOURCE,
-	PROCEDURAL_UV_MODULE,
-	PROCEDURAL_UV_SOURCE,
 	SURFACE_CUBE_SPHERE_MODULE,
 	SURFACE_CUBE_SPHERE_SOURCE,
 	SURFACE_PLANE_MODULE,
@@ -91,4 +87,8 @@ export {
 	SDF_SEGMENT_MODULE,
 	SDF_SEGMENT_SOURCE
 } from './modules/index.js';
-export { createStandardLibraryResolver } from './resolver.js';
+export {
+	createStandardLibraryGroupResolver,
+	createStandardLibraryResolver,
+	STANDARD_LIBRARY_GROUPS
+} from './resolver.js';

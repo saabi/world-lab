@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getPrimitive, listPrimitives, registerPrimitive } from './registry.js';
 import { contractOf, swapFamily, listSwapFamily } from './contract.js';
 import { Type } from '@world-lab/schema';
-import type { NodePrimitive } from './primitive.js';
+import type { NodePrimitive, NodePrimitiveInput } from './primitive.js';
 import './primitives/index.js'; // side-effect: registers all primitives
 
 describe('@world-lab/graph contract & swap families', () => {
@@ -103,7 +103,7 @@ describe('@world-lab/graph contract & swap families', () => {
 	it('role-based swap family groups across differing signatures', () => {
 		// Verify that two primitives with different signatures but the same role
 		// end up in the same swap family
-		const twist: NodePrimitive = {
+		const twist: NodePrimitiveInput = {
 			id: 'test.twist',
 			category: 'test',
 			inputs: [{ name: 'pos', dataType: 'vec3f' }],
@@ -112,7 +112,7 @@ describe('@world-lab/graph contract & swap families', () => {
 			wgsl: { moduleId: 'test.twist', entry: 'twist' },
 			metadata: { role: 'positionTransform' }
 		};
-		const displace: NodePrimitive = {
+		const displace: NodePrimitiveInput = {
 			id: 'test.displace',
 			category: 'test',
 			inputs: [
@@ -127,12 +127,14 @@ describe('@world-lab/graph contract & swap families', () => {
 
 		registerPrimitive(twist);
 		registerPrimitive(displace);
+		const registeredTwist = getPrimitive(twist.id)!;
+		const registeredDisplace = getPrimitive(displace.id)!;
 
 		// Different contracts (different input counts)
-		expect(contractOf(twist)).not.toBe(contractOf(displace));
+		expect(contractOf(registeredTwist)).not.toBe(contractOf(registeredDisplace));
 		// But same swap family (role)
-		expect(swapFamily(twist)).toBe(swapFamily(displace));
-		expect(swapFamily(twist)).toBe('positionTransform');
+		expect(swapFamily(registeredTwist)).toBe(swapFamily(registeredDisplace));
+		expect(swapFamily(registeredTwist)).toBe('positionTransform');
 
 		// listSwapFamily should return both
 		const family = listSwapFamily('test.twist');

@@ -1,5 +1,6 @@
 import type { NodePrimitive, NodePrimitiveInput, PortSpec, PortSpecInput } from './primitive.js';
 import { dataTypeToTypeRef, typeRefToDataType } from './dataType.js';
+import type { PrimitiveImplementation } from './implementation.js';
 import { dedupeCanonicalSemantics } from './semantics.js';
 
 const primitives = new Map<string, NodePrimitive>();
@@ -28,11 +29,69 @@ function normalizePortSpec(port: PortSpecInput | PortSpec): PortSpec {
 	};
 }
 
+function groupEntry(groupId: string): string {
+	return groupId.split('.').pop() ?? groupId;
+}
+
+function implementationWgsl(
+	implementation: PrimitiveImplementation
+): NodePrimitive['wgsl'] {
+	switch (implementation.kind) {
+		case 'wgsl-function':
+			return { moduleId: implementation.moduleId, entry: implementation.entry };
+		case 'group':
+			return { moduleId: implementation.groupId, entry: groupEntry(implementation.groupId) };
+		default:
+			return undefined;
+	}
+}
+
+function normalizeImplementation(
+	input: NodePrimitiveInput | NodePrimitive
+): Pick<NodePrimitive, 'implementation' | 'wgsl'> {
+	const implementation =
+		input.implementation ??
+		(input.wgsl
+			? {
+					kind: 'wgsl-function' as const,
+					moduleId: input.wgsl.moduleId,
+					entry: input.wgsl.entry
+				}
+			: undefined);
+	if (!implementation) {
+		throw new Error(`Primitive ${input.id} has neither implementation nor wgsl`);
+	}
+
+	const derivedWgsl = implementationWgsl(implementation);
+	if (input.wgsl && !derivedWgsl) {
+		throw new Error(
+			`Non-callable primitive implementation cannot declare wgsl: ${input.id}`
+		);
+	}
+	if (
+		input.wgsl &&
+		derivedWgsl &&
+		(input.wgsl.moduleId !== derivedWgsl.moduleId || input.wgsl.entry !== derivedWgsl.entry)
+	) {
+		throw new Error(`Primitive implementation/wgsl mismatch: ${input.id}`);
+	}
+
+	return {
+		implementation,
+		...(input.wgsl
+			? { wgsl: input.wgsl }
+			: derivedWgsl
+				? { wgsl: derivedWgsl }
+				: {})
+	};
+}
+
 export function normalizePrimitiveInput(input: NodePrimitiveInput | NodePrimitive): NodePrimitive {
 	return {
 		...input,
 		inputs: input.inputs.map(normalizePortSpec),
-		outputs: input.outputs.map(normalizePortSpec)
+		outputs: input.outputs.map(normalizePortSpec),
+		...normalizeImplementation(input)
 	};
 }
 

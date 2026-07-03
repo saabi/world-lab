@@ -2,6 +2,7 @@ import type { TSchema } from '@world-lab/schema';
 
 import type { DataType, SemanticTag, SpaceId, TypeRef } from './types.js';
 import type { PortDefaultValue } from './dataType.js';
+import type { PrimitiveImplementation } from './implementation.js';
 
 export interface PrimitiveMetadata {
 	description?: string;
@@ -77,13 +78,34 @@ export interface NodePrimitive {
 	outputs: PortSpec[];
 	/** TypeBox object schema: the single source of truth for authored node parameters. */
 	params: TSchema;
-	wgsl: WgslSourceRef;
+	implementation: PrimitiveImplementation;
+	/** @deprecated Compatibility alias for WGSL function and group implementations. */
+	wgsl?: WgslSourceRef;
 	metadata?: PrimitiveMetadata;
 	/** Optional CPU evaluator: returns each output by name. */
 	evalCPU?: (ctx: CpuEvalContext) => Record<string, CpuValue>;
 }
 
-export interface NodePrimitiveInput extends Omit<NodePrimitive, 'inputs' | 'outputs'> {
+export function callableWgslSource(primitive: NodePrimitive): WgslSourceRef | undefined {
+	if (
+		primitive.implementation.kind !== 'wgsl-function' &&
+		primitive.implementation.kind !== 'group'
+	) {
+		return undefined;
+	}
+	if (!primitive.wgsl) {
+		throw new Error(`Callable primitive is missing its WGSL compatibility source: ${primitive.id}`);
+	}
+	return primitive.wgsl;
+}
+
+export type NodePrimitiveInput = Omit<
+	NodePrimitive,
+	'inputs' | 'outputs' | 'implementation' | 'wgsl'
+> & {
 	inputs: PortSpecInput[];
 	outputs: PortSpecInput[];
-}
+} & (
+		| { implementation: PrimitiveImplementation; wgsl?: WgslSourceRef }
+		| { implementation?: never; wgsl: WgslSourceRef }
+	);

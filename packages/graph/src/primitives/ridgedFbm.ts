@@ -1,6 +1,6 @@
 import { quantity, Type } from '@world-lab/schema';
 
-import type { NodePrimitive } from '../primitive.js';
+import type { NodePrimitiveInput } from '../primitive.js';
 import { registerPrimitive } from '../registry.js';
 import { evalPerlin3d } from './perlin3d.js';
 
@@ -31,7 +31,7 @@ export function evalRidgedFbm3d(
 	return value;
 }
 
-const ridgedFbm: NodePrimitive = {
+const ridgedFbm: NodePrimitiveInput = {
 	id: 'noise.ridgedFbm',
 	category: 'noise',
 	inputs: [{ name: 'position', dataType: 'vec3f' }],

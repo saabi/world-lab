@@ -172,6 +172,16 @@ describe('@world-lab/graph pipeline consumer derivation', () => {
 			fieldOutput: portRef('n_effect', 'effect.cosinePalette', 'out', 0)
 		});
 		expect(derivePipelineConsumers(graph)).toEqual([presentation!.consumer]);
+
+		const displayNode = graph.nodes.find((node) => node.id === 'n_display')!;
+		const implementation = getPrimitive('target.display')!.implementation;
+		expect(implementation.kind).toBe('sink');
+		if (implementation.kind !== 'sink') return;
+		const invocation = implementation.sink.deriveInvocation(graph, displayNode);
+		expect(invocation?.dependencies).toEqual([
+			portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+		]);
+		expect(invocation?.payload).toEqual(presentation);
 	});
 
 	it('reuses an existing declared output name for the same field port', () => {

@@ -32,8 +32,8 @@ function assertMechanicalParity(moduleId: string, source: string): void {
 	expect(portNames(loaded.inputs)).toEqual(portNames(graphPrim.inputs));
 	expect(portNames(loaded.outputs)).toEqual(portNames(graphPrim.outputs));
 	expect(paramDefaults(loaded.params)).toEqual(paramDefaults(graphPrim.params));
-	expect(loaded.wgsl.entry).toBe(graphPrim.wgsl.entry);
-	expect(loaded.wgsl.moduleId).toBe(graphPrim.wgsl.moduleId);
+	expect(loaded.wgsl!.entry).toBe(graphPrim.wgsl!.entry);
+	expect(loaded.wgsl!.moduleId).toBe(graphPrim.wgsl!.moduleId);
 	expect(loaded.metadata?.role).toBe('colorSpace');
 	expect(loaded.metadata?.keywords).toEqual(['Effects', 'Colour']);
 }
