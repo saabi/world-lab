@@ -166,6 +166,14 @@
 - **params-as-inputs follow-on**: codegen + `evalCPU` must use the wired upstream value when a promotable param is connected (graph-core `resolveParamBindings` exists; compiler/runtime-cpu/editor integration pending). `M-params-as-inputs.md`.
 - **frame-graph GPU executor**: pure core (`buildPassOrder`/`validatePassGraph`/`resolveTargetSizes`) ✅, and the **independent-output** GPU executor (`GraphFrameExecutor` — one shared loop, all live targets, shared uniforms) ✅ landed via `M-single-loop-preview.md` (`4a7f43d`+`c8dcceb`). **Remaining:** same-frame cross-target reads (render-target-as-texture GPU binding) + previous-frame **feedback** (ping-pong) for cyclic edges — needed for multibuffer + render-to-texture. See `M-unified-preview-execution.md` Part 3.
 - **render targets beyond single-pass**: `iResolution` per write-target and `iChannelResolution` per read-target; the current runner is single-target. `inputs-cpu-and-resources.md`, `pipeline-as-graph.md`.
+- **multi-mesh composition into one render target** (not built): `target.mesh` declares one
+  generated mesh for preview/export and does not render into `target.display`. Add explicit
+  draw submissions and a render-pass collector, conceptually
+  `mesh → draw(transform, material, instances) → render.pass → target.display`, with a
+  list-capable/variadic draw input so multiple meshes share one color/depth target. The pass
+  contract must define draw order, depth testing/writes, blending, per-draw bindings, and
+  attachment load/store behavior; do not model this by allowing ambiguous fan-in on ordinary
+  single-value ports. This is separate from mesh generation and is required for authored scenes.
 - ~~graph-driven mesh-gen consumer~~ ✅ done (2026-07-03, `82f5a8b`) — `evaluateMeshGenCpu`/
   `executeMeshGen` + `MeshGenRequest` replace the hardcoded `surfaceMesh.ts::buildSurfaceMesh`
   CPU loop; `surface.cubeFace → transform.spherify` reproduces `surface.cubeSphere`'s own
