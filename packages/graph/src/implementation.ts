@@ -2,7 +2,8 @@ import type {
 	GraphDocument,
 	GroupDefinition,
 	Node,
-	PortRef
+	PortRef,
+	TypeRef
 } from './types.js';
 
 export type ShaderStage = 'vertex' | 'fragment' | 'compute';
@@ -32,8 +33,30 @@ export interface SinkDefinition {
 	deriveInvocation(doc: GraphDocument, node: Node): SinkInvocation | null;
 }
 
-export interface ResourceDescriptor {
-	placeholder?: never;
+export type ResourceLifetime =
+	| { kind: 'transient' }
+	| { kind: 'persistent' }
+	| { kind: 'history'; slots: 2 };
+
+export type ResourceShape = Extract<
+	TypeRef,
+	{ kind: 'buffer' | 'texture' | 'sampler' }
+>;
+
+export interface ResourceTemplate {
+	shape: ResourceShape;
+	lifetime: ResourceLifetime;
+}
+
+export interface ResourceInstance extends ResourceTemplate {
+	id: string;
+}
+
+export type ResourceAccess = 'read' | 'write' | 'read-write';
+
+export interface ResourceBinding {
+	resourceId: string;
+	access: ResourceAccess;
 }
 
 export type GpuCommandKind = string;
@@ -44,7 +67,7 @@ export type PrimitiveImplementation =
 	| { kind: 'host-input'; binding: HostBinding }
 	| { kind: 'legacy-structural'; marker: string }
 	| { kind: 'sink'; sink: SinkDefinition }
-	| { kind: 'resource'; descriptor: ResourceDescriptor }
+	| { kind: 'resource'; template: ResourceTemplate }
 	| { kind: 'kernel'; stage: ShaderStage }
 	| { kind: 'command'; command: GpuCommandKind };
 

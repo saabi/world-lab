@@ -29,11 +29,11 @@ is still open.
 
 - **F2.1 — generic resource type algebra** (Foundation 2, milestone 1 of 5; revision 3 — see
   `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — pure types +
-  inference only, no GPU allocation; not claimed/routed while under review, per instruction)
+  inference only, no GPU allocation)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.1-resource-type-algebra.md`
   Owns: `packages/graph/src/types.ts`, `packages/graph/src/implementation.ts`,
-  and their test files
-  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
+  `packages/graph/src/resources.ts`, `packages/graph/src/index.ts`, and their test files
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Also outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.

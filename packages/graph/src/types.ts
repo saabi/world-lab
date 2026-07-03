@@ -24,7 +24,16 @@ export interface StructField {
 	type: TypeRef;
 }
 export type BufferAccess = 'read' | 'read-write';
-export type BufferUsage = string;
+export type BufferUsageFlag =
+	| 'vertex'
+	| 'index'
+	| 'uniform'
+	| 'storage'
+	| 'copy-src'
+	| 'copy-dst'
+	| 'indirect'
+	| 'query-resolve';
+export type BufferUsage = BufferUsageFlag;
 export type TextureDimension = '1d' | '2d' | '3d' | 'cube';
 export type SampleType = 'float' | 'depth' | 'sint' | 'uint';
 export type StorageTextureAccess = 'read' | 'write' | 'read-write';
