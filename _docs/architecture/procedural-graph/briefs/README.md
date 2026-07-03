@@ -54,7 +54,7 @@ runs what.
 | [M9d1-layout-persistence.md](./M9d1-layout-persistence.md) | M9d.1 — editor layout persistence | ✅ landed (`4d8da96`, Opus-reviewed) | Composer (done) |
 | [M9d2-pane-context-menus.md](./M9d2-pane-context-menus.md) | M9d.2 — zone-aware pane menus (subdivide API) | ✅ landed (`7ae1929`) | Composer (done) |
 | [M-multi-output-compile.md](./M-multi-output-compile.md) | Multi-output compile driver + consumer-stage model (**audit gap**) | 📌 contract ready | Cursor (Opus-pinned) |
-| [M-mesh-gen-consumer.md](./M-mesh-gen-consumer.md) | Graph-driven mesh-gen consumer (tessellation via graph, not hardcoded) | 📌 contract ready · after multi-output + stage-entrypoints | Cursor (Opus-pinned) |
+| [M-mesh-gen-consumer.md](./M-mesh-gen-consumer.md) | Graph-driven mesh-gen consumer (tessellation via graph, not hardcoded); now includes `surface.cubeFace → transform.spherify` as the concrete decomposition proof | 📌 ready to route — both prerequisites landed (`302667f`, `52334eb`) | Cursor (Opus-pinned) |
 | [M-app-extraction.md](./M-app-extraction.md) | Extract standalone editor → `apps/graph-editor` (tech-debt) | 📌 contract ready | Cursor |
 | [M-params-as-inputs.md](./M-params-as-inputs.md) | Params promotable to input ports (remap bounds wireable) | 📌 contract ready | Cursor |
 | [M-primitive-immutability.md](./M-primitive-immutability.md) | Real WGSL source in CodeView; built-ins read-only; clone-to-edit | 📌 contract ready · fixes stub-source bug | Cursor |
