@@ -30,6 +30,45 @@
   tool available in this environment; verified via check/test/build gates + a dev-server
   boot-and-serve check only.
 
+## UI polish — webgputoy / graph-editor / subdivide (not built)
+
+- **Node tint control is far from what it controls.** `GraphEditor.svelte`'s "Node tint" `<select>`
+  sits in the top document toolbar, next to Save/Undo/Redo — visually distant from the canvas
+  nodes it recolors. Move it closer to (or overlaying) the graph canvas. Consider going further
+  and adopting Blender's **`N`-key floating sidebar** convention generally: a toggleable floating
+  panel docked to the canvas edge for canvas-scoped display settings (node tint today; a natural
+  home for future per-view toggles too), rather than growing the persistent top toolbar per
+  setting.
+- **Divider hit/visual size** (`packages/subdivide/src/Divider.svelte`): currently a flat
+  `thickness = '1px'` (default, set via `--thickness` in `Subdivide.svelte`), same at rest and
+  under pointer. Make the resting visual **~2px wider**, and expand further on hover **without
+  affecting layout** (i.e. animate the `::before`/`::after` pseudo-element's visual size/opacity,
+  not the actual grid `--thickness` value that panes reflow around).
+- **Corner-triangle resize affordance doesn't exist yet.** Searched `packages/subdivide/src/*`
+  for `triangle`/`corner`/`clip-path`: zero matches. This reads as a new, Blender-inspired
+  affordance to design and add at divider intersections (not a tweak to an existing element) —
+  sized small at rest, expanding on hover, matching the same "no layout impact" constraint above.
+- **No active/dragging visual state on the divider itself.** `Subdivide.svelte` already tracks
+  a `dragging` rune (`$state<DividerData | null>`) and uses it to drive a separate full-screen
+  cursor-hint overlay, but the `Divider.svelte` element being dragged gets no distinct style of
+  its own. Add a border highlight (e.g. a `.divider.active` class, or pass `dragging === divider`
+  as a prop) so it's visually obvious which divider is live while resizing.
+- **Nodes can't be named.** `packages/graph`'s `Node` type (`types.ts`) has `id`/`primitive`/
+  `params`/`inputs`/`outputs`/`position` only — no user-facing display name/label field. Nodes
+  are only ever shown by their `id` or `primitive` type (e.g. `noise.perlin3d`) on the canvas and
+  in the inspector. Add an optional `name`/`label` field, surfaced as an editable text field in
+  `InspectorPanel.svelte` near where params are already edited, and reflected in the canvas node
+  title (`GraphNodeView.svelte`).
+- ~~WebGPUToy has no visible header/branding at all~~ ✅ done (2026-07-02) — real logo landed:
+  `WebGpuToyLogo.svelte` (isotype + wordmark, theme-aware, `packages`-style SVG path data in
+  `webGpuToyLogo.ts`), rendered into `GraphEditor.svelte`'s new `toolbarStart` snippet slot from
+  `apps/webgputoy/src/routes/+page.svelte`; a real favicon (`src/lib/assets/favicon.svg`) wired
+  through a new `+layout.svelte`, matching `apps/scene-editor`'s existing favicon pattern; source
+  artwork kept at `_docs/assets/webGPUtoy.svg` for reference. Unlike `scene-editor`'s persistent
+  `AppHeader.svelte`, the mark lives inside the editor's own toolbar rather than a separate
+  app-level header bar — reasonable for a full-screen single-purpose editor that shouldn't spend
+  vertical space on a redundant nav bar.
+
 
 ## Engine — compiler / runtime (not built)
 
