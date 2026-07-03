@@ -1,7 +1,8 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Revision:** 2 (2026-07-03) —
-incorporates a verified external review; see [Revision history](#revision-history) · **Parent:**
+**Status:** proposed implementation plan, not yet approved · **Revision:** 3 (2026-07-03) —
+incorporates two rounds of verified external review; see [Revision history](#revision-history) ·
+**Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
 resources/frame execution), Foundation 3 (generic kernels), Foundation 4 (generic command/resource
@@ -25,6 +26,64 @@ is sequenced so the live planet renderer (`apps/scene-editor`, gated per `AGENTS
 already-shipped, already-tested graph-editor feature keep working throughout, not just at the end.
 
 ## Revision history
+
+**Revision 3** incorporates a second verified external review, of revision 2. Every finding was
+independently re-checked against the plan text and the live code — including re-deriving the
+reviewer's own citations from scratch — before acceptance:
+
+- **F1.4a's deletion claim was wrong.** `deriveMeshTargets` (`packages/graph/src/meshTarget.ts:24-49`)
+  extracts a *specific* shape — position/normal edges plus `gridSize`/`faceCount` params — that a
+  generic `kind: 'sink'` tag cannot reproduce by itself; the same is true of
+  `derivePipelinePresentations`'s image-pipeline shape. F1.3 now defines a concrete
+  `SinkDefinition` interface (`deriveInvocation(doc, node): SinkInvocation | null`) so each sink
+  *kind* supplies its own extraction logic; F1.4a's fix/gate no longer claims blanket deletion —
+  these functions' logic is **rehomed** as `SinkDefinition` implementations, not deleted.
+- **The v1→v2 migration needed a registry, not a single case.** Verified: the reviewer's specific
+  citation ("existing fixtures include vertex, fragment, compute and terrain-mesh consumers") does
+  not hold up — exhaustive grep found only two live consumer shapes, `type: 'preview'`
+  (`graphBuilders.ts`'s `defaultPreviewGraph`) and `type: 'image', stage: 'fragment'`
+  (`fullscreenFragment.test.ts`) — no vertex/compute/terrain-mesh consumer exists in the codebase
+  today. But the underlying gap was still real: the `image`/`fragment` fixture is **also**
+  sink-node-free, just like the preview case, and revision 2 only handled the preview shape by
+  name. Replaced with a migration **registry** keyed by consumer `type`, covering both verified
+  shapes, with unknown types preserved via a generic `legacy.consumerSink` (never silently
+  discarded) rather than a single hardcoded special case.
+- **F1.3 omitted an entire primitive category.** `host.fragCoord`/`host.iTime`/`host.iResolution`/
+  `procedural.uv`/`procedural.metricPosition` are special-cased by literal primitive-id string
+  check in `packages/runtime-webgpu/src/emitGraphEval.ts:234-260`, and `host.fragCoord`'s
+  registered WGSL module is a verified placeholder (`packages/procedural-wgsl/src/modules/host/fragCoord.ts`:
+  `return vec2f(0.0);`, a comment reading "the runtime injects fragment coordinates"). These are
+  neither real `wgsl-function` primitives nor comment-only structural sinks — they're exactly the
+  `host-input` kind F1.3 already proposed but treated as a deferred stub. `HostBinding` is now
+  concretely defined and these five primitives are migrated to `kind: 'host-input'` as part of
+  F1.3 itself, retiring the string-based dispatch instead of leaving it in place.
+- **Structural nodes shouldn't be forced into `sink`/`command` before those kinds have a real
+  shape.** `buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` aren't presentation
+  sinks (nothing is exported/shown) or GPU commands (they don't draw/dispatch) — calling them
+  either asserts false final semantics ahead of Foundation 2/3's real resource/pass model. They now
+  get an explicit, honestly-transitional `kind: 'legacy-structural'` instead. `target.display`/
+  `target.mesh` **do** get real `kind: 'sink'` classifications, now that `SinkDefinition` gives
+  them a concrete way to carry their existing derivation logic forward.
+- **Group-registry ownership, pinned.** Adopted a `GroupResolver` interface in `packages/graph`
+  with the standard-library implementation in `procedural-wgsl`, injected into compiler/editor
+  contexts — verified this exactly mirrors the existing `WgslModuleResolver`/
+  `createStandardLibraryResolver` pattern already in production
+  (`packages/procedural-wgsl/src/resolver.ts`), rather than inventing a new convention.
+- **F1.5 didn't say where `TypeRef` is stored.** Pinned an explicit contract: `PortSpec`/`Port`
+  gain a `type: TypeRef` field; `dataType` becomes a deprecated authoring alias; v2 documents
+  serialize canonical `TypeRef`.
+- **Promotion consolidation was mis-specified as "one function."** Verified the three current
+  implementations have genuinely different signatures — `promoteExpr(expr: string, ...): string`
+  (WGSL text, in `compiler`/`runtime-webgpu`) versus `coerceInputValue(value: CpuValue, ...): CpuValue`
+  (actual runtime values, in `runtime-cpu`) — these cannot literally merge into one function. Split
+  into a shared `resolveCoercion(from, to): CoercionPlan` decision plus backend-specific
+  `emitCoercion`/`applyCoercion` appliers.
+- **F1.2's affected surfaces were undercounted.** `space`/`dataType` appear on four type
+  definitions, not one: `Port` (`types.ts:33-41`), `PortSpec` (`primitive.ts:34-41`),
+  `GroupInputMapping`, and `GroupOutputMapping` (`types.ts:96-114`) — plus node-port
+  synchronization, serialization, and self-describing WGSL frontmatter metadata
+  (`primitiveSources.ts`). F1.2's fix and gate now cover all of these, with an explicit round-trip
+  test.
 
 **Revision 2** incorporates a verified external review of revision 1. Every finding below was
 independently re-checked against the plan text and the live code before acceptance — none were
@@ -188,9 +247,17 @@ semantic properties like units or color space, which can coexist with a space on
 - **Real coupling to watch:** `packages/graph/src/contract.ts:20` folds space into the
   swap-family *contract* string — two primitives with the same data type but different spaces
   currently can't swap for each other unless they share an explicit `role` override.
+- **`space`/`dataType` appear on four type definitions, not one** (verified by grep across
+  `types.ts`/`primitive.ts`): the runtime `Port` instance type (`types.ts:33-41`), the primitive
+  `PortSpec` template (`primitive.ts:34-41`), `GroupInputMapping`, and `GroupOutputMapping`
+  (`types.ts:96-114`). `PortSpec` is a template; `Port` instances are derived from it when a node
+  is created — all four need the same field change together, or `Port` instances desync from the
+  `PortSpec` templates they're generated from. `space` is also rendered into self-describing WGSL
+  frontmatter YAML (`primitiveSources.ts`) for documentation/inspection.
 
 **Fix:**
-1. Replace `CoordinateSpace` with two separate fields on `PortSpec`:
+1. Replace `CoordinateSpace` with two separate fields, applied consistently to **all four** type
+   definitions above (`Port`, `PortSpec`, `GroupInputMapping`, `GroupOutputMapping`):
    - `space?: SpaceId` (`SpaceId = string`) — still singular, open instead of closed. A port is in
      exactly one coordinate frame; this stays a discriminant, not a set.
    - `semantics?: SemanticTag[]` (`SemanticTag = string`) — plural, for orthogonal properties
@@ -204,6 +271,11 @@ semantic properties like units or color space, which can coexist with a space on
    string as today (preserves current swap behavior exactly); revisit only if a concrete need for
    cross-space swapping surfaces. `semantics` does not participate in swap-family contracts at all
    initially (it's additive metadata, not a mechanical-compatibility signal).
+5. Update node-port synchronization (wherever a `Port` instance is created/rehydrated from its
+   primitive's `PortSpec` — the node-creation and any node-repair/resync path) to copy both
+   `space` and `semantics` across, not just `dataType`.
+6. Update serialization (v1/v2 `GraphDocument` save/load) and the self-describing WGSL frontmatter
+   parser/renderer (`primitiveSources.ts`) to read/write `semantics` alongside `space`.
 
 **Test gate:**
 1. All 30 existing `space` port declarations produce identical validation results on existing
@@ -214,7 +286,10 @@ semantic properties like units or color space, which can coexist with a space on
 3. A new test attaches `semantics: ['color:linear-srgb']` to a port alongside a `space` value on
    the *same* port, proving the two are independent and co-occur cleanly — the actual proof this
    is no longer a single collapsed tag.
-4. `check` and `test` green for `graph`, `graph-editor`, full workspace.
+4. **Round-trip gate:** a port's `space` and `semantics` survive node creation (`PortSpec` →
+   `Port` sync), a full save→load cycle, and an explicit port-resynchronization pass, proving the
+   fields propagate through every location identified above, not just `PortSpec` in isolation.
+5. `check` and `test` green for `graph`, `graph-editor`, full workspace.
 
 **Out of scope:** validating `semantics` compatibility on edges (informational only for now).
 Building a general conversion graph between arbitrary spaces. Resolving the `contract.ts`
@@ -256,6 +331,17 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
   TypeBox↔TypeRef bridge.
 - 138 primitive registrations only declare `dataType: 'f32'`-style port specs — mechanically
   simple to migrate; the real complexity is in the ~37 non-primitive files with dispatch logic.
+- **Where canonical `TypeRef` lives, previously unspecified:** `PortSpec` and `Port` gain a
+  `type: TypeRef` field; `dataType: DataType` becomes a deprecated authoring alias, not a second
+  source of truth. v2 `GraphDocument`s serialize canonical `TypeRef`; authoring APIs and
+  compatibility helpers may continue accepting `dataType` and derive `type` from it via the F1.5
+  mapping.
+- **The three promotion implementations have genuinely different signatures, not just duplicated
+  logic:** `promoteExpr(expr: string, fromType, toType): string` (`compiler/groupCodegen.ts`,
+  `runtime-webgpu/emitGraphEval.ts`) transforms a **WGSL expression string** at codegen time;
+  `coerceInputValue(value: CpuValue, fromType, toType): CpuValue` (`runtime-cpu/evalGraph.ts`)
+  transforms an **actual runtime value**. These cannot literally be merged into one function — the
+  codegen backends operate on text, the CPU evaluator operates on values.
 
 **Fix:**
 1. Introduce `TypeRef` as the parent review specifies (scalar/vector/matrix/array/struct/buffer/
@@ -266,20 +352,32 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
    `TypeRef` values that happen to correspond to an existing `DataType` (a `TypeRef` describing an
    arbitrary struct, a parameterized buffer, or a specific texture format has no legacy string to
    map back to, and must not be forced into one).
-3. Consolidate the triplicated `promoteExpr()`/`coerceInputValue()` copies into one shared,
-   `TypeRef`-aware promotion function used by all three call sites.
-4. Migrate the 5 exhaustive-switch files last, once `TypeRef` is proven via new primitives.
-5. Prove one new primitive using an integer port and one using a matrix type end-to-end (compiles,
+3. Add `type: TypeRef` to `PortSpec` and `Port`, derived from `dataType` via the mapping above for
+   every existing primitive; new primitives may declare `type` directly. `dataType` stays as a
+   deprecated authoring alias, not removed.
+4. Split promotion into a shared decision plus backend-specific appliers, not one function:
+   - `resolveCoercion(from: TypeRef, to: TypeRef): CoercionPlan | null` — the single, shared
+     decision of *whether* a promotion is legal and *what* it means (e.g. "pad with a zero Z
+     component"), used by all three call sites.
+   - `emitCoercion(plan: CoercionPlan, expr: string): string` — the WGSL-text applier, replacing
+     both `promoteExpr()` copies.
+   - `applyCoercion(plan: CoercionPlan, value: CpuValue): CpuValue` — the runtime-value applier,
+     replacing `coerceInputValue()`.
+5. Migrate the 5 exhaustive-switch files last, once `TypeRef` is proven via new primitives.
+6. Prove one new primitive using an integer port and one using a matrix type end-to-end (compiles,
    evaluates on CPU, runs on GPU) as the acceptance bar for "the closed type system is actually
    fixed," not just "the union got bigger."
-6. Add the narrow TypeBox-compatible conversion (scalar/vector/struct value schemas only) as a
+7. Add the narrow TypeBox-compatible conversion (scalar/vector/struct value schemas only) as a
    separate, explicitly-scoped helper — not a general bridge, per the resolved question above.
 
 **Test gate:**
 1. All 138 existing primitive registrations validate and compile identically via the
-   `DataType → TypeRef` mapping (parity category 1/2 as applicable) — zero behavior change.
-2. The consolidated promotion function produces identical output to all three current copies for
-   every existing promotion case.
+   `DataType → TypeRef` mapping and the derived `type` field (parity category 1/2 as applicable) —
+   zero behavior change.
+2. `resolveCoercion` + `emitCoercion` produce identical WGSL text to both current `promoteExpr()`
+   copies for every existing promotion case; `resolveCoercion` + `applyCoercion` produce identical
+   values to `coerceInputValue()` for the same cases — proving the split is behavior-preserving on
+   both backends, not just one.
 3. A new test primitive using an integer port and one using a matrix type both round-trip through
    `evalCPU` and compile to correct WGSL.
 4. A test proves `TypeRef → DataType` correctly returns "no alias" for a `TypeRef` shape that has
@@ -312,6 +410,23 @@ with no WGSL function at all — without creating a package dependency cycle bet
   an actual identity clip-projection over `plane_grid_position`). It stays `kind: 'wgsl-function'`
   — a transitional classification — until Foundation 3 defines a real kernel shape for it. Do not
   reclassify it as structural and do not remove its module.
+- **`buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` don't fit `sink` or
+  `command` either** — none of them present/export anything (not sinks) or issue a GPU draw/dispatch
+  (not commands). Asserting either classification now would assign false final semantics ahead of
+  Foundation 2/3's real resource/pass model. `target.display`/`target.mesh` **are** genuine
+  presentation sinks and get `kind: 'sink'` — see the `SinkDefinition` design below for how they
+  keep their existing derivation logic.
+- **A fourth, previously-unaddressed category: host/procedural primitives dispatched by string
+  ID.** `host.fragCoord`, `host.iTime`, `host.iResolution`, `procedural.uv`, and
+  `procedural.metricPosition` are each special-cased by literal `node.primitive === '...'` checks
+  in `packages/runtime-webgpu/src/emitGraphEval.ts:234-260`, bypassing normal WGSL dispatch to
+  inject a host-provided runtime value (e.g. `body.push(... opts.fragCoordExpr ?? 'position.xy' ...)`).
+  Their registered WGSL modules are **verified placeholders**, not real functions:
+  `packages/procedural-wgsl/src/modules/host/fragCoord.ts`'s entire body is
+  `fn frag_coord() -> vec2f { return vec2f(0.0); }`, with its own comment reading "the runtime
+  injects fragment coordinates." These are exactly the `host-input` kind already proposed in the
+  union below — they must not be left as a deferred stub while their string-based dispatch
+  survives untouched.
 - `primitive.wgsl.moduleId`/`.entry` is read directly in exactly **3 files**:
   `packages/compiler/src/codegen.ts`, `packages/compiler/src/groupCodegen.ts`,
   `packages/runtime-webgpu/src/emitGraphEval.ts` — dispatch logic is concentrated, not scattered.
@@ -324,6 +439,16 @@ with no WGSL function at all — without creating a package dependency cycle bet
   import anything from `procedural-wgsl`. Embedding `definition: GroupDefinition` directly in
   `NodePrimitive.implementation` would force that registration file to import the compiled group
   value from `procedural-wgsl`, creating `graph → procedural-wgsl → graph`, a real cycle.
+- **Existing precedent for exactly this kind of registry, verified:** `packages/procedural-wgsl/src/resolver.ts`
+  already implements `WgslModuleResolver` (`{ resolve(moduleId): Promise<WgslModule> }`, defined in
+  `packages/compiler`) via `createStandardLibraryResolver`, injected into `compiler`, `graph-editor`,
+  and `runtime-webgpu` call sites. A `GroupResolver` following the identical shape is not a new
+  convention, just the same one applied to groups.
+- **`target.mesh`'s sink-invocation shape, verified:** `deriveMeshTargets`
+  (`packages/graph/src/meshTarget.ts:24-49`) extracts wired `position`/`normal` input edges plus
+  `gridSize`/`faceCount` node params into a `MeshTargetDescriptor` — a shape specific to mesh
+  preview, not derivable from "this node is a sink" alone. Any generic sink model needs a place for
+  this kind of per-sink-kind extraction logic to live.
 - 138 `registerPrimitive` calls across ~91 files — each is a small, mechanical registration.
 
 **Fix:**
@@ -333,47 +458,91 @@ with no WGSL function at all — without creating a package dependency cycle bet
      | { kind: 'wgsl-function'; moduleId: string; entry: string }
      | { kind: 'group'; groupId: string }
      | { kind: 'host-input'; binding: HostBinding }
+     | { kind: 'legacy-structural'; marker: string }
+     | { kind: 'sink'; sink: SinkDefinition }
      | { kind: 'resource'; descriptor: ResourceDescriptor }
      | { kind: 'kernel'; stage: 'vertex' | 'fragment' | 'compute' }
-     | { kind: 'command'; command: GpuCommandKind }
-     | { kind: 'sink'; sink: PresentationSinkKind };
+     | { kind: 'command'; command: GpuCommandKind };
    ```
    Note `{ kind: 'group'; groupId: string }` — a reference, not an embedded `GroupDefinition`.
-   `ResourceDescriptor`/`GpuCommandKind`/`PresentationSinkKind` are placeholders (Foundations 2–4
-   define their real shapes, now informed by `TypeRef` from F1.5); only `wgsl-function`, `group`,
-   and `sink` need concrete definitions for F1.3, since they cover every primitive that exists today.
-2. Add a **group registry** — a small provider (in `packages/graph`, or its own package if that
-   proves cleaner once attempted) mapping `groupId → GroupDefinition`, populated at startup from
-   wherever compiled group values are actually produced (today: `procedural-wgsl`). Primitive
-   registrations reference groups by `groupId` string, exactly matching the existing pattern of
-   referencing WGSL modules by string `moduleId` — no new dependency direction. The editor resolves
-   `groupId` through this registry for "zoom in and expand" UX without `graph` importing
-   `procedural-wgsl` directly.
-3. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl` field
+   `ResourceDescriptor`/`GpuCommandKind` are placeholders (Foundations 2–4 define their real
+   shapes, now informed by `TypeRef` from F1.5); `wgsl-function`, `group`, `host-input`,
+   `legacy-structural`, and `sink` need concrete definitions now, since they cover every primitive
+   that exists today.
+2. Define `HostBinding` concretely — not a stub:
+   ```ts
+   type HostBinding =
+     | { source: 'fragCoord' }
+     | { source: 'iTime' }
+     | { source: 'iResolution' }
+     | { source: 'proceduralUv' }
+     | { source: 'metricPosition' };
+   ```
+   Migrate `host.fragCoord`, `host.iTime`, `host.iResolution`, `procedural.uv`, and
+   `procedural.metricPosition` to `kind: 'host-input'` with the matching `binding`. Their
+   placeholder WGSL modules are removed once `emitGraphEval.ts` dispatches on
+   `implementation.kind === 'host-input'` and `binding.source` instead of `node.primitive === '...'`
+   string checks — this retires the string-based dispatch finding 3 identified, not just adds a
+   new enum alongside it.
+3. Define `SinkDefinition` concretely, so generic sink *discovery* (via `kind: 'sink'`) can coexist
+   with per-sink-kind *invocation extraction* (which is genuinely different per sink, as
+   `deriveMeshTargets` vs. the image pipeline's presentation derivation shows):
+   ```ts
+   interface SinkDefinition {
+     kind: string; // e.g. 'display', 'meshPreview'
+     deriveInvocation(doc: GraphDocument, node: Node): SinkInvocation | null;
+   }
+   ```
+   Migrate `target.display` to `kind: 'sink'` with a `SinkDefinition` whose `deriveInvocation` is
+   `derivePipelinePresentations`'s per-node logic, ported (not reimplemented); migrate `target.mesh`
+   the same way, porting `deriveMeshTargets`'s existing position/normal/gridSize/faceCount
+   extraction into its `deriveInvocation`. Generic code walks `implementation.kind === 'sink'` to
+   *find* sink nodes; each sink's own `deriveInvocation` still supplies its specific shape.
+4. Give `buffer.persist`, `stage.fragment`, and `geometry.fullscreenPlane` the explicit
+   `kind: 'legacy-structural'` marker instead of forcing them into `sink` or `command` — these
+   three don't have a well-defined final kind until Foundation 2/3's resource/pass model exists.
+   `stage.vertex` stays `kind: 'wgsl-function'` (excluded from this group, per the verified-state
+   note above).
+5. Add a **`GroupResolver`** interface in `packages/graph`, mirroring the existing
+   `WgslModuleResolver`/`createStandardLibraryResolver` pattern (`packages/procedural-wgsl/src/resolver.ts`)
+   exactly:
+   ```ts
+   interface GroupResolver {
+     resolve(groupId: string): Promise<GroupDefinition>;
+   }
+   ```
+   Implement `createStandardLibraryGroupResolver` in `packages/procedural-wgsl`, populated from the
+   compiled group values already produced there (e.g. `TRANSFORM_SPHERIFY_GROUP`). Inject the
+   resolver into compiler/editor contexts exactly as `WgslModuleResolver` already is — no global
+   startup-order dependence, no new dependency direction (`graph` still doesn't import
+   `procedural-wgsl`; `procedural-wgsl` implements `graph`'s interface, same as today).
+6. Add `NodePrimitive.implementation: PrimitiveImplementation` alongside the existing `wgsl` field
    — do not remove `wgsl` yet. Make it optional and derive it from `implementation` for
    `wgsl-function`/`group` kinds, so the 3 dispatch files migrate one at a time.
-4. Migrate the structural-node registrations to `kind: 'sink'` or a temporary `kind: 'command'`
-   placeholder: `buffer.persist`, `stage.fragment`, `target.display`, `target.mesh`,
-   `geometry.fullscreenPlane` — **five nodes, `stage.vertex` excluded** (stays `wgsl-function` per
-   the verified-state note above). Delete the fake WGSL modules for the five once nothing reads
-   `.wgsl` for them.
-5. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on `implementation.kind`.
+7. Migrate `codegen.ts`, `groupCodegen.ts`, `emitGraphEval.ts` to branch on `implementation.kind`.
 
 **Test gate:**
 1. Every existing `wgsl-function` and `group`-backed primitive compiles to byte-identical WGSL
    before and after (parity category 1).
-2. The five genuinely-structural nodes no longer have a registered WGSL module; `stage.vertex`
-   still does and is unaffected.
+2. `buffer.persist`/`stage.fragment`/`geometry.fullscreenPlane` carry `kind: 'legacy-structural'`
+   and no longer have a registered WGSL module; `target.display`/`target.mesh` carry `kind: 'sink'`
+   with a working `SinkDefinition.deriveInvocation` that reproduces today's
+   `derivePipelinePresentations`/`deriveMeshTargets` output exactly; `stage.vertex` keeps its real
+   WGSL module and is unaffected; the five `host-input` primitives no longer have a placeholder
+   WGSL module and no longer require a primitive-id string check in `emitGraphEval.ts`.
 3. A new test proves the compiler's dispatch skips non-function/non-group kinds without
    attempting to link/resolve a WGSL module for them.
 4. A new test proves the group registry resolves `groupId` correctly for the editor's "expand
    group" path without `packages/graph` importing `packages/procedural-wgsl` — check this via a
    dependency-direction assertion (e.g. a lint/import-graph check), not just behavior.
-5. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
+5. A new test proves `SinkDefinition.deriveInvocation` for `target.mesh` produces identical
+   `MeshTargetDescriptor` output to today's `deriveMeshTargets` on every bundled mesh sample.
+6. `check` and `test` green for `graph`, `compiler`, `procedural-wgsl`, `runtime-webgpu`, full
    workspace.
 
 **Out of scope:** designing `ResourceDescriptor`/`GpuCommandKind`/real kernel semantics
-(Foundation 2/3/4). Migrating `stage.vertex`/`stage.fragment` to a final `kind: 'kernel'` shape.
+(Foundation 2/3/4). Migrating `stage.vertex`/`stage.fragment`/the `legacy-structural` nodes to
+their final Foundation 2/3 kind.
 
 ---
 
@@ -403,32 +572,52 @@ pipeline shape.
   touches this, making it the highest-stakes regression surface in Foundation 1.
 - `PipelineGraphPlan` hardcodes fixed-chain node search: `findNode(doc, 'target.display')`,
   `findNode(doc, 'buffer.persist')`, plus direct `.primitive !== 'stage.vertex'` string checks.
-- **Legacy documents with no sink/kernel node at all, verified:**
-  `packages/graph-editor/src/graphBuilders.ts:131-158`'s `defaultPreviewGraph()` is a pure value
-  chain (`procedural.uv → noise.perlin3d → math.remap`) with **zero** `target.*`/`stage.*` nodes.
-  Its *only* execution-root declaration is `consumers: [{ type: 'preview', outputs: ['field'] }]`.
-  A rule of "only kernel/pass/sink nodes are execution roots" has literally nothing to walk from
-  for this graph and any graph shaped like it — a real, not hypothetical, breakage risk.
+- **Legacy documents with no sink/kernel node at all, verified — two distinct shapes, not one:**
+  `packages/graph-editor/src/graphBuilders.ts:131-158`'s `defaultPreviewGraph()` (`type: 'preview'`)
+  is a pure value chain with **zero** `target.*`/`stage.*` nodes. Separately,
+  `packages/runtime-webgpu/src/consumers/fullscreenFragment.test.ts:65-86` (`type: 'image',
+  stage: 'fragment'`) is **also** sink-node-free — a value chain from `host.fragCoord`/
+  `host.iResolution`/`host.iTime` into `effect.cosinePalette`, with no `stage.fragment`/
+  `target.display` node either. Exhaustive grep across the codebase found only these **two**
+  distinct consumer `type` values in actual use (`'preview'` and `'image'`) — no `vertex`,
+  `compute`, or terrain-mesh-typed consumer exists anywhere today, though `ProceduralConsumer.stage`
+  is typed to allow `'vertex'`/`'compute'`/`'mesh-gen'` values that no current fixture exercises. A
+  migration handling only one of the two known shapes by name, with no fallback for shapes not yet
+  enumerated, is still underspecified — a **registry**, not a single case, is required.
 
 **Fix:**
 1. Define the rule: **exports** (`GraphDocument.outputs`, unchanged) name reusable values.
    **Kernel/pass/sink nodes** (via F1.3's `implementation.kind`) are the only execution roots for
    *rendering/compute execution* — runtime execution derives from walking backward from every
    reachable kernel/pass/sink node.
-2. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function:
-   - For documents whose only execution-root signal is a `consumers: [{ type: 'preview', ... }]`
-     entry (no sink node present), **synthesize a sink node** on migration (e.g. a
-     `preview.fieldSink`-equivalent kind, wired from the referenced output) so the new rule has
-     something concrete to walk from. Do not just parse-and-discard `consumers`.
+2. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function built
+   around a **registry**, not a single hardcoded case:
+   ```ts
+   type LegacyConsumerMigration = (consumer: ProceduralConsumer, doc: GraphDocument) => Node | null;
+   const LEGACY_CONSUMER_MIGRATIONS: Record<string, LegacyConsumerMigration> = {
+     preview: /* synthesize a preview.fieldSink node wired from consumer.outputs[0] */,
+     image: /* synthesize a target.display + stage.fragment chain wired from consumer.outputs */
+   };
+   ```
+   - For each consumer entry, look up its `type` in the registry and synthesize the corresponding
+     v2 sink/kernel node(s) if none already exist in the document.
+   - **Unknown consumer types are never silently discarded.** If a document has a `consumers` entry
+     whose `type` isn't in the registry, migration either (a) preserves it as a generic
+     `legacy.consumerSink` node carrying `{ type, stage, outputs }` verbatim, so it remains
+     discoverable and executable via a fallback path, or (b) fails the migration with an explicit
+     "unsupported migration" diagnostic naming the unknown type — never a silent drop.
    - For documents that already have real `target.*`/`stage.*` sink nodes, migration drops the
      now-redundant `consumers` array and keeps the nodes as-is.
    - Keep graph-schema versioning (`GraphDocument.version`) and artifact/serialization-format
      versioning as separate concerns — a schema-version bump does not imply every serialized
      artifact (e.g. exported markup) changes shape for unrelated reasons.
-3. Build a **fixture corpus** covering every bundled sample graph in `graphBuilders.ts` plus at
-   least one hand-written v1 document matching each distinct legacy shape found (sink-bearing,
-   consumer-only, mixed) — migrate each through v1→v2 and assert the synthesized/derived result
-   still produces the same rendered/compiled output as before migration.
+3. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`; both
+   verified consumer-only shapes (`defaultPreviewGraph`'s `'preview'` type,
+   `fullscreenFragment.test.ts`'s `'image'`/`'fragment'` type); and at least one hand-written
+   document with a deliberately-unknown consumer `type`, proving the fallback path (generic
+   preservation or explicit diagnostic, per the registry above) rather than silent data loss.
+   Migrate each through v1→v2 and assert the synthesized/derived result still produces the same
+   rendered/compiled output as before migration.
 4. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
    is proven — new documents are always v2, authored without `consumers`.
 5. Update the 6 files reading `.consumers` to read post-migration v2 documents instead, one file
@@ -446,14 +635,18 @@ pipeline shape.
    byte-identical WGSL for compiled shader text; pixel-equivalent for rendered previews; canonical
    v2 serialization (not byte-identical v1 text) for markup export; a browser visual gate for the
    bundled samples. Not one blanket "byte-identical" claim across all of these.
-2. The full fixture corpus (every bundled sample + hand-written legacy-shape documents) migrates
-   v1→v2 with no loss of execution roots, verified by the synthesized-sink-node mechanism for
-   consumer-only documents specifically.
+2. The full fixture corpus (every bundled sample + both verified consumer-only shapes + the
+   unknown-consumer-type fixture) migrates v1→v2 with no silent loss of execution roots — the
+   unknown-type fixture specifically proves the fallback path fires instead of a silent drop.
 3. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
-   deleted, not superseded.
-4. A new test wires a novel sink kind (invented for the test) and proves `PipelineGraphPlan`'s
-   discovery step finds it via `implementation.kind` alone — proving root *discovery* is generic,
-   while acknowledging (per scope above) the planner's *shape* is still the one fixed chain.
+   **rehomed**, not deleted outright — their logic now lives inside the corresponding
+   `SinkDefinition.deriveInvocation` implementations from F1.3 (`deriveMeshTargets`'s exact
+   position/normal/gridSize/faceCount extraction becomes `target.mesh`'s `deriveInvocation`), and
+   the standalone reconciliation functions are removed once nothing calls them directly anymore.
+4. A new test wires a novel sink kind (invented for the test, with its own trivial
+   `SinkDefinition`) and proves `PipelineGraphPlan`'s discovery step finds it via
+   `implementation.kind` alone — proving root *discovery* is generic, while acknowledging (per
+   scope above) the planner's *shape* is still the one fixed chain.
 5. Loading an old v1 saved document still opens and behaves identically after migration.
 6. `check` and `test` green for every package, full workspace, with special attention to
    `graph-editor`.
