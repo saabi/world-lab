@@ -16,7 +16,11 @@ import {
 	MATH_REMAP_GROUP,
 	MATH_REMAP_MODULE,
 	SDF_OP_SUBTRACT_GROUP,
-	SDF_OP_SUBTRACT_MODULE
+	SDF_OP_SUBTRACT_MODULE,
+	TRANSFORM_NORMAL_DISPLACE_GROUP,
+	TRANSFORM_NORMAL_DISPLACE_MODULE,
+	TRANSFORM_SPHERIFY_GROUP,
+	TRANSFORM_SPHERIFY_MODULE
 } from './index.js';
 import { MATH_ADD_MODULE } from '../modules/math/add.js';
 import { MATH_SUBTRACT_MODULE } from '../modules/math/subtract.js';
@@ -24,6 +28,11 @@ import { MATH_DIVIDE_MODULE } from '../modules/math/divide.js';
 import { MATH_MULTIPLY_MODULE } from '../modules/math/multiply.js';
 import { MATH_MAX_MODULE } from '../modules/math/max.js';
 import { MATH_NEGATE_MODULE } from '../modules/math/negate.js';
+import { MATH_NORMALIZE_MODULE } from '../modules/math/normalize.js';
+import {
+	VECTOR_ADD_VEC3F_MODULE,
+	VECTOR_MUL_SCALAR_VEC3F_MODULE
+} from '../modules/vector/index.js';
 
 function portNames(ports: PortSpec[]): string[] {
 	return ports.map((port) => port.name);
@@ -132,5 +141,75 @@ describe('canonical built-in groups', () => {
 	it('exports canonical GroupDefinitions for remap and opSubtract', () => {
 		expect(MATH_REMAP_GROUP.id).toBe('math.remap');
 		expect(SDF_OP_SUBTRACT_GROUP.id).toBe('sdf.opSubtract');
+	});
+
+	it('transform.spherify group generates WGSL over math.normalize', () => {
+		expect(TRANSFORM_SPHERIFY_MODULE.id).toBe('transform.spherify');
+		expect(TRANSFORM_SPHERIFY_MODULE.source).toContain('fn spherify(position: vec3<f32>)');
+		expect(TRANSFORM_SPHERIFY_MODULE.source).toContain('normalizeVec3(position)');
+		expect(TRANSFORM_SPHERIFY_MODULE.dependencies).toEqual(['math.normalize']);
+	});
+
+	it('transform.normalDisplace group generates WGSL over vector mulScalar and add', () => {
+		expect(TRANSFORM_NORMAL_DISPLACE_MODULE.id).toBe('transform.normalDisplace');
+		expect(TRANSFORM_NORMAL_DISPLACE_MODULE.source).toContain(
+			'fn normalDisplace(position: vec3<f32>, normal: vec3<f32>, height: f32)'
+		);
+		expect(TRANSFORM_NORMAL_DISPLACE_MODULE.source).toContain('mulScalarVec3f(');
+		expect(TRANSFORM_NORMAL_DISPLACE_MODULE.source).toContain('addVec3f(position, ');
+		expect(TRANSFORM_NORMAL_DISPLACE_MODULE.dependencies?.sort()).toEqual(
+			['vector.add.vec3f', 'vector.mulScalar.vec3f'].sort()
+		);
+	});
+
+	it('parity: transform.spherify graph registration matches generated loader contract', () => {
+		assertMechanicalParity('transform.spherify', TRANSFORM_SPHERIFY_MODULE.source);
+		const graphPrim = getPrimitive('transform.spherify')!;
+		const loaded = loadWgslPrimitive({
+			moduleId: 'transform.spherify',
+			source: TRANSFORM_SPHERIFY_MODULE.source
+		}).primitive;
+		assertMetadataParity(graphPrim, loaded);
+	});
+
+	it('parity: transform.normalDisplace graph registration matches generated loader contract', () => {
+		assertMechanicalParity('transform.normalDisplace', TRANSFORM_NORMAL_DISPLACE_MODULE.source);
+		const graphPrim = getPrimitive('transform.normalDisplace')!;
+		const loaded = loadWgslPrimitive({
+			moduleId: 'transform.normalDisplace',
+			source: TRANSFORM_NORMAL_DISPLACE_MODULE.source
+		}).primitive;
+		assertMetadataParity(graphPrim, loaded);
+	});
+
+	it('linked transform.spherify WGSL includes math.normalize dependency', () => {
+		const linked = textLinker.link({
+			entry: 'transform.spherify',
+			modules: {
+				[MATH_NORMALIZE_MODULE.id]: MATH_NORMALIZE_MODULE.source,
+				[TRANSFORM_SPHERIFY_MODULE.id]: TRANSFORM_SPHERIFY_MODULE.source
+			}
+		});
+		expect(linked).toContain('fn normalizeVec3(');
+		expect(linked).toContain('fn spherify(');
+	});
+
+	it('linked transform.normalDisplace WGSL includes vector dependency modules', () => {
+		const linked = textLinker.link({
+			entry: 'transform.normalDisplace',
+			modules: {
+				[VECTOR_MUL_SCALAR_VEC3F_MODULE.id]: VECTOR_MUL_SCALAR_VEC3F_MODULE.source,
+				[VECTOR_ADD_VEC3F_MODULE.id]: VECTOR_ADD_VEC3F_MODULE.source,
+				[TRANSFORM_NORMAL_DISPLACE_MODULE.id]: TRANSFORM_NORMAL_DISPLACE_MODULE.source
+			}
+		});
+		expect(linked).toContain('fn mulScalarVec3f(');
+		expect(linked).toContain('fn addVec3f(');
+		expect(linked).toContain('fn normalDisplace(');
+	});
+
+	it('exports canonical GroupDefinitions for transform groups', () => {
+		expect(TRANSFORM_SPHERIFY_GROUP.id).toBe('transform.spherify');
+		expect(TRANSFORM_NORMAL_DISPLACE_GROUP.id).toBe('transform.normalDisplace');
 	});
 });

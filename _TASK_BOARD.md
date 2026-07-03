@@ -27,14 +27,14 @@ is still open.
 
 ## Active
 
-- **Geometry transforms, Slice A** (`math.normalize` + `transform.spherify` +
-  `transform.normalDisplace`, as node groups over existing/new elemental math ops)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-a.md`
-  Owns: new module(s) under `packages/procedural-wgsl/src/modules/math/`, `packages/graph/src`
-  primitive + group registration for the three new ops (additive registry entries only)
-  Claimed by: Auto · Status: in progress
+(none)
 
 ## Done (recent)
+
+- **Geometry transforms, Slice A** — `math.normalize` atomic primitive +
+  `transform.spherify` / `transform.normalDisplace` group-backed transforms; evalCPU +
+  WGSL parity tests; plane-grid spherify CPU gate.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-geometry-transforms-slice-a.md`
 
 - **Umami analytics for webgputoy** — `d8084a8` · env-gated `injectUmami`/`track` parity
   with scene-editor; zero tracking when `PUBLIC_UMAMI_*` unset (verified on localhost:5173).

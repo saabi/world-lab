@@ -14,6 +14,7 @@ import { MATH_MIX_MODULE } from './math/mix.js';
 import { MATH_MULTIPLY_MODULE } from './math/multiply.js';
 import { MATH_POW_MODULE } from './math/pow.js';
 import { MATH_REMAP_MODULE } from './math/remap.js';
+import { MATH_NORMALIZE_MODULE } from './math/normalize.js';
 import { MATH_SMOOTHSTEP_MODULE } from './math/smoothstep.js';
 import { NOISE_FBM_MODULE } from './noise/fbm.js';
 import {
@@ -89,6 +90,10 @@ import {
 	TARGET_DISPLAY_MODULE
 } from './pipeline/stubs.js';
 import {
+	TRANSFORM_NORMAL_DISPLACE_MODULE,
+	TRANSFORM_SPHERIFY_MODULE
+} from './transform/index.js';
+import {
 	CONSTANT_F32_MODULE,
 	VECTOR_VEC2F_MODULE,
 	VECTOR_VEC2F_X_MODULE,
@@ -161,6 +166,7 @@ export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[SDF_OP_SUBTRACT_MODULE.id]: copyModule(SDF_OP_SUBTRACT_MODULE),
 	[SDF_OP_INTERSECT_MODULE.id]: copyModule(SDF_OP_INTERSECT_MODULE),
 	[MATH_REMAP_MODULE.id]: copyModule(MATH_REMAP_MODULE),
+	[MATH_NORMALIZE_MODULE.id]: copyModule(MATH_NORMALIZE_MODULE),
 	[MATH_CLAMP_MODULE.id]: copyModule(MATH_CLAMP_MODULE),
 	[MATH_SMOOTHSTEP_MODULE.id]: copyModule(MATH_SMOOTHSTEP_MODULE),
 	[MATH_ADD_MODULE.id]: copyModule(MATH_ADD_MODULE),
@@ -192,6 +198,8 @@ export const STANDARD_LIBRARY_MODULES: Record<string, WgslModule> = {
 	[GEOMETRY_PLANE_MODULE.id]: copyModule(GEOMETRY_PLANE_MODULE),
 	[BUFFER_PERSIST_MODULE.id]: copyModule(BUFFER_PERSIST_MODULE),
 	[STAGE_VERTEX_MODULE.id]: copyModule(STAGE_VERTEX_MODULE),
+	[TRANSFORM_SPHERIFY_MODULE.id]: copyModule(TRANSFORM_SPHERIFY_MODULE),
+	[TRANSFORM_NORMAL_DISPLACE_MODULE.id]: copyModule(TRANSFORM_NORMAL_DISPLACE_MODULE),
 	[STAGE_FRAGMENT_MODULE.id]: copyModule(STAGE_FRAGMENT_MODULE),
 	[TARGET_DISPLAY_MODULE.id]: copyModule(TARGET_DISPLAY_MODULE),
 	[CONSTANT_F32_MODULE.id]: copyModule(CONSTANT_F32_MODULE),
@@ -221,6 +229,7 @@ export {
 	MATH_MULTIPLY_MODULE,
 	MATH_POW_MODULE,
 	MATH_REMAP_MODULE,
+	MATH_NORMALIZE_MODULE,
 	MATH_SMOOTHSTEP_MODULE,
 	NOISE_FBM_MODULE,
 	NOISE_HASH2D_MODULE,
@@ -281,6 +290,8 @@ export {
 	GEOMETRY_PLANE_MODULE,
 	BUFFER_PERSIST_MODULE,
 	STAGE_VERTEX_MODULE,
+	TRANSFORM_SPHERIFY_MODULE,
+	TRANSFORM_NORMAL_DISPLACE_MODULE,
 	STAGE_FRAGMENT_MODULE,
 	TARGET_DISPLAY_MODULE,
 	CONSTANT_F32_MODULE,
@@ -309,6 +320,7 @@ export { MATH_MIX_SOURCE } from './math/mix.js';
 export { MATH_MULTIPLY_SOURCE } from './math/multiply.js';
 export { MATH_POW_SOURCE } from './math/pow.js';
 export { MATH_REMAP_SOURCE } from './math/remap.js';
+export { MATH_NORMALIZE_SOURCE } from './math/normalize.js';
 export { MATH_SMOOTHSTEP_SOURCE } from './math/smoothstep.js';
 export { NOISE_FBM_SOURCE } from './noise/fbm.js';
 export {

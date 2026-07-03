@@ -35,3 +35,39 @@ export function mathUnaryNode(id: string, primitive: string): Node {
 		outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'f32' }]
 	};
 }
+
+/** Unary vec3f math node template for group subgraphs. */
+export function mathVec3UnaryNode(id: string, primitive: string): Node {
+	return {
+		id,
+		primitive,
+		inputs: [{ id: 'v', name: 'v', direction: 'in', dataType: 'vec3f' }],
+		outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec3f' }]
+	};
+}
+
+/** vec3f × f32 scalar multiply node template for group subgraphs. */
+export function vectorMulScalarVec3fNode(id: string, primitive: string): Node {
+	return {
+		id,
+		primitive,
+		inputs: [
+			{ id: 'value', name: 'value', direction: 'in', dataType: 'vec3f' },
+			{ id: 'scalar', name: 'scalar', direction: 'in', dataType: 'f32' }
+		],
+		outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec3f' }]
+	};
+}
+
+/** vec3f addition node template for group subgraphs. */
+export function vectorAddVec3fNode(id: string, primitive: string): Node {
+	return {
+		id,
+		primitive,
+		inputs: [
+			{ id: 'a', name: 'a', direction: 'in', dataType: 'vec3f' },
+			{ id: 'b', name: 'b', direction: 'in', dataType: 'vec3f' }
+		],
+		outputs: [{ id: 'value', name: 'value', direction: 'out', dataType: 'vec3f' }]
+	};
+}
