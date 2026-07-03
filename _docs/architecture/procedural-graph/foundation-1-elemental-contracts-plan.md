@@ -663,7 +663,7 @@ alias layer indefinitely. A general TypeBox↔TypeRef bridge beyond the narrow v
 
 ---
 
-## F1.3 — Discriminated primitive-implementation union + external group registry
+## F1.3 — Discriminated primitive-implementation union + external group registry ✅ done (`d2db00e`)
 
 **Goal:** stop forcing every primitive to declare a `wgsl: WgslSourceRef`, even structural nodes
 with no WGSL function at all — without creating a package dependency cycle between `graph` and

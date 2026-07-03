@@ -27,31 +27,23 @@ is still open.
 
 ## Active
 
-- **F1.3 — discriminated primitive-implementation union + group registry** (Foundation 1,
-  milestone 4 of 5; see
-  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
-  for this milestone only, do not re-open F1.1/F1.2/F1.5/F1.4a's design; review closely on landing)
-  Brief: `_docs/architecture/procedural-graph/briefs/F1.3-primitive-implementation-union.md`
-  Owns: `packages/graph/src/implementation.ts`, `packages/graph/src/primitive.ts`,
-  `packages/graph/src/registry.ts`, `packages/graph/src/index.ts`,
-  `packages/graph/src/pipeline.ts`, `packages/graph/src/meshTarget.ts`,
-  `packages/graph/src/primitives/`,
-  `packages/procedural-wgsl/src/index.ts`, `packages/procedural-wgsl/src/modules/index.ts`,
-  `packages/procedural-wgsl/src/modules/pipeline/structural.ts`,
-  `packages/procedural-wgsl/src/modules/pipeline/stubs.ts`,
-  `packages/procedural-wgsl/src/modules/host/`, `packages/procedural-wgsl/src/modules/procedural/`,
-  `packages/procedural-wgsl/src/resolver.ts`, `packages/procedural-wgsl/src/groups/`,
-  `packages/compiler/src/codegen.ts`, `packages/compiler/src/groupCodegen.ts`,
-  `packages/compiler/src/primitiveLoader.ts`, `packages/compiler/src/sinkAdapters.ts`,
-  `packages/compiler/src/index.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
-  `packages/runtime-webgpu/src/moduleResolver.ts`, `packages/runtime-webgpu/src/sinkHandlers.ts`,
-  `packages/runtime-webgpu/src/index.ts`, `packages/graph-editor/src/groupResolver.ts`,
-  `packages/graph-editor/src/primitiveSources.ts`, `packages/graph-editor/src/index.ts`,
-  `packages/mcp-server/src/index.ts`,
-  and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
 
 ## Done (recent)
+
+- **F1.3 — discriminated primitive-implementation union + group registry** — `d2db00e` ·
+  `PrimitiveImplementation` union with all 8 kinds; removed all ten fake WGSL modules
+  (`structural.ts`'s 5 + 5 host/procedural files); `target.display`/`target.mesh` migrated to
+  `kind: 'sink'` by genuinely sharing code (`presentationForDisplay`/`meshTargetForNode`
+  extracted once, called by both the old and new mechanisms — not reimplemented);
+  `SinkHandlerRegistry<TAdapter>` cleanly splits compiler-side `SinkCompilerAdapter` from
+  runtime-webgpu's `SinkExecutionHandler`; `GroupResolver`/`createStandardLibraryGroupResolver`
+  mirror the existing `WgslModuleResolver` pattern exactly, no new `graph`→`procedural-wgsl`
+  dependency; the sequencing gap found during the contract pass (F1.3's own gate referenced
+  `preview.fieldSink`/`legacy.consumerSink`, which don't exist until F1.4a) was correctly fixed
+  with a test-only `test.compatibilitySink` primitive, proving per-node sink data survives
+  `replace-node-primitive` resync and `dependencies` resolves by name rather than by edge.
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.3-primitive-implementation-union.md`
 
 - **F1.5 — `TypeRef` compatibility layer** — `129d35e` · exhaustive `dataTypeToTypeRef`
   (total) + partial `typeRefToDataType`, `dataTypeToWgsl` elegantly refactored to route through
