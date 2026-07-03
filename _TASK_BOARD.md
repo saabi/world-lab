@@ -27,7 +27,16 @@ is still open.
 
 ## Active
 
-_(none)_
+One task pinned 2026-07-03 — found via independent review of the mesh-target-sink landing:
+the "GPU" mesh path silently, permanently falls back to CPU for realistic graphs (including
+both bundled mesh samples), and even once fixed, an independently-sourced `normal` subgraph
+isn't fully sliced into the compiled shader.
+
+- **Fix the mesh-gen GPU path's silent CPU fallback**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-gpu-output-fix.md`
+  Owns: `packages/runtime-webgpu/src/consumers/meshGen.ts`,
+  `packages/runtime-webgpu/src/consumers/surfaceMeshPreview.ts`
+  Claimed by: — · Status: unclaimed
 
 ## Done (recent)
 

@@ -176,9 +176,37 @@
   `resolveMeshPreviewRequest` in `packages/graph`, and `MeshPreviewPanel.svelte`/
   `PreviewZone.svelte` rewritten to take a real `graph`/`meshRequest` instead of the hardcoded
   `surfaceId` demo toggle — an informative empty state shows when no `target.mesh` node is
-  wired. A user can now wire `surface.cubeFace → noise.perlin3d → transform.normalDisplace →
-  target.mesh` and see it rendered live — the full chain from "what's missing to create graphs
-  that displace geometry" is closed.
+  wired. A user can now wire `surface.cubeFace → transform.spherify → transform.normalDisplace
+  → target.mesh` (spherify's output feeds both the displacement's `normal` input and
+  `target.mesh`'s own `normal` — `cubeFace` alone has no `normal` output) and see it rendered
+  live — the full chain from "what's missing to create graphs that displace geometry" is
+  closed. Both bundled mesh samples (`displacedSphereMeshGraph`/`rotatedPlaneMeshGraph`) wire
+  it this way already.
+  **Gap found via independent review (2026-07-03), confirmed by direct code reading, not
+  assumed:** the "GPU" mesh path silently, permanently falls back to CPU for any normal
+  editor graph, including both bundled samples — `assembleMeshGenShader` requires the
+  position port to already be declared in `graph.outputs` (throws otherwise), which
+  `deriveMeshTargets` never synthesizes (unlike `target.display`'s equivalent), and both
+  samples have `outputs: []`. The failure is completely silent — a bare `catch {}` in
+  `renderMeshGenPreview` swallows it with no logging. Separately, even once that's fixed, the
+  WGSL module slice is built only from `position`, never `normal` — if normal comes from a
+  genuinely different subgraph than position (exactly the shipped displaced-sphere sample's
+  own shape), the compiled shader could be missing functions it needs. Brief:
+  `M-mesh-gen-gpu-output-fix.md`.
+- **Mesh preview — wireframe display mode** (not built): `MeshPreviewPanel` /
+  `surfaceMeshPreview.ts` renders solid `triangle-list` geometry with a simple Lambert fragment
+  shader only — no way to inspect edge topology or see displacement structure as lines. Add a
+  preview-pane toggle (solid ↔ wireframe): either `GPUPrimitiveState.polygonMode: 'line'` where
+  the adapter supports it, a dedicated line-list edge pass, or equivalent — wireframe should
+  share the same mesh buffers and camera as the solid path, not a separate graph output.
+- **Mesh preview — orbit camera outside the graph** (not built, feasible): camera belongs in
+  preview chrome, not as graph nodes — orbit/dolly is editor/viewport state, independent of
+  `target.mesh` / procedural outputs. Today `viewProjection()` in `surfaceMeshPreview.ts`
+  hard-codes `lookAt([2.2, 1.6, 2.2], [0, 0, 0], …)`; the file comment says "orbit camera" but
+  there is no pointer input and `MeshPreviewPanel.svelte` has no controls. Implement
+  drag-to-orbit (± scroll/pinch dolly) on the preview canvas via a small helper
+  (`orbitCamera.ts` or similar) owned by `MeshPreviewPanel` / `graph-editor`, feeding an updated
+  `viewProj` uniform each frame while the graph still only supplies position/normal fields.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 

@@ -121,12 +121,22 @@ actually builds:
    `evaluateMeshGenCpu`/`executeMeshGen` rather than requiring a real GPU device for this
    assertion).
 3. `check` **and** `test` green for `graph`, `graph-editor`, and the full workspace.
-4. **Visual ⚠:** build a graph `surface.cubeFace → noise.perlin3d → transform.normalDisplace
-   → target.mesh` (wiring `normalDisplace`'s `height` from the noise output, `position`/
-   `normal` from the surface source, `faceCount: 6` on the sink) in the running editor;
-   confirm a visibly bumpy/displaced sphere renders in the mesh preview pane — not just a
-   smooth sphere, proving displacement actually reaches the renderer end-to-end. Also confirm
-   the empty state shows correctly when no `target.mesh` node exists in the graph.
+4. **Visual ⚠:** build a graph `surface.cubeFace → transform.spherify → transform.
+   normalDisplace → target.mesh` (`spherify`'s output feeds *both* `normalDisplace.position`
+   and `normalDisplace.normal` — `surface.cubeFace` itself has no `normal` output, so the
+   spherified position doubles as the approximate normal, per the "Out of scope" note below;
+   `noise.perlin3d` — fed from `spherify`'s output — drives `normalDisplace.height`;
+   `normalDisplace`'s result feeds `target.mesh.position`, and `spherify`'s own output feeds
+   `target.mesh.normal` directly, `faceCount: 6` on the sink) in the running editor; confirm a
+   visibly bumpy/displaced sphere renders in the mesh preview pane — not just a smooth sphere,
+   proving displacement actually reaches the renderer end-to-end. Also confirm the empty state
+   shows correctly when no `target.mesh` node exists in the graph.
+   > **Correction (2026-07-03):** this item originally read "wire `position`/`normal` from
+   > the surface source" — wrong, `surface.cubeFace` only outputs `position`. Caught during
+   > independent review after landing; the shipped implementation (`704e1d1`, bundled sample
+   > `displacedSphereMeshGraph` in `graphBuilders.ts`) already wires it correctly as described
+   > above — the executor caught and fixed this brief's error without it being flagged here.
+   > Corrected the text so the document matches what was actually (correctly) built.
 
 ## Out of scope
 
