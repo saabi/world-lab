@@ -27,7 +27,17 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F1.2 — open coordinate spaces + add semantic tags** (Foundation 1, milestone 2 of 5; see
+  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
+  for this milestone only, do not re-open F1.1/F1.3/F1.4a/F1.5's design)
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.2-open-spaces-semantics.md`
+  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
+  `packages/graph/src/validate.ts`, `packages/graph/src/contract.ts`,
+  `packages/compiler/src/primitiveLoader.ts`, `packages/compiler/src/groupCodegen.ts`,
+  `packages/graph-editor/src/types.ts`, `packages/graph-editor/src/nodePortUtils.ts`,
+  `packages/graph-editor/src/irAdapter.ts`, `packages/graph-editor/src/primitiveSources.ts`,
+  and their test files
+  Claimed by: — · Status: unclaimed · Recommended executor: Cursor (mechanical field generalization)
 
 ## Done (recent)
 

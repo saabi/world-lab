@@ -104,6 +104,7 @@ runs what.
 | [M-device-compile-test-hardening.md](./M-device-compile-test-hardening.md) | Device-compile test hardening — Node WebGPU + consumer coverage | ✅ landed | Cursor (done) |
 | [M-primitive-help-coverage.md](./M-primitive-help-coverage.md) | Frontmatter-based help for every primitive — 62/112 (55%) resolved blank; unified frontmatter as the source, guaranteed non-empty fallback + guard test, backfilled all categories | ✅ landed (`af69aef`) | Cursor (done) |
 | [F1.1-tuple-rename.md](./F1.1-tuple-rename.md) | Foundation 1, milestone 1: rename static `list<T>` → `tuple<T>` (zero production callers, pure rename); defers the runtime storage-buffer path untouched | ✅ landed (`b36f864`) | Codex (done) |
+| [F1.2-open-spaces-semantics.md](./F1.2-open-spaces-semantics.md) | Foundation 1, milestone 2: open `CoordinateSpace` → `SpaceId`, add `semantics: SemanticTag[]`; opens a third closed-set gate (`primitiveLoader.ts`'s `COORDINATE_SPACES`) beyond the type itself | 📌 ready to route | Cursor |
 
 Further briefs are written as predecessors land. Independent briefs may execute in
 parallel only under the ownership/worktree rules in the root
