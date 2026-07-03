@@ -170,24 +170,38 @@
   `executeMeshGen` + `MeshGenRequest` replace the hardcoded `surfaceMesh.ts::buildSurfaceMesh`
   CPU loop; `surface.cubeFace → transform.spherify` reproduces `surface.cubeSphere`'s own
   geometry as the decomposition proof.
-  **Gap found after landing:** the engine is genuinely graph-driven, but nothing in the editor
-  points at it — `MeshPreviewPanel.svelte` still doesn't take a `graph` prop at all, it's a
-  fixed demo toggling between two hardcoded built-ins, with zero connection to whatever the
-  user is actually authoring on the canvas. Confirmed while answering "what's missing to
-  create graphs that displace geometry": all the *math* already exists
-  (`noise.perlin3d(position) -> f32`, `transform.normalDisplace(position, normal, height) ->
-  position`, landed in Geometry Transforms Slice A) and the *engine* already accepts arbitrary
-  graphs — only the editor-side declaration/wiring is missing. Brief for the fix (a
-  `target.mesh` sink primitive, parallel to the existing `target.display`, plus wiring
-  `MeshPreviewPanel`/`PreviewZone` to the real graph instead of the demo toggle):
-  `M-mesh-target-sink.md`.
+  ~~**Gap found after landing:** the engine is genuinely graph-driven, but nothing in the
+  editor points at it~~ ✅ done (2026-07-03, `704e1d1`) — new `target.mesh` sink primitive
+  (`role: 'meshTarget'`, distinct from `target.display`'s `pipelineTarget`), `deriveMeshTargets`/
+  `resolveMeshPreviewRequest` in `packages/graph`, and `MeshPreviewPanel.svelte`/
+  `PreviewZone.svelte` rewritten to take a real `graph`/`meshRequest` instead of the hardcoded
+  `surfaceId` demo toggle — an informative empty state shows when no `target.mesh` node is
+  wired. A user can now wire `surface.cubeFace → noise.perlin3d → transform.normalDisplace →
+  target.mesh` and see it rendered live — the full chain from "what's missing to create graphs
+  that displace geometry" is closed.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 
 ## Standard library — node gaps
 
 - ~~**`geometry.plane` needs orientation + dimensions**~~ ✅ `a55b8c2` — `width`/`height` + Euler XYZ rotation params on `geometry.plane`; WGSL + evalCPU parity; defaults preserve fullscreen quad. Composable `transform.*` nodes remain a follow-on (`node-model-design-notes.md` §B).
-- **geometry transforms**: `transform.spherify`/`displace`/`translate`/`rotate`/`scale`/`twist`/`bend`/affine, and decompose `geometry.cubeSphere` → `geometry.cube` + `transform.spherify` (more elemental, reusable on any vertex list). These also cover the plane orientation/dimensions case above via composition. `node-model-design-notes.md` §B.
+- **geometry transforms**: Slice A ✅ (`spherify`/`normalDisplace`, `ec84b01`) and Slice B ✅
+  (`translate`/`scale`/`rotate`, `f56f309`) landed — `translate`/`scale` compose over already-
+  registered `vector.add.vec3f`/`vector.mulScalar.vec3f`; `rotate` extracts and reuses
+  `planeGridEulerRotate` directly rather than reimplementing it, and shares a
+  `role: 'positionTransform'` swap family with the other two. Caught a real gate gap while
+  reviewing this landing: `groups.test.ts` accessed `TRANSFORM_ROTATE_MODULE.dependencies` but
+  that module correctly omits the field (rotate is self-contained, no `@use` dependency) —
+  TypeScript flagged it even through the test's own `?? []` fallback, since the object literal
+  never declared the property. Fixed by adding `dependencies: [] as const` to
+  `TRANSFORM_ROTATE_MODULE`, matching sibling modules' shape (`f56f309`'s own `check` gate
+  should have caught this; worth double-checking `check` was actually run, not just `test`).
+  **Still open:** `displace` (the plain, non-normal-based field-offset variant — only
+  `normalDisplace` landed), `twist`/`bend`/`affine`, non-uniform per-axis scale, and
+  decomposing `geometry.cubeSphere` itself into `geometry.cube` + `transform.spherify` (an
+  additive decomposition landed via `surface.cubeFace` for the mesh-gen consumer proof, but
+  `geometry.cubeSphere` itself was deliberately left untouched, per that brief's own scope).
+  `node-model-design-notes.md` §B.
 - **colorlab harvest remainder**: OKLab/OKLCH ✅ (slice A, `9fbc58a`), chromatic adaptation ✅
   done (2026-07-03, `522e31a` — `color.chromaticAdapt`, Bradford, D65↔D50 defaults, registered
   as an ordinary primitive rather than a swap-family `colorSpace` member since its signature
