@@ -174,6 +174,17 @@
   contract must define draw order, depth testing/writes, blending, per-draw bindings, and
   attachment load/store behavior; do not model this by allowing ambiguous fan-in on ordinary
   single-value ports. This is separate from mesh generation and is required for authored scenes.
+- **GPU particle-system graph** (not built): model particles as records in a persistent storage
+  buffer, not as one mesh per particle. The baseline pipeline is
+  `emitter + previous state + deltaTime + force fields → stage.compute:update →
+  buffer.pingPong → draw.instanced(template mesh/billboard) → render.pass → target.display`.
+  Required engine work: typed read/write storage-buffer resources; graph-executed compute
+  dispatch and buffer dependencies; persistent ping-pong state; `host.deltaTime`/frame/seed
+  inputs; vertex-stage `instance_index` access to particle records; and depth/blend/billboard
+  render contracts. Start with a deterministic fixed-capacity buffer and slot-per-invocation
+  update; add emission/death recycling, atomic append or compaction, indirect draw counts,
+  multiple emitters, collisions, and terrain interaction afterward. Planet-scale use must
+  simulate in body-local or camera-relative coordinates to preserve `f32` precision.
 - ~~graph-driven mesh-gen consumer~~ ✅ done (2026-07-03, `82f5a8b`) — `evaluateMeshGenCpu`/
   `executeMeshGen` + `MeshGenRequest` replace the hardcoded `surfaceMesh.ts::buildSurfaceMesh`
   CPU loop; `surface.cubeFace → transform.spherify` reproduces `surface.cubeSphere`'s own
