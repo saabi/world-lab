@@ -173,9 +173,14 @@
   simulate in body-local or camera-relative coordinates to preserve `f32` precision.
   **Reframed (2026-07-03) as three separately-motivated, already-partially-built capabilities
   rather than one particle-specific vertical** — each has working precedent elsewhere in the
-  codebase, just siloed: (1) **instanced draw** — already working in `vegetationPreview.ts`
-  (per-instance buffer + `stepMode: 'instance'` + `drawIndexed(indexCount, instanceCount)`);
-  extraction pinned: `M-instanced-mesh-draw-extraction.md`. The render half is shared with
+  codebase, just siloed: (1) ~~instanced draw~~ ✅ done (2026-07-03, `c5a5927`) — extracted into
+  `renderInstancedMesh` (new `consumers/instancedMeshDraw.ts`): caller-owned instance `GPUBuffer`
+  (no internal `writeBuffer`, so a future compute-populated buffer works unchanged), configurable
+  `InstanceVertexLayout` (no hardcoded stride), template-mesh shape modeled directly on
+  vegetation's prior inline code. `vegetationPreview.ts` migrated to call it with its exact
+  original 16-byte `vec3f + f32` layout — no behavior change, confirmed by parity tests. Not
+  exposed as a graph-authorable primitive yet, per the brief's own explicit deferral. Brief:
+  `M-instanced-mesh-draw-extraction.md`. The render half is shared with
   particles' needs; the instance-buffer *population* half isn't — vegetation's buffer is
   CPU-written once (`GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST`), particles need
   `STORAGE` added so a compute pass can write it every frame, which is a separate concern
@@ -221,13 +226,14 @@
   multi-output primitive like `surface.cubeSphere` resolves the right function per output port
   (`cubeSphere_normal` added alongside the existing `cubeSphere` entry). Brief:
   `M-mesh-gen-gpu-output-fix.md`.
-- **Mesh preview — wireframe display mode** (not built) and **orbit camera outside the
-  graph** (not built, feasible — camera belongs in preview chrome, not as graph nodes;
-  confirmed `viewProjection()` in `surfaceMeshPreview.ts` hard-codes a fixed `lookAt`, the
-  file's own naming says "orbit camera" but there's no pointer input at all). Bundled into one
-  brief (same two files): `M-mesh-preview-ux.md`. **Sequenced, not parallel** — both touch
-  `surfaceMeshPreview.ts`, which the active GPU-fallback fix (above) is touching right now;
-  queued behind it, not routable in parallel.
+- ~~Mesh preview — wireframe display mode~~ ✅ ~~orbit camera outside the graph~~ ✅ done
+  (2026-07-03, `9d1e8e5`) — panel-owned yaw/pitch/distance camera (drag to orbit, scroll or
+  pinch to dolly, default view identical to the prior fixed `lookAt` until the user interacts —
+  `DEFAULT_MESH_PREVIEW_CAMERA` is derived from the same eye vector `viewProjection()` used to
+  hardcode); wireframe via a dedicated `line-list` edge pass with deduplicated indices (chose the
+  universally-portable path over testing `polygonMode: 'line'` adapter support, sidestepping that
+  uncertainty entirely) plus a per-canvas `WeakMap` buffer cache so camera moves don't regenerate
+  geometry. Brief: `M-mesh-preview-ux.md`.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 

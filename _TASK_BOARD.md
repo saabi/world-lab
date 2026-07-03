@@ -31,12 +31,12 @@ _No unclaimed tasks._
 
 ## Done (recent)
 
-- **Extract a reusable instanced-mesh-draw consumer** — `97cd9ea` · new
+- **Extract a reusable instanced-mesh-draw consumer** — `c5a5927` · new
   `renderInstancedMesh` consumer with caller-owned instance buffers + configurable instance
   layout; vegetation preview migrated with no behavior change.
   Brief: `_docs/architecture/procedural-graph/briefs/M-instanced-mesh-draw-extraction.md`
 
-- **Mesh preview UX: wireframe toggle + orbit camera** — `50f6849` · panel-owned
+- **Mesh preview UX: wireframe toggle + orbit camera** — `9d1e8e5` · panel-owned
   orbit camera (drag/scroll/pinch) + wireframe toggle; runtime line-list wireframe pass
   with deduped edge indices and cached mesh buffers; default view unchanged until interaction.
   Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
