@@ -1,6 +1,4 @@
-import { D65, mulMat3Vec3, OK_M1, OK_M1i, OK_M2, OK_M2i, SRGB2XYZ, XYZ2SRGB } from './constants.js';
-
-type Vec3 = readonly [number, number, number];
+import { D65, D50, mulMat3, mulMat3Vec3, BRADFORD, BRADFORD_INV, OK_M1, OK_M1i, OK_M2, OK_M2i, SRGB2XYZ, XYZ2SRGB, type Mat3, type Vec3 } from './constants.js';
 
 const DEG = 180 / Math.PI;
 
@@ -106,4 +104,16 @@ export function evalOklabToOklch(oklab: Vec3): Vec3 {
 export function evalOklchToOklab(oklch: Vec3): Vec3 {
 	const [l, c, h] = oklch;
 	return [l, c * Math.cos(h / DEG), c * Math.sin(h / DEG)];
+}
+
+function bradfordAdaptationMatrix(srcWhite: Vec3, dstWhite: Vec3): Mat3 {
+	const s = mulMat3Vec3(BRADFORD, srcWhite);
+	const d = mulMat3Vec3(BRADFORD, dstWhite);
+	const scale: Mat3 = [d[0] / s[0], 0, 0, 0, d[1] / s[1], 0, 0, 0, d[2] / s[2]];
+	return mulMat3(BRADFORD_INV, mulMat3(scale, BRADFORD));
+}
+
+/** Bradford chromatic adaptation — XYZ under srcWhite → XYZ under dstWhite. */
+export function evalChromaticAdapt(xyz: Vec3, srcWhite: Vec3, dstWhite: Vec3): Vec3 {
+	return mulMat3Vec3(bradfordAdaptationMatrix(srcWhite, dstWhite), xyz);
 }

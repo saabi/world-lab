@@ -82,6 +82,7 @@ const STANDARD_LIBRARY_ENTRIES: Record<string, string> = {
 	'color.oklabToLsrgb': 'oklabToLsrgb',
 	'color.oklabToOklch': 'oklabToOklch',
 	'color.oklchToOklab': 'oklchToOklab',
+	'color.chromaticAdapt': 'chromaticAdapt',
 	'geometry.plane': 'planeGrid',
 	'stage.vertex': 'vertexStage'
 };

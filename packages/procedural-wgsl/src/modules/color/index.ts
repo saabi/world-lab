@@ -37,3 +37,7 @@ export {
 	COLOR_XYZ_TO_SRGB_SOURCE,
 	COLORLAB_HARVEST_MODULES
 } from './colorlabHarvest.js';
+export {
+	COLOR_CHROMATIC_ADAPT_MODULE,
+	COLOR_CHROMATIC_ADAPT_SOURCE
+} from './chromaticAdapt.js';
