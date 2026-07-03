@@ -1,5 +1,7 @@
 import {
 	getPrimitive,
+	migrateGraphDocument,
+	type AnyGraphDocument,
 	type GraphDocument,
 	type GraphOutput,
 	type Node,
@@ -224,7 +226,7 @@ function parseNodeElement(element: XmlElement): Node {
 	return node;
 }
 
-function parseRoot(root: XmlElement): GraphDocument {
+function parseRoot(root: XmlElement): AnyGraphDocument {
 	if (root.name !== ALLOWED_ROOT) {
 		throw new MarkupParseError(
 			`Expected root element <${ALLOWED_ROOT}>`,
@@ -234,6 +236,9 @@ function parseRoot(root: XmlElement): GraphDocument {
 	}
 
 	const version = requireAttr(root, 'version');
+	if (version !== '1' && version !== '2') {
+		throw new MarkupParseError(`Unsupported graph version "${version}"`, root.line, root.column);
+	}
 	const nodes: Node[] = [];
 	const edges: GraphDocument['edges'] = [];
 	const outputs: GraphOutput[] = [];
@@ -282,7 +287,9 @@ function parseRoot(root: XmlElement): GraphDocument {
 	nodes.sort((a, b) => a.id.localeCompare(b.id));
 	edges.sort((a, b) => a.id.localeCompare(b.id));
 
-	return { version, nodes, edges, outputs, consumers };
+	return version === '1'
+		? { version, nodes, edges, outputs, consumers }
+		: { version, nodes, edges, outputs };
 }
 
 /** Parse bounded PlanetGraph markup into a GraphDocument. */
@@ -297,5 +304,5 @@ export function parseGraphMarkup(source: string): GraphDocument {
 		throw new MarkupParseError('Markup must contain exactly one root element', 1, 1);
 	}
 
-	return resyncGraphPortMetadata(parseRoot(elements[0]!));
+	return resyncGraphPortMetadata(migrateGraphDocument(parseRoot(elements[0]!)));
 }

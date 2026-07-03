@@ -76,12 +76,6 @@ export function printGraphMarkup(doc: GraphDocument): string {
 		);
 	}
 
-	for (const consumer of doc.consumers) {
-		lines.push(
-			`${INDENT}<Consumer type="${escapeAttr(consumer.type)}" outputs="${escapeAttr(consumer.outputs.join(','))}" />`
-		);
-	}
-
 	lines.push('</PlanetGraph>');
 	return lines.join('\n');
 }

@@ -123,7 +123,7 @@ function metricPositionGraph(
 ): GraphDocument {
 	registerParityPrimitives();
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_pos', 'procedural.metricPosition'),
 			snapshotNode(densityNodeId, densityPrimitiveId)
@@ -136,7 +136,6 @@ function metricPositionGraph(
 			}
 		],
 		outputs: [{ name: outputName, from: { node: densityNodeId, port: outputPort } }],
-		consumers: [{ type: 'preview', outputs: [outputName] }]
 	};
 }
 

@@ -7,11 +7,10 @@ export const TRANSFORM_SCALE_GROUP: GroupDefinition = {
 	id: 'transform.scale',
 	category: 'transform',
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [vectorMulScalarVec3fNode('mul', 'vector.mulScalar.vec3f')],
 		edges: [],
 		outputs: [{ name: 'position', from: { node: 'mul', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [

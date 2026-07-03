@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { registerPrimitive } from '@world-lab/graph';
+import { migrateGraphDocument, registerPrimitive } from '@world-lab/graph';
 import type { GraphDocument } from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
-import { compileGraph } from './compileGraph.js';
+import { compileConsumers, compileGraph } from './compileGraph.js';
 import type { WgslModule, WgslModuleResolver } from './codegen.js';
+import {
+	compileLegacyConsumerSinks,
+	legacyConsumerDescriptors
+} from './sinkAdapters.js';
 
 // Distinct module per primitive so cross-consumer sharing is observable.
 registerPrimitive({ id: 'cg.base', category: 'test', inputs: [], outputs: [{ name: 'value', dataType: 'f32' }], params: Type.Object({}), wgsl: { moduleId: 'mod.base', entry: 'base' } });
@@ -27,7 +31,7 @@ function graph(): GraphDocument {
 		inputs: hasInput ? [{ id: 'x', name: 'x', direction: 'in' as const, dataType: 'f32' as const }] : [],
 		outputs: [{ id: 'value', name: 'value', direction: 'out' as const, dataType: 'f32' as const }],
 	});
-	return {
+	return migrateGraphDocument({
 		version: '1',
 		nodes: [node('n_base', 'cg.base', false), node('n_h', 'cg.height', true), node('n_a', 'cg.albedo', true), node('n_p', 'cg.peaks', false)],
 		edges: [
@@ -44,7 +48,7 @@ function graph(): GraphDocument {
 			{ type: 'fragment-pass', id: 'albedo', stage: 'fragment', outputs: ['albedo'] },
 			{ type: 'veg-compute', id: 'peaks', stage: 'compute', outputs: ['peaks'] },
 		],
-	};
+	});
 }
 
 describe('@world-lab/compiler compileGraph', () => {
@@ -71,6 +75,16 @@ describe('@world-lab/compiler compileGraph', () => {
 		// mod.base feeds both height and albedo consumers.
 		expect(r.sharedModuleIds).toContain('mod.base');
 		expect(r.sharedModuleIds).not.toContain('mod.peaks');
+	});
+
+	it('batches legacy sinks and matches direct descriptor compilation', async () => {
+		const doc = graph();
+		const descriptors = legacyConsumerDescriptors(doc);
+		expect(descriptors).toHaveLength(3);
+		const direct = await compileConsumers(doc, descriptors, resolver);
+		const bridged = await compileLegacyConsumerSinks(doc, resolver);
+		expect(bridged).toEqual(direct);
+		expect(bridged.sharedModuleIds).toContain('mod.base');
 	});
 
 	it('compiles an explicit consumer subset', async () => {

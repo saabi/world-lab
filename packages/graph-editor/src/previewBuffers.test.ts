@@ -44,7 +44,7 @@ function portRef(nodeId: string, port: string): PortRef {
 
 function meshTargetGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_plane', 'surface.plane'),
@@ -68,7 +68,6 @@ function meshTargetGraph(): GraphDocument {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -119,7 +118,6 @@ describe('enumeratePreviewBuffers', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [],
-			consumers: []
 		};
 		const buffers = enumeratePreviewBuffers(graph);
 		expect(buffers.some((buffer) => buffer.family === 'image')).toBe(true);
@@ -156,7 +154,6 @@ describe('enumeratePreviewBuffers', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [{ name: 'plane', from: { node: 'n_plane', port: 'mesh' } }],
-			consumers: []
 		};
 		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'plane');
 		expect(buffer).toMatchObject({
@@ -204,7 +201,6 @@ describe('enumeratePreviewBuffers', () => {
 		const graph: GraphDocument = {
 			...base,
 			outputs: [],
-			consumers: [],
 			nodes: base.nodes.map((node) => (node.id === 'n_display' ? { ...node, name: 'Final look' } : node))
 		};
 		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.family === 'image');
@@ -217,7 +213,6 @@ describe('enumeratePreviewBuffers', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [],
-			consumers: [],
 			nodes: [
 				...cosinePaletteEffectGraph().nodes,
 				{
@@ -281,7 +276,6 @@ describe('mesh preview buffers', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [{ name: 'plane', from: { node: 'n_plane', port: 'mesh' } }],
-			consumers: []
 		};
 		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'plane')!;
 		expect(resolveMeshPreviewRequest(graph, buffer)).toBeNull();
@@ -316,7 +310,6 @@ describe('mesh preview buffers', () => {
 		const graph: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [{ name: 'plane', from: { node: 'n_plane', port: 'mesh' } }],
-			consumers: []
 		};
 		const buffer = enumeratePreviewBuffers(graph).find((candidate) => candidate.id === 'plane')!;
 		expect(resolveMeshPreviewRequest(graph, buffer)).toBeNull();

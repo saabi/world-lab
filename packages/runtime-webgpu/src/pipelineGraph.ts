@@ -1,5 +1,10 @@
 import type { GraphDocument, Node, PortRef } from '@world-lab/graph';
-import { derivePipelinePresentations, getPrimitive, validateGraph } from '@world-lab/graph';
+import {
+	derivePipelinePresentations,
+	discoverExecutionRoots,
+	getPrimitive,
+	validateGraph
+} from '@world-lab/graph';
 import type { WgslModuleResolver } from '@world-lab/compiler';
 
 import {
@@ -56,14 +61,6 @@ export class PipelineGraphResourceCache {
 		this.geometry.add(cacheKey);
 		this.geometryRealizations++;
 	}
-}
-
-function findNode(doc: GraphDocument, primitive: string): Node {
-	const node = doc.nodes.find((candidate) => candidate.primitive === primitive);
-	if (!node) {
-		throw new Error(`Pipeline graph is missing ${primitive}`);
-	}
-	return node;
 }
 
 function incoming(doc: GraphDocument, node: string, port: string) {
@@ -186,7 +183,12 @@ function resolvePipelineTarget(
 		};
 	}
 
-	const display = findNode(doc, 'target.display');
+	const display = discoverExecutionRoots(doc).find(
+		(node) => node.primitive === 'target.display'
+	);
+	if (!display) {
+		throw new Error('Pipeline graph is missing target.display execution root');
+	}
 	const toDisplay = incoming(doc, display.id, 'color');
 	if (!toDisplay || toDisplay.from.port !== 'texture') {
 		throw new Error('Pipeline display is missing its fragment texture input');
@@ -212,10 +214,16 @@ export function planPipelineGraph(
 		throw new Error(`Pipeline graph failed validation: ${validation.issues[0]?.kind ?? 'unknown'}`);
 	}
 
-	const persist = findNode(doc, 'buffer.persist');
-	const geometry = findPipelineGeometrySource(doc, persist);
 	const target = resolvePipelineTarget(doc, options);
 	const vertex = resolveVertexForFragment(doc, target.fragmentStageNode);
+	const persistEdge = incoming(doc, vertex.id, 'mesh');
+	const persist = persistEdge
+		? doc.nodes.find((candidate) => candidate.id === persistEdge.from.node)
+		: undefined;
+	if (!persist || persist.primitive !== 'buffer.persist') {
+		throw new Error(`Pipeline graph is missing buffer.persist for vertex ${vertex.id}`);
+	}
+	const geometry = findPipelineGeometrySource(doc, persist);
 	const fragment = doc.nodes.find((candidate) => candidate.id === target.fragmentStageNode);
 	if (!fragment || fragment.primitive !== 'stage.fragment') {
 		throw new Error(`Pipeline graph is missing stage.fragment for display ${target.displayTargetNode}`);

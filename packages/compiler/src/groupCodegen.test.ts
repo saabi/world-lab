@@ -20,7 +20,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 		expect(getPrimitive('math.multiply')).toBeDefined();
 
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'mult',
@@ -54,7 +54,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 					from: { node: 'add', port: 'value' }
 				}
 			],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {
@@ -134,7 +133,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 		// 3. Compile a graph that uses the new group primitive
 		const testDoc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'displace_node',
@@ -149,7 +148,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'val', from: { node: 'displace_node', port: 'value' } }],
-			consumers: [{ id: 'c1', type: 'image', outputs: ['val'], stage: 'fragment' }]
 		};
 
 		// Mock resolver containing the sources of math.multiply, math.add and g.normalDisplace
@@ -172,7 +170,9 @@ describe('@world-lab/compiler groupCodegen', () => {
 			}
 		};
 
-		const compileResult = await compileGraph(testDoc, mockResolver);
+		const compileResult = await compileGraph(testDoc, mockResolver, {
+			consumers: [{ id: 'c1', type: 'image', outputs: ['val'], stage: 'fragment' }]
+		});
 		const shader = compileResult.shaders[0]!;
 		
 		expect(shader.moduleIds).toContain('math.multiply');
@@ -196,7 +196,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 	it('emits interface params after inputs with separate frontmatter params section', () => {
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'sub',
@@ -210,7 +210,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {
@@ -244,7 +243,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 	it('round-trips a boolean group param through WGSL signature and loaded schema', () => {
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'gate',
@@ -259,7 +258,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'gate', port: 'value' } }],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {
@@ -290,7 +288,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 	it('rejects unmapped GroupDefinition.params schema properties', () => {
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'sub',
@@ -304,7 +302,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {
@@ -327,7 +324,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 	it('rejects incompatible param schema and target port data types', () => {
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'sub',
@@ -341,7 +338,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {
@@ -363,7 +359,7 @@ describe('@world-lab/compiler groupCodegen', () => {
 
 	it('rejects integer group param schemas explicitly', () => {
 		const subgraph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'sub',
@@ -377,7 +373,6 @@ describe('@world-lab/compiler groupCodegen', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'sub', port: 'value' } }],
-			consumers: []
 		};
 
 		const def: GroupDefinition = {

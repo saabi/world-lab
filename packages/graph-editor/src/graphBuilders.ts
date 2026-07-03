@@ -1,9 +1,11 @@
 import '@world-lab/graph';
 import {
 	getPrimitive,
+	migrateGraphDocument,
 	pipelineFieldOutput,
 	type Edge,
 	type GraphDocument,
+	type GraphDocumentV1,
 	type Node,
 	type Port,
 	type PortRef
@@ -63,7 +65,7 @@ function edge(
 /** ShaderToy-style pipeline: scaled fragCoord + iTime → Worley → vec4 fragment color. */
 export function animatedWorleyPipelineGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.plane', { x: 361, y: -74 }, { resU: 2, resV: 2 }),
 			snapshotNode('n_persist', 'buffer.persist', { x: 573, y: -48 }),
@@ -123,12 +125,11 @@ export function animatedWorleyPipelineGraph(): GraphDocument {
 			edge('e_frag2_display2', 'n_stage_fragment_12', 'stage.fragment', 'n_target_display_1', 'target.display', 0, 0)
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
 /** Default uv → perlin → remap preview graph using live primitive port names. */
-export function defaultPreviewGraph(): GraphDocument {
+export function defaultPreviewGraphV1(): GraphDocumentV1 {
 	return {
 		version: '1',
 		nodes: [
@@ -158,10 +159,38 @@ export function defaultPreviewGraph(): GraphDocument {
 	};
 }
 
+export function defaultPreviewGraph(): GraphDocument {
+	return migrateGraphDocument(defaultPreviewGraphV1());
+}
+
+/** Sink-free ShaderToy V1 fixture used to exercise full image-pipeline migration. */
+export function legacyFullscreenFragmentGraphV1(): GraphDocumentV1 {
+	return {
+		version: '1',
+		nodes: [
+			snapshotNode('n_frag', 'host.fragCoord', { x: 0, y: 80 }),
+			snapshotNode('n_res', 'host.iResolution', { x: 0, y: 220 }),
+			snapshotNode('n_time', 'host.iTime', { x: 0, y: 360 }),
+			snapshotNode('n_effect', 'effect.cosinePalette', { x: 280, y: 200 })
+		],
+		edges: [
+			edge('e_frag_effect', 'n_frag', 'host.fragCoord', 'n_effect', 'effect.cosinePalette', 0, 0),
+			edge('e_res_effect', 'n_res', 'host.iResolution', 'n_effect', 'effect.cosinePalette', 0, 1),
+			edge('e_time_effect', 'n_time', 'host.iTime', 'n_effect', 'effect.cosinePalette', 0, 2)
+		],
+		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
+		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
+	};
+}
+
+export function legacyFullscreenFragmentGraph(): GraphDocument {
+	return migrateGraphDocument(legacyFullscreenFragmentGraphV1());
+}
+
 /** ShaderToy S0: explicit pipeline nodes with the cosine palette as the fragment field. */
 export function cosinePaletteEffectGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.plane', { x: 0, y: 40 }, { resU: 2, resV: 2 }),
 			snapshotNode('n_persist', 'buffer.persist', { x: 240, y: 40 }),
@@ -216,7 +245,6 @@ export function cosinePaletteEffectGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 
@@ -226,7 +254,7 @@ export function cosinePaletteEffectGraph(): GraphDocument {
  */
 export function displacedSphereMeshGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 120 }),
 			snapshotNode('n_face', 'surface.cubeFace', { x: 220, y: 100 }, { face: 0 }),
@@ -246,7 +274,6 @@ export function displacedSphereMeshGraph(): GraphDocument {
 			edge('e_sph_mesh_norm', 'n_sph', 'transform.spherify', 'n_mesh', 'target.mesh', 0, 1)
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -255,7 +282,7 @@ export function displacedSphereMeshGraph(): GraphDocument {
  */
 export function rotatedPlaneMeshGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 120 }),
 			snapshotNode('n_plane', 'surface.plane', { x: 220, y: 100 }),
@@ -269,7 +296,6 @@ export function rotatedPlaneMeshGraph(): GraphDocument {
 			edge('e_plane_mesh_norm', 'n_plane', 'surface.plane', 'n_mesh', 'target.mesh', 0, 1)
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -279,7 +305,7 @@ export function rotatedPlaneMeshGraph(): GraphDocument {
  */
 export function rigidTransformsMeshGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv', { x: 0, y: 160 }),
 			snapshotNode('n_plane', 'surface.plane', { x: 200, y: 140 }),
@@ -311,7 +337,6 @@ export function rigidTransformsMeshGraph(): GraphDocument {
 			edge('e_plane_norm', 'n_plane', 'surface.plane', 'n_mesh', 'target.mesh', 0, 1)
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 

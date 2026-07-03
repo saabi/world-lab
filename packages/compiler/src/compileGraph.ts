@@ -1,4 +1,8 @@
-import type { GraphDocument, ProceduralConsumer } from '@world-lab/graph';
+import {
+	effectiveConsumers,
+	type GraphDocument,
+	type ProceduralConsumer
+} from '@world-lab/graph';
 import type { WgslModuleResolver } from './codegen.js';
 import { generateWgsl } from './codegen.js';
 import type { ShaderLinker } from './linker.js';
@@ -22,19 +26,18 @@ export interface GraphCompileResult {
 }
 
 export interface CompileGraphOptions {
-	/** Compile these consumers instead of `doc.consumers`. */
+	/** Compile these descriptors instead of deriving them from sink nodes. */
 	consumers?: ProceduralConsumer[];
 	/** Optional linker (currently the generated library is returned as-is). */
 	linker?: ShaderLinker;
 }
 
-/** Compile every consumer of `doc` (or an explicit subset) into its own shader. */
-export async function compileGraph(
+/** Compile a complete descriptor batch while preserving cross-consumer module accounting. */
+export async function compileConsumers(
 	doc: GraphDocument,
+	consumers: ProceduralConsumer[],
 	resolver: WgslModuleResolver,
-	opts: CompileGraphOptions = {},
 ): Promise<GraphCompileResult> {
-	const consumers = opts.consumers ?? doc.consumers;
 	const shaders: ConsumerShader[] = [];
 	const moduleUseCount = new Map<string, number>();
 	const sharedSeen = new Set<string>();
@@ -65,4 +68,13 @@ export async function compileGraph(
 	}
 
 	return { shaders, sharedModuleIds };
+}
+
+/** Compile every sink-derived consumer of `doc` (or an explicit compatibility subset). */
+export async function compileGraph(
+	doc: GraphDocument,
+	resolver: WgslModuleResolver,
+	opts: CompileGraphOptions = {},
+): Promise<GraphCompileResult> {
+	return compileConsumers(doc, opts.consumers ?? effectiveConsumers(doc), resolver);
 }

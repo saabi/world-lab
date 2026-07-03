@@ -44,7 +44,7 @@ is still open.
   `packages/graph-editor/src/markup/printGraph.ts`, `packages/graph-editor/src/graphBuilders.ts`,
   `packages/graph-editor/src/samples.ts`,
   and their test files
-  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 

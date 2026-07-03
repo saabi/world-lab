@@ -11,7 +11,7 @@ function twoNodeGraph(opts?: {
 	toSpace?: SpaceId;
 }): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_noise',
@@ -28,13 +28,12 @@ function twoNodeGraph(opts?: {
 		],
 		edges: [{ id: 'e1', from: { node: 'n_noise', port: 'value' }, to: { node: 'n_remap', port: 'x' } }],
 		outputs: [{ name: 'height', from: { node: 'n_remap', port: 'out' } }],
-		consumers: [{ type: 'terrain-mesh', outputs: ['height'] }],
 	};
 }
 
 function resourceGraph(toType: DataType): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_image',
@@ -51,7 +50,6 @@ function resourceGraph(toType: DataType): GraphDocument {
 		],
 		edges: [{ id: 'e_resource', from: { node: 'n_image', port: 'resource' }, to: { node: 'n_sample', port: 'resource' } }],
 		outputs: [{ name: 'color', from: { node: 'n_sample', port: 'color' } }],
-		consumers: [{ type: 'preview', outputs: ['color'] }],
 		resources: [
 			{ id: 'heightmap', type: 'image' },
 			{ id: 'surface', type: 'mesh' },
@@ -62,14 +60,13 @@ function resourceGraph(toType: DataType): GraphDocument {
 
 function pipelineEdge(fromType: DataType, toType: DataType): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{ id: 'a', primitive: 'geometry.plane', inputs: [], outputs: [{ id: 'mesh', name: 'mesh', direction: 'out', dataType: fromType }] },
 			{ id: 'b', primitive: 'stage.vertex', inputs: [{ id: 'mesh', name: 'mesh', direction: 'in', dataType: toType }], outputs: [{ id: 'varyings', name: 'varyings', direction: 'out', dataType: 'varyings' }] },
 		],
 		edges: [{ id: 'e', from: { node: 'a', port: 'mesh' }, to: { node: 'b', port: 'mesh' } }],
 		outputs: [{ name: 'varyings', from: { node: 'b', port: 'varyings' } }],
-		consumers: [],
 	};
 }
 
@@ -134,7 +131,7 @@ describe('@world-lab/graph IR', () => {
 
 	it('accepts vec2f to vec3f promotion on an edge', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_uv',
@@ -155,7 +152,6 @@ describe('@world-lab/graph IR', () => {
 				{ id: 'e_uv_perlin', from: { node: 'n_uv', port: 'uv' }, to: { node: 'n_perlin', port: 'position' } }
 			],
 			outputs: [],
-			consumers: []
 		};
 		expect(validateGraph(doc).ok).toBe(true);
 	});
@@ -229,7 +225,7 @@ describe('@world-lab/graph IR', () => {
 
 	it('accepts edges from output ports that share a name with an input on the source node', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_mul',
@@ -252,7 +248,6 @@ describe('@world-lab/graph IR', () => {
 			],
 			edges: [{ id: 'e_mul_add', from: { node: 'n_mul', port: 'value' }, to: { node: 'n_add', port: 'a' } }],
 			outputs: [],
-			consumers: []
 		};
 		expect(validateGraph(doc).ok).toBe(true);
 	});

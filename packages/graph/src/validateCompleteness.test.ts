@@ -18,7 +18,7 @@ function graph(opts: { connectB?: boolean; output?: { node: string; port: string
 		{ id: 'e1', from: { node: 'src1', port: 'value' }, to: { node: 'sum', port: 'a' } },
 		...(opts.connectB !== false ? [{ id: 'e2', from: { node: 'src2', port: 'value' }, to: { node: 'sum', port: 'b' } }] : []),
 	];
-	return { version: '1', nodes, edges, outputs: [{ name: 'out', from: opts.output ?? { node: 'sum', port: 'value' } }], consumers: [] };
+	return { version: '2', nodes, edges, outputs: [{ name: 'out', from: opts.output ?? { node: 'sum', port: 'value' } }] };
 }
 
 describe('@world-lab/graph validateGraphCompleteness', () => {

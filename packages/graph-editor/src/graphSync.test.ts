@@ -44,7 +44,7 @@ describe('@world-lab/graph-editor graphSync', () => {
 			});
 		}
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_semantic',
@@ -63,7 +63,6 @@ describe('@world-lab/graph-editor graphSync', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		};
 
 		expect(resyncGraphPortMetadata(doc).nodes[0]?.outputs[0]).toMatchObject({

@@ -37,7 +37,7 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 
 function dualDisplayGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.plane'),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -92,7 +92,6 @@ function dualDisplayGraph(): GraphDocument {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 

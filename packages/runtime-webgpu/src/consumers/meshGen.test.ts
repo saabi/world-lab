@@ -42,7 +42,7 @@ function snapshotNode(id: string, primitiveId: string, params?: Record<string, u
 /** Matches shipped `displacedSphereMeshGraph` topology with `outputs: []`. */
 function displacedSphereMeshGenRequest(gridSize = 8): MeshGenRequest {
 	const graph: GraphDocument = {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_face', 'surface.cubeFace', { face: 0 }),
@@ -90,7 +90,6 @@ function displacedSphereMeshGenRequest(gridSize = 8): MeshGenRequest {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 
 	return {
@@ -105,7 +104,7 @@ function displacedSphereMeshGenRequest(gridSize = 8): MeshGenRequest {
 /** Normal branch is parallel to the position transform chain (shares only procedural UV). */
 function divergentNormalMeshGenRequest(gridSize = 4): MeshGenRequest {
 	const graph: GraphDocument = {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_plane', 'surface.plane'),
@@ -139,7 +138,6 @@ function divergentNormalMeshGenRequest(gridSize = 4): MeshGenRequest {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 
 	return {
@@ -220,7 +218,7 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 			const base = meshGenRequestForLegacySurface('surface.cubeSphere', 4);
 			const req: MeshGenRequest = {
 				...base,
-				graph: { ...base.graph, outputs: [], consumers: [] }
+				graph: { ...base.graph, outputs: [] }
 			};
 			const cpu = evaluateMeshGenCpu(req);
 			const gpuMesh = await executeMeshGen(device, req);
@@ -263,7 +261,7 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 			const { requestGpuDevice } = await import('../device.js');
 			const { device } = await requestGpuDevice();
 			const graph: GraphDocument = {
-				version: '1',
+				version: '2',
 				nodes: [
 					snapshotNode('n_uv', 'procedural.uv'),
 					snapshotNode('n_plane', 'surface.plane'),
@@ -289,7 +287,6 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 					}
 				],
 				outputs: [],
-				consumers: []
 			};
 			const req: MeshGenRequest = {
 				graph,
@@ -334,7 +331,7 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 			const { requestGpuDevice } = await import('../device.js');
 			const { device } = await requestGpuDevice();
 			const graph: GraphDocument = {
-				version: '1',
+				version: '2',
 				nodes: [
 					snapshotNode('n_uv', 'procedural.uv'),
 					snapshotNode('n_face', 'surface.cubeFace', { face: 0 }),
@@ -360,7 +357,6 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 					}
 				],
 				outputs: [],
-				consumers: []
 			};
 			const req: MeshGenRequest = {
 				graph,
@@ -383,7 +379,7 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 			const { requestGpuDevice } = await import('../device.js');
 			const { device } = await requestGpuDevice();
 			const graph: GraphDocument = {
-				version: '1',
+				version: '2',
 				nodes: [
 					snapshotNode('n_uv', 'procedural.uv'),
 					snapshotNode('n_face', 'surface.cubeFace', { face: 0 }),
@@ -426,7 +422,6 @@ describe('@world-lab/runtime-webgpu meshGen', () => {
 					}
 				],
 				outputs: [],
-				consumers: []
 			};
 			const req: MeshGenRequest = {
 				graph,

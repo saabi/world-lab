@@ -14,7 +14,7 @@ export const MATH_REMAP_GROUP: GroupDefinition = {
 		outMax: quantity('none', { default: 1 })
 	}),
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [
 			mathBinaryNode('sub_x', 'math.subtract'),
 			mathBinaryNode('sub_in', 'math.subtract'),
@@ -31,7 +31,6 @@ export const MATH_REMAP_GROUP: GroupDefinition = {
 			{ id: 'e5', from: { node: 'mul_t', port: 'value' }, to: { node: 'add_final', port: 'b' } }
 		],
 		outputs: [{ name: 'value', from: { node: 'add_final', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [{ name: 'x', dataType: 'f32', target: { node: 'sub_x', port: 'a' } }],

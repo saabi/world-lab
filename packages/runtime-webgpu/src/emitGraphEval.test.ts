@@ -36,7 +36,7 @@ function snapshotNode(
 
 function previewGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_perlin', 'noise.perlin3d'),
@@ -55,7 +55,6 @@ function previewGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-		consumers: [{ type: 'preview', outputs: ['field'] }]
 	};
 }
 
@@ -78,11 +77,10 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 			// Shared test registry may already contain it.
 		}
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [snapshotNode('n_clock', primitiveId)],
 			edges: [],
 			outputs: [{ name: 'value', from: { node: 'n_clock', port: 'value' } }],
-			consumers: []
 		};
 		const emitted = emitGraphScalarEval(
 			graph,
@@ -106,7 +104,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('emits upstream expression for edge-driven promotable params', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_uv', 'procedural.uv'),
 				snapshotNode('n_const', 'constant.f32', { value: 10 }),
@@ -131,7 +129,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				}
 			],
 			outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-			consumers: [{ type: 'preview', outputs: ['field'] }]
 		};
 
 		const emitted = emitGraphScalarEval(graph, { node: 'n_remap', port: 'value' });
@@ -144,7 +141,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('uses positionExpr for procedural.metricPosition in scalar graphs', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_pos', 'procedural.metricPosition'),
 				snapshotNode('n_perlin', 'noise.perlin3d'),
@@ -163,7 +160,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				}
 			],
 			outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-			consumers: [{ type: 'preview', outputs: ['field'] }]
 		};
 
 		const emitted = emitGraphScalarEval(
@@ -177,7 +173,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('emits constants, vector constructors, and component extractors', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_x', 'constant.f32', { value: 1 }),
 				snapshotNode('n_y', 'constant.f32', { value: 2 }),
@@ -192,7 +188,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{ id: 'e_vec', from: { node: 'n_vec', port: 'value' }, to: { node: 'n_extract', port: 'value' } }
 			],
 			outputs: [{ name: 'z', from: { node: 'n_extract', port: 'z' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphScalarEval(graph, { node: 'n_extract', port: 'z' });
@@ -209,7 +204,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('emits vector math nodes in scalar graph chains', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_x', 'constant.f32', { value: 3 }),
 				snapshotNode('n_y', 'constant.f32', { value: 4 }),
@@ -226,7 +221,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{ id: 'e_extract', from: { node: 'n_norm', port: 'value' }, to: { node: 'n_extract', port: 'value' } }
 			],
 			outputs: [{ name: 'z', from: { node: 'n_extract', port: 'z' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphScalarEval(graph, { node: 'n_extract', port: 'z' });
@@ -251,7 +245,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		}
 
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -284,7 +278,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{ id: 'e3', from: { node: 'n_c', port: 'value' }, to: { node: 'n_sum', port: 'vals' } }
 			],
 			outputs: [{ name: 'result', from: { node: 'n_sum', port: 'out' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphScalarEval(graph, { node: 'n_sum', port: 'out' }, { shaderToy: true });
@@ -309,7 +302,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		}
 
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_buf',
@@ -328,7 +321,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				{ id: 'e1', from: { node: 'n_buf', port: 'buf' }, to: { node: 'n_sum', port: 'vals' } }
 			],
 			outputs: [{ name: 'result', from: { node: 'n_sum', port: 'out' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphScalarEval(graph, { node: 'n_sum', port: 'out' });
@@ -342,7 +334,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('keeps mixed multiple-edge tuple inputs on the static path', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_buf',
@@ -372,7 +364,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				}
 			],
 			outputs: [{ name: 'result', from: { node: 'n_sum', port: 'out' } }],
-			consumers: []
 		};
 
 		// Dynamic iteration is selected only for exactly one storage-buffer edge. With
@@ -384,11 +375,10 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('emits port defaults for unconnected vector.vec4f component inputs', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [snapshotNode('n_vec4', 'vector.vec4f')],
 			edges: [],
 			outputs: [{ name: 'color', from: { node: 'n_vec4', port: 'value' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphVec4Eval(graph, { node: 'n_vec4', port: 'value' });
@@ -397,7 +387,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('emits combineVec3fF32 for vector.combine.vec3f_f32', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_xyz', 'vector.vec3f'),
 				snapshotNode('n_combine', 'vector.combine.vec3f_f32')
@@ -410,7 +400,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				}
 			],
 			outputs: [{ name: 'color', from: { node: 'n_combine', port: 'value' } }],
-			consumers: []
 		};
 
 		const emitted = emitGraphVec4Eval(graph, { node: 'n_combine', port: 'value' });
@@ -419,7 +408,7 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 
 	it('uses per-output WGSL entries for multi-output surface primitives', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [snapshotNode('n_uv', 'procedural.uv'), snapshotNode('n_plane', 'surface.plane')],
 			edges: [
 				{
@@ -429,7 +418,6 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		const position = emitGraphVec3Eval(graph, { node: 'n_plane', port: 'position' }, { faceExpr: '0' });

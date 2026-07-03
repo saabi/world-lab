@@ -23,11 +23,10 @@ vi.mock('@world-lab/runtime-webgpu', () => ({
 }));
 
 const emptyGraph: GraphDocument = {
-	version: '1',
+	version: '2',
 	nodes: [],
 	edges: [],
 	outputs: [],
-	consumers: []
 };
 
 const meshRequest: MeshTargetDescriptor = {

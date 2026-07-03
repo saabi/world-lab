@@ -5,6 +5,7 @@ import {
 	cosinePaletteEffectGraph,
 	defaultPreviewGraph,
 	displacedSphereMeshGraph,
+	legacyFullscreenFragmentGraph,
 	rigidTransformsMeshGraph,
 	rotatedPlaneMeshGraph
 } from './graphBuilders.js';
@@ -18,6 +19,16 @@ export interface GraphSample {
 
 /** Named example graphs loadable into the editor canvas. */
 export const GRAPH_SAMPLES: readonly GraphSample[] = [
+	{
+		id: 'migration-default-preview',
+		label: 'Migration — legacy field preview (pre-sink)',
+		build: defaultPreviewGraph
+	},
+	{
+		id: 'migration-fullscreen-fragment',
+		label: 'Migration — legacy fullscreen fragment (pre-sink)',
+		build: legacyFullscreenFragmentGraph
+	},
 	{
 		id: 'pipeline-worley-time',
 		label: 'ShaderToy — Animated Worley',

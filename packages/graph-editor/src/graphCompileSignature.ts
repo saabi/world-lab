@@ -23,8 +23,7 @@ export function computeGraphCompileSignature(doc: GraphDocument): string {
 				to: edge.to
 			}))
 			.sort((a, b) => a.id.localeCompare(b.id)),
-		outputs: doc.outputs,
-		consumers: doc.consumers
+		outputs: doc.outputs
 	});
 
 	return `${graphDigest}\x00${sourceDigest}`;

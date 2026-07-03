@@ -16,7 +16,7 @@ const portOut = (id: string) => ({ id, name: id, direction: 'out' as const, data
 describe('graphValidation', () => {
 	it('surfaces completeness errors via validateGraphFull', () => {
 		const result = fullValidation({
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'sum',
@@ -27,7 +27,6 @@ describe('graphValidation', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'out', from: { node: 'sum', port: 'value' } }],
-			consumers: []
 		});
 		expect(result.ok).toBe(false);
 		expect(incompleteGraphMessage(result)).toMatch(/Graph incomplete: 1 error/);

@@ -50,7 +50,7 @@ describe('mesh target derivation', () => {
 
 	it('derives a complete mesh target with wired position and normal', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_uv', 'procedural.uv'),
 				snapshotNode('n_plane', 'surface.plane'),
@@ -74,7 +74,6 @@ describe('mesh target derivation', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		const meshNode = graph.nodes.find((node) => node.id === 'n_mesh')!;
@@ -103,7 +102,7 @@ describe('mesh target derivation', () => {
 
 	it('skips mesh targets missing the normal input', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_plane', 'surface.plane'),
 				snapshotNode('n_mesh', 'target.mesh')
@@ -116,7 +115,6 @@ describe('mesh target derivation', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		expect(deriveMeshTargets(graph)).toEqual([]);
@@ -124,7 +122,7 @@ describe('mesh target derivation', () => {
 
 	it('uses default gridSize and faceCount when params are absent', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_plane', 'surface.plane'),
 				snapshotNode('n_mesh', 'target.mesh')
@@ -142,7 +140,6 @@ describe('mesh target derivation', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		expect(deriveMeshTargets(graph)[0]).toMatchObject({

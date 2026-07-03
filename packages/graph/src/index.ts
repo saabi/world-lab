@@ -16,6 +16,16 @@ export * from './dataType.js';
 export * from './semantics.js';
 export * from './coercion.js';
 export * from './implementation.js';
+export * from './graphIds.js';
+export * from './pipelineGeometry.js';
+export * from './executionRoots.js';
+export * from './migrate.js';
+export {
+	FIELD_PREVIEW_SINK_DEFINITION,
+	LEGACY_CONSUMER_SINK_DEFINITION,
+	type FieldPreviewSinkPayload,
+	type LegacyConsumerSinkPayload
+} from './primitives/pipeline/compatibilitySinks.js';
 export * from './portDefaults.js';
 export * from './paramInputs.js';
 export * from './contract.js';

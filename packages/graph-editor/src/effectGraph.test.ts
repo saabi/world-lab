@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateGraph } from '@world-lab/graph';
+import { effectiveConsumers, validateGraph } from '@world-lab/graph';
 import { cosinePaletteEffectGraph } from './graphBuilders.js';
 
 describe('cosinePaletteEffectGraph', () => {
@@ -54,7 +54,7 @@ describe('cosinePaletteEffectGraph', () => {
 			resU: 2,
 			resV: 2
 		});
-		expect(graph.consumers[0]?.stage).toBe('fragment');
+		expect(effectiveConsumers(graph)[0]?.stage).toBe('fragment');
 		expect(graph.nodes.every((node) => node.position !== undefined)).toBe(true);
 	});
 });

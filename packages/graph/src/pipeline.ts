@@ -1,6 +1,13 @@
 import { getPrimitive } from './registry.js';
+import { discoverExecutionRoots } from './executionRoots.js';
 import type { SinkDefinition } from './implementation.js';
-import type { GraphDocument, GraphOutput, Node, PortRef, ProceduralConsumer } from './types.js';
+import type {
+	GraphDocument,
+	GraphOutput,
+	Node,
+	PortRef,
+	ProceduralConsumer
+} from './types.js';
 
 const PIPELINE_TARGET_ROLE = 'pipelineTarget';
 
@@ -132,64 +139,49 @@ function consumerKey(consumer: ProceduralConsumer): string {
 	return `${consumer.id ?? ''}:${consumer.stage ?? ''}:${consumer.type}:${consumer.outputs.join(',')}`;
 }
 
-function explicitFragmentCoversPresentation(
-	doc: GraphDocument,
-	consumer: ProceduralConsumer,
-	presentation: PipelinePresentation
-): boolean {
-	if (consumer.stage !== 'fragment' || consumer.outputs.length === 0) return false;
-	for (const outputName of consumer.outputs) {
-		const graphOutput = doc.outputs.find((candidate) => candidate.name === outputName);
-		if (
-			graphOutput &&
-			graphOutput.from.node === presentation.fieldOutput.node &&
-			graphOutput.from.port === presentation.fieldOutput.port
-		) {
-			return true;
+function sinkConsumers(doc: GraphDocument): ProceduralConsumer[] {
+	return discoverExecutionRoots(doc).flatMap((node) => {
+		const primitive = getPrimitive(node.primitive);
+		if (primitive?.implementation.kind !== 'sink') return [];
+		const invocation = primitive.implementation.sink.deriveInvocation(doc, node);
+		if (!invocation) return [];
+
+		if (invocation.sinkKind === 'display') {
+			const consumer = (invocation.payload as PipelinePresentation).consumer;
+			return consumer ? [consumer] : [];
 		}
-	}
-	return false;
+		if (invocation.sinkKind === 'fieldPreview') {
+			const outputName = (invocation.payload as { outputName?: unknown }).outputName;
+			return typeof outputName === 'string'
+				? [{ type: 'preview', outputs: [outputName] }]
+				: [];
+		}
+		if (invocation.sinkKind === 'legacyConsumer') {
+			const consumer = invocation.payload as ProceduralConsumer;
+			return Array.isArray(consumer.outputs) ? [consumer] : [];
+		}
+		return [];
+	});
 }
 
-/** Declared consumers plus structurally derived pipeline image consumers (deduped). */
+/** Consumer descriptors represented by reachable sink nodes (deduped). */
 export function effectiveConsumers(doc: GraphDocument): ProceduralConsumer[] {
-	const derived = derivePipelineConsumers(doc);
-	const presentations = derivePipelinePresentations(doc);
-	let consumers = [...doc.consumers];
-
-	if (derived.length > 0) {
-		consumers = consumers.map((consumer) => {
-			if (consumer.stage !== 'fragment' || consumer.outputs.length > 0) return consumer;
-			const presentation = presentations[0];
-			return presentation ? presentation.consumer : consumer;
-		});
-	}
-
 	const merged: ProceduralConsumer[] = [];
 	const seen = new Set<string>();
-	for (const consumer of [...consumers, ...derived]) {
+	for (const consumer of sinkConsumers(doc)) {
 		const key = consumerKey(consumer);
 		if (seen.has(key)) continue;
 		seen.add(key);
 		merged.push(consumer);
 	}
-
-	return merged.filter((consumer) => {
-		if (!consumer.id?.startsWith('pipeline:')) return true;
-		return !presentations.some(
-			(presentation) =>
-				presentation.consumer.id === consumer.id &&
-				doc.consumers.some((explicit) => explicitFragmentCoversPresentation(doc, explicit, presentation))
-		);
-	});
+	return merged;
 }
 
-/** Compile/preview view with derived pipeline outputs and consumers merged in. */
+/** Compile/preview view with structurally derived pipeline outputs merged in. */
 export function effectiveGraphDocument(doc: GraphDocument): GraphDocument {
 	return {
 		...doc,
-		outputs: effectiveOutputs(doc),
-		consumers: effectiveConsumers(doc)
+		outputs: effectiveOutputs(doc)
 	};
 }
 
@@ -210,10 +202,8 @@ export function outputSinkNodeIds(doc: GraphDocument): string[] {
 		}
 	}
 
-	for (const node of doc.nodes) {
-		if (isPipelineTarget(node)) {
-			sinks.add(node.id);
-		}
+	for (const node of discoverExecutionRoots(doc)) {
+		sinks.add(node.id);
 	}
 
 	return [...sinks];

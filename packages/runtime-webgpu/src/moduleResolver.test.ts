@@ -32,7 +32,7 @@ describe('@world-lab/runtime-webgpu moduleResolver', () => {
 
 	it('generateWgsl resolves default preview-graph modules from the standard library', async () => {
 		const graph = {
-			version: '1' as const,
+			version: '2' as const,
 			nodes: [
 				{
 					id: 'n_uv',
@@ -90,7 +90,6 @@ describe('@world-lab/runtime-webgpu moduleResolver', () => {
 				}
 			],
 			outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-			consumers: [{ type: 'preview', outputs: ['field'] }]
 		};
 
 		const slice = sliceGraph(graph, { outputs: ['field'] });

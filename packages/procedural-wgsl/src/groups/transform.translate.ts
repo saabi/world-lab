@@ -7,11 +7,10 @@ export const TRANSFORM_TRANSLATE_GROUP: GroupDefinition = {
 	id: 'transform.translate',
 	category: 'transform',
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [vectorAddVec3fNode('add', 'vector.add.vec3f')],
 		edges: [],
 		outputs: [{ name: 'position', from: { node: 'add', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [

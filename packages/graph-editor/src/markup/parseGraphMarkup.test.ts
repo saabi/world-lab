@@ -23,9 +23,10 @@ describe('@world-lab/graph-editor parseGraphMarkup', () => {
   <Consumer type="preview" outputs="field" />
 </PlanetGraph>`);
 
-		expect(parsed.nodes).toHaveLength(1);
+		expect(parsed.nodes).toHaveLength(2);
 		expect(parsed.nodes[0]?.id).toBe('n_uv');
 		expect(parsed.nodes[0]?.position).toEqual({ x: 10, y: 20 });
+		expect(parsed.nodes[1]?.primitive).toBe('preview.fieldSink');
 	});
 
 	it('instantiates canonical semantic tags from registered primitive specs', () => {

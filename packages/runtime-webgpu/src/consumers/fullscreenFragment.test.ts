@@ -57,7 +57,7 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 
 function cosinePaletteEffectGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_frag', 'host.fragCoord'),
 			snapshotNode('n_res', 'host.iResolution'),
@@ -82,7 +82,6 @@ function cosinePaletteEffectGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 
@@ -94,7 +93,7 @@ function constantVec4FragmentGraph(): GraphDocument {
 	const constOut = portRef('n_const', 'constant.f32', 'out', 0);
 	const vec4In = (index: number) => portRef('n_vec4', 'vector.vec4f', 'in', index);
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_const', 'constant.f32', { value: 0.75 }),
 			snapshotNode('n_vec4', 'vector.vec4f')
@@ -106,7 +105,6 @@ function constantVec4FragmentGraph(): GraphDocument {
 			{ id: 'e_const_w', from: constOut, to: vec4In(3) }
 		],
 		outputs: [{ name: 'image', from: portRef('n_vec4', 'vector.vec4f', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 

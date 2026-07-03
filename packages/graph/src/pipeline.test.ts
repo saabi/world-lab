@@ -57,7 +57,7 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 
 function s0PipelineGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.fullscreenPlane'),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -111,8 +111,7 @@ function s0PipelineGraph(): GraphDocument {
 				to: portRef('n_display', 'target.display', 'in', 0)
 			}
 		],
-		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
+		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }]
 	};
 }
 
@@ -130,8 +129,7 @@ describe('@world-lab/graph pipeline output reconciliation', () => {
 	it('validates a wired pipeline with empty doc.outputs (no dangling-node spam)', () => {
 		const graph: GraphDocument = {
 			...s0PipelineGraph(),
-			outputs: [],
-			consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: [] }]
+			outputs: []
 		};
 		const result = validateGraphFull(graph);
 		expect(result.ok).toBe(true);
@@ -163,7 +161,6 @@ describe('@world-lab/graph pipeline consumer derivation', () => {
 		const graph: GraphDocument = {
 			...s0PipelineGraph(),
 			outputs: [],
-			consumers: []
 		};
 		const presentation = tryPipelinePresentation(graph);
 		expect(presentation).toMatchObject({
@@ -191,18 +188,16 @@ describe('@world-lab/graph pipeline consumer derivation', () => {
 		expect(effectiveOutputs(graph)).toEqual(graph.outputs);
 	});
 
-	it('merges derived outputs and consumers without duplicating explicit declarations', () => {
+	it('derives outputs and consumers from sink nodes', () => {
 		const graph = s0PipelineGraph();
-		expect(effectiveConsumers(graph)).toEqual(graph.consumers);
+		expect(effectiveConsumers(graph)).toEqual(derivePipelineConsumers(graph));
 		expect(effectiveGraphDocument(graph).outputs).toEqual(graph.outputs);
-		expect(effectiveGraphDocument(graph).consumers).toEqual(graph.consumers);
 	});
 
 	it('fills empty pipeline doc metadata for compile and preview', () => {
 		const graph: GraphDocument = {
 			...s0PipelineGraph(),
 			outputs: [],
-			consumers: []
 		};
 		expect(pipelineFieldOutput(graph)).toEqual(
 			portRef('n_effect', 'effect.cosinePalette', 'out', 0)
@@ -221,22 +216,10 @@ describe('@world-lab/graph pipeline consumer derivation', () => {
 		});
 	});
 
-	it('repairs fragment consumers with empty outputs arrays', () => {
-		const graph: GraphDocument = {
-			...s0PipelineGraph(),
-			outputs: [],
-			consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: [] }]
-		};
-		const consumers = effectiveConsumers(graph);
-		expect(consumers).toHaveLength(1);
-		expect(consumers[0]?.outputs).toEqual([PIPELINE_IMAGE_OUTPUT_NAME]);
-	});
-
 	it('derives distinct outputs and consumers per display sink on multi-target graphs', () => {
 		const graph: GraphDocument = {
 			...s0PipelineGraph(),
 			outputs: [],
-			consumers: [],
 			nodes: [
 				...s0PipelineGraph().nodes,
 				snapshotNode('n_fragment_b', 'stage.fragment'),
@@ -264,7 +247,9 @@ describe('@world-lab/graph pipeline consumer derivation', () => {
 		};
 
 		const effective = effectiveGraphDocument(graph);
-		const imageConsumers = effective.consumers.filter((consumer) => consumer.type === 'image');
+		const imageConsumers = effectiveConsumers(effective).filter(
+			(consumer) => consumer.type === 'image'
+		);
 		expect(imageConsumers).toHaveLength(2);
 		expect(new Set(imageConsumers.map((consumer) => consumer.id)).size).toBe(2);
 		expect(new Set(effective.outputs.map((output) => output.name)).size).toBe(2);

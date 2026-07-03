@@ -2,6 +2,7 @@ import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 import {
 	deriveMeshTargets,
+	effectiveConsumers,
 	getPrimitive,
 	validateGraph,
 	validateGraphFull
@@ -15,12 +16,13 @@ import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js
 
 describe('graph-editor samples registry', () => {
 	it('contains the Worley, cosine-palette, and mesh samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(5);
+		expect(GRAPH_SAMPLES.length).toBe(7);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
 		expect(getGraphSample('mesh-rigid-transforms')?.label).toContain('Rigid transforms');
-		expect(getGraphSample('default-scalar')).toBeUndefined();
+		expect(getGraphSample('migration-default-preview')).toBeDefined();
+		expect(getGraphSample('migration-fullscreen-fragment')).toBeDefined();
 	});
 
 	it('builds a valid fragment-image graph for the ShaderToy sample', () => {
@@ -54,7 +56,7 @@ describe('graph-editor samples registry', () => {
 			resU: 2,
 			resV: 2
 		});
-		expect(graph.consumers[0]?.stage).toBe('fragment');
+		expect(effectiveConsumers(graph)[0]?.stage).toBe('fragment');
 		expect(graph.outputs[0]?.name).toBe('image');
 	});
 

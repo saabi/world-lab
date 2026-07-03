@@ -34,7 +34,7 @@ function snapshotNode(id: string, primitiveId: string, params?: Record<string, u
 
 function previewGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_perlin', 'noise.perlin3d'),
@@ -53,7 +53,6 @@ function previewGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-		consumers: [{ type: 'preview', outputs: ['field'] }]
 	};
 }
 

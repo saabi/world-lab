@@ -1,5 +1,6 @@
 import { assembleStageEntry, compileGraph, type WgslModuleResolver } from '@world-lab/compiler';
 import {
+	effectiveConsumers,
 	effectiveGraphDocument,
 	type GraphDocument,
 	type PortRef,
@@ -246,7 +247,7 @@ export async function compiledGraphWgsl(
 	}
 
 	const compileDoc = effectiveGraphDocument(doc);
-	const consumers = compileDoc.consumers;
+	const consumers = effectiveConsumers(compileDoc);
 	if (consumers.length === 0) {
 		return [
 			{

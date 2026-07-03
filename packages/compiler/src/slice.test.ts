@@ -5,7 +5,7 @@ import { sliceGraph } from './slice.js';
 // n_src feeds both n_h (height) and n_m (mask); n_iso is independent (noise).
 function graph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{ id: 'n_src', primitive: 'noise.perlin3d',
 			  inputs: [{ id: 'position', name: 'position', direction: 'in', dataType: 'vec3f' }],
@@ -29,7 +29,6 @@ function graph(): GraphDocument {
 			{ name: 'mask', from: { node: 'n_m', port: 'value' } },
 			{ name: 'noise', from: { node: 'n_iso', port: 'value' } },
 		],
-		consumers: [],
 	};
 }
 

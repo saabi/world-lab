@@ -17,7 +17,7 @@ describe('@world-lab/graph-editor graphIds', () => {
 
 	it('dedupeGraphIds re-ids duplicate node ids', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -34,7 +34,6 @@ describe('@world-lab/graph-editor graphIds', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		};
 
 		const deduped = dedupeGraphIds(doc);
@@ -44,7 +43,7 @@ describe('@world-lab/graph-editor graphIds', () => {
 
 	it('dedupeGraphIds re-ids duplicate edge ids', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -78,7 +77,6 @@ describe('@world-lab/graph-editor graphIds', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		const deduped = dedupeGraphIds(doc);
@@ -88,7 +86,7 @@ describe('@world-lab/graph-editor graphIds', () => {
 
 	it('parseGraphFile dedupes duplicate ids from uploaded JSON', () => {
 		const raw = JSON.stringify({
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -105,7 +103,6 @@ describe('@world-lab/graph-editor graphIds', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		});
 		const parsed = parseGraphFile(raw);
 		expect(parsed.nodes.map((node) => node.id)).toEqual(['n_a', 'n_constant_f32_1']);

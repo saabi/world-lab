@@ -4,7 +4,7 @@ import { validateGraph } from './validate.js';
 
 function docWithDuplicateNodeId(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_dup',
@@ -21,7 +21,6 @@ function docWithDuplicateNodeId(): GraphDocument {
 		],
 		edges: [],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -38,7 +37,7 @@ describe('@world-lab/graph validateGraph duplicate-id', () => {
 
 	it('reports duplicate edge ids', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -58,7 +57,6 @@ describe('@world-lab/graph validateGraph duplicate-id', () => {
 				{ id: 'e_1', from: { node: 'n_a', port: 'value' }, to: { node: 'n_b', port: 'x' } }
 			],
 			outputs: [],
-			consumers: []
 		};
 		const result = validateGraph(doc);
 		expect(result.ok).toBe(false);

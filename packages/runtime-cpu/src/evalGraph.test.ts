@@ -4,7 +4,7 @@ import { evaluateGraphOutput } from './evalGraph.js';
 
 function uvPerlinRemapGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_uv',
@@ -33,7 +33,6 @@ function uvPerlinRemapGraph(): GraphDocument {
 			{ id: 'e_perlin_remap', from: { node: 'n_perlin', port: 'value' }, to: { node: 'n_remap', port: 'x' } }
 		],
 		outputs: [{ name: 'height', from: { node: 'n_remap', port: 'value' } }],
-		consumers: [{ type: 'preview', outputs: ['height'] }]
 	};
 }
 
@@ -66,7 +65,7 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 
 	it('throws on cycles', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -86,7 +85,6 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 				{ id: 'e_ba', from: { node: 'n_b', port: 'value' }, to: { node: 'n_a', port: 'x' } }
 			],
 			outputs: [{ name: 'out', from: { node: 'n_b', port: 'value' } }],
-			consumers: []
 		};
 
 		expect(() =>
@@ -96,7 +94,7 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 
 	it('throws on invalid type-mismatched edges', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_uv',
@@ -115,7 +113,6 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 				{ id: 'e_bad', from: { node: 'n_uv', port: 'uv' }, to: { node: 'n_remap', port: 'x' } }
 			],
 			outputs: [{ name: 'out', from: { node: 'n_remap', port: 'value' } }],
-			consumers: []
 		};
 
 		expect(() =>
@@ -127,7 +124,7 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 		const vec4 = getPrimitive('vector.vec4f')!;
 		const extractW = getPrimitive('vector.vec4f.w')!;
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_vec4',
@@ -155,7 +152,6 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 			],
 			edges: [{ id: 'e_vec_w', from: { node: 'n_vec4', port: 'value' }, to: { node: 'n_w', port: 'value' } }],
 			outputs: [{ name: 'alpha', from: { node: 'n_w', port: 'w' } }],
-			consumers: []
 		};
 
 		expect(evaluateGraphOutput(doc, { node: 'n_w', port: 'w' }, {})).toBe(1);
@@ -164,7 +160,7 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 	it('uses edge-driven promotable param values ahead of stored literals', () => {
 		const remapPrimitive = getPrimitive('math.remap')!;
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_x',
@@ -209,7 +205,6 @@ describe('@world-lab/runtime-cpu evalGraph', () => {
 				}
 			],
 			outputs: [{ name: 'out', from: { node: 'n_remap', port: 'value' } }],
-			consumers: []
 		};
 
 		const wired = evaluateGraphOutput(doc, { node: 'n_remap', port: 'value' }, {});

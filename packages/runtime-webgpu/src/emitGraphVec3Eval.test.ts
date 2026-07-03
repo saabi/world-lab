@@ -34,11 +34,10 @@ function snapshotNode(
 describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 	it('emits metricPosition as direct vec3f output', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [snapshotNode('n_pos', 'procedural.metricPosition')],
 			edges: [],
 			outputs: [{ name: 'position', from: { node: 'n_pos', port: 'position' } }],
-			consumers: [{ type: 'preview', outputs: ['position'] }]
 		};
 
 		const emitted = emitGraphVec3Eval(graph, { node: 'n_pos', port: 'position' });
@@ -51,11 +50,10 @@ describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 
 	it('uses positionExpr when provided', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [snapshotNode('n_pos', 'procedural.metricPosition')],
 			edges: [],
 			outputs: [{ name: 'position', from: { node: 'n_pos', port: 'position' } }],
-			consumers: [{ type: 'preview', outputs: ['position'] }]
 		};
 
 		const emitted = emitGraphVec3Eval(
@@ -69,7 +67,7 @@ describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 
 	it('collects params for parameterized vec3 surface nodes', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_uv', 'procedural.uv'),
 				snapshotNode('n_sphere', 'surface.cubeSphere', { face: 2 })
@@ -82,7 +80,6 @@ describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 				}
 			],
 			outputs: [{ name: 'position', from: { node: 'n_sphere', port: 'position' } }],
-			consumers: [{ type: 'preview', outputs: ['position'] }]
 		};
 
 		const emitted = emitGraphVec3Eval(graph, { node: 'n_sphere', port: 'position' });
@@ -96,7 +93,7 @@ describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 
 	it('rejects non-vec3f output ports', () => {
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_uv', 'procedural.uv'),
 				snapshotNode('n_perlin', 'noise.perlin3d')
@@ -109,7 +106,6 @@ describe('@world-lab/runtime-webgpu emitGraphVec3Eval', () => {
 				}
 			],
 			outputs: [{ name: 'field', from: { node: 'n_perlin', port: 'value' } }],
-			consumers: [{ type: 'preview', outputs: ['field'] }]
 		};
 
 		expect(() => emitGraphVec3Eval(graph, { node: 'n_perlin', port: 'value' })).toThrow(

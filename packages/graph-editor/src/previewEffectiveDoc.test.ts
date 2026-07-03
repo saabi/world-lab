@@ -1,6 +1,6 @@
 import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument } from '@world-lab/graph';
+import { effectiveConsumers, effectiveGraphDocument } from '@world-lab/graph';
 import {
 	assembleFullscreenFragmentModuleAsync,
 	createStandardLibraryResolver
@@ -18,7 +18,6 @@ describe('preview effective document normalization', () => {
 		const raw = {
 			...cosinePaletteEffectGraph(),
 			outputs: [],
-			consumers: []
 		};
 		const effective = effectiveGraphDocument(raw);
 
@@ -27,7 +26,7 @@ describe('preview effective document normalization', () => {
 				(output) => output.from.node === 'n_effect' && output.from.port === 'color'
 			)
 		).toBe(true);
-		expect(effective.consumers.length).toBeGreaterThan(0);
+		expect(effectiveConsumers(effective).length).toBeGreaterThan(0);
 
 		const buffer = inferDefaultPreviewBuffer(effective);
 		expect(buffer?.family).toBe('image');
@@ -48,7 +47,6 @@ describe('preview effective document normalization', () => {
 		const raw = {
 			...cosinePaletteEffectGraph(),
 			outputs: [],
-			consumers: []
 		};
 		const effective = effectiveGraphDocument(raw);
 		const buffers = enumeratePreviewBuffers(effective);

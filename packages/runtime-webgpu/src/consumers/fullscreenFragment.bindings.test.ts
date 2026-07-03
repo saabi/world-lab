@@ -58,7 +58,7 @@ describe('fullscreenFragment ShaderToy binding selection', () => {
 		const constOut = portRef('n_const', 'constant.f32', 'out', 0);
 		const vec4In = (index: number) => portRef('n_vec4', 'vector.vec4f', 'in', index);
 		const graph: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				snapshotNode('n_const', 'constant.f32', { value: 0.5 }),
 				snapshotNode('n_vec4', 'vector.vec4f'),
@@ -73,7 +73,6 @@ describe('fullscreenFragment ShaderToy binding selection', () => {
 				{ id: 'e_const_w', from: constOut, to: vec4In(3) }
 			],
 			outputs: [{ name: 'image', from: portRef('n_vec4', 'vector.vec4f', 'out', 0) }],
-			consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 		};
 
 		const { usesShaderToyHost, code } = await assembleFullscreenFragmentModuleAsync(

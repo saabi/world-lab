@@ -13,7 +13,7 @@ function textureOut(id = 'texture') {
 describe('@world-lab/graph validateGraph multiple-inputs', () => {
 	it('flags more than one incoming edge on a non-list input', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_frag_a',
@@ -47,7 +47,6 @@ describe('@world-lab/graph validateGraph multiple-inputs', () => {
 				}
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		const result = validateGraph(doc);
@@ -62,7 +61,7 @@ describe('@world-lab/graph validateGraph multiple-inputs', () => {
 
 	it('allows multiple incoming edges on tuple inputs', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -88,7 +87,6 @@ describe('@world-lab/graph validateGraph multiple-inputs', () => {
 				{ id: 'e2', from: { node: 'n_b', port: 'value' }, to: { node: 'n_sum', port: 'vals' } }
 			],
 			outputs: [],
-			consumers: []
 		};
 
 		const result = validateGraph(doc);

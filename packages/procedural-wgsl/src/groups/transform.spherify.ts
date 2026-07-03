@@ -7,11 +7,10 @@ export const TRANSFORM_SPHERIFY_GROUP: GroupDefinition = {
 	id: 'transform.spherify',
 	category: 'transform',
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [mathVec3UnaryNode('norm', 'math.normalize')],
 		edges: [],
 		outputs: [{ name: 'position', from: { node: 'norm', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [{ name: 'position', dataType: 'vec3f', target: { node: 'norm', port: 'v' } }],

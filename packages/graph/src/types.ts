@@ -111,14 +111,24 @@ export interface ResourceDependency {
 	type: ResourceDataType;
 }
 
-export interface GraphDocument {
-	version: string;
+export interface GraphDocumentBase {
 	nodes: Node[];
 	edges: Edge[];
 	outputs: GraphOutput[];
-	consumers: ProceduralConsumer[];
 	resources?: ResourceDependency[];
 }
+
+export interface GraphDocumentV1 extends GraphDocumentBase {
+	version: '1';
+	consumers: ProceduralConsumer[];
+}
+
+export interface GraphDocumentV2 extends GraphDocumentBase {
+	version: '2';
+}
+
+export type GraphDocument = GraphDocumentV2;
+export type AnyGraphDocument = GraphDocumentV1 | GraphDocumentV2;
 
 export interface GroupInputMapping {
 	name: string;

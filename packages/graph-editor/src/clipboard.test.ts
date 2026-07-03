@@ -10,7 +10,7 @@ describe('@world-lab/graph-editor clipboard', () => {
 
 	it('copyNodeToClipboard captures primitive and params', () => {
 		let doc = applyEditIntent(
-			{ version: '1', nodes: [], edges: [], outputs: [], consumers: [] },
+			{ version: '2', nodes: [], edges: [], outputs: [] },
 			{ kind: 'add-node', primitiveId: 'math.remap', position: { x: 0, y: 0 } }
 		);
 		doc = applyEditIntent(doc, {
@@ -27,7 +27,7 @@ describe('@world-lab/graph-editor clipboard', () => {
 
 	it('duplicate-node preserves params with a new id', () => {
 		let doc = applyEditIntent(
-			{ version: '1', nodes: [], edges: [], outputs: [], consumers: [] },
+			{ version: '2', nodes: [], edges: [], outputs: [] },
 			{ kind: 'add-node', primitiveId: 'math.remap', position: { x: 10, y: 20 } }
 		);
 		const sourceId = doc.nodes[0]!.id;
@@ -51,7 +51,7 @@ describe('@world-lab/graph-editor clipboard', () => {
 
 	it('duplicate-node remaps copied edges to the new node id', () => {
 		let doc = applyEditIntent(
-			{ version: '1', nodes: [], edges: [], outputs: [], consumers: [] },
+			{ version: '2', nodes: [], edges: [], outputs: [] },
 			{ kind: 'add-node', primitiveId: 'constant.f32', position: { x: 0, y: 0 } }
 		);
 		doc = applyEditIntent(doc, {

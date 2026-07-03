@@ -12,7 +12,7 @@ function dualTargetPipelineGraph(): GraphDocument {
 	const fieldA = portRef('n_field_a', 'vector.vec4f', 'out', 0);
 	const fieldB = portRef('n_field_b', 'vector.vec4f', 'out', 0);
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.fullscreenPlane'),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -67,7 +67,6 @@ function dualTargetPipelineGraph(): GraphDocument {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -110,7 +109,7 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 
 function pipelineGraph(params?: Record<string, unknown>): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.fullscreenPlane', params),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -165,7 +164,6 @@ function pipelineGraph(params?: Record<string, unknown>): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 

@@ -11,7 +11,7 @@ import {
 
 function minimalValidGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_noise',
@@ -30,7 +30,6 @@ function minimalValidGraph(): GraphDocument {
 		],
 		edges: [{ id: 'e1', from: { node: 'n_noise', port: 'value' }, to: { node: 'n_remap', port: 'x' } }],
 		outputs: [{ name: 'height', from: { node: 'n_remap', port: 'out' } }],
-		consumers: [{ type: 'terrain-mesh', outputs: ['height'] }]
 	};
 }
 

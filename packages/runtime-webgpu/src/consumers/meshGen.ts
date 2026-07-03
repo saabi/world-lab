@@ -65,7 +65,7 @@ const NODE_SPHERIFY = 'n_spherify';
 /** Minimal graph: procedural.uv → `surface.plane`. */
 export function buildPlaneMeshGenGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [snapshotNode(NODE_UV, 'procedural.uv'), snapshotNode(NODE_SURFACE, 'surface.plane')],
 		edges: [
 			{
@@ -78,14 +78,13 @@ export function buildPlaneMeshGenGraph(): GraphDocument {
 			{ name: 'position', from: { node: NODE_SURFACE, port: 'position' } },
 			{ name: 'normal', from: { node: NODE_SURFACE, port: 'normal' } }
 		],
-		consumers: []
 	};
 }
 
 /** Minimal graph: procedural.uv → `surface.cubeSphere` (monolithic reference). */
 export function buildCubeSphereMeshGenGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode(NODE_UV, 'procedural.uv'),
 			snapshotNode(NODE_SURFACE, 'surface.cubeSphere', { face: 0 })
@@ -101,14 +100,13 @@ export function buildCubeSphereMeshGenGraph(): GraphDocument {
 			{ name: 'position', from: { node: NODE_SURFACE, port: 'position' } },
 			{ name: 'normal', from: { node: NODE_SURFACE, port: 'normal' } }
 		],
-		consumers: []
 	};
 }
 
 /** Decomposition proof: procedural.uv → `surface.cubeFace` → `transform.spherify`. */
 export function buildDecomposedCubeSphereMeshGenGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode(NODE_UV, 'procedural.uv'),
 			snapshotNode(NODE_SURFACE, 'surface.cubeFace', { face: 0 }),
@@ -127,7 +125,6 @@ export function buildDecomposedCubeSphereMeshGenGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'position', from: { node: NODE_SPHERIFY, port: 'position' } }],
-		consumers: []
 	};
 }
 

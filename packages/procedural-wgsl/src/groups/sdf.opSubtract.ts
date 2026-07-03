@@ -7,13 +7,12 @@ export const SDF_OP_SUBTRACT_GROUP: GroupDefinition = {
 	id: 'sdf.opSubtract',
 	category: 'SDF',
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [mathUnaryNode('neg_b', 'math.negate'), mathBinaryNode('max_ab', 'math.max')],
 		edges: [
 			{ id: 'e1', from: { node: 'neg_b', port: 'value' }, to: { node: 'max_ab', port: 'b' } }
 		],
 		outputs: [{ name: 'distance', from: { node: 'max_ab', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [

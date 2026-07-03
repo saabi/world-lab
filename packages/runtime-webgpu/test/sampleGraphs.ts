@@ -41,7 +41,7 @@ function portRef(nodeId: string, primitiveId: string, direction: 'in' | 'out', i
 /** ShaderToy cosine palette with explicit pipeline nodes. */
 export function cosinePalettePipelineGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.plane', { resU: 2, resV: 2 }),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -96,7 +96,6 @@ export function cosinePalettePipelineGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'image', from: portRef('n_effect', 'effect.cosinePalette', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 
@@ -105,7 +104,7 @@ export function constantVec4FragmentGraph(): GraphDocument {
 	const constOut = portRef('n_const', 'constant.f32', 'out', 0);
 	const vec4In = (index: number) => portRef('n_vec4', 'vector.vec4f', 'in', index);
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_const', 'constant.f32', { value: 0.75 }),
 			snapshotNode('n_vec4', 'vector.vec4f')
@@ -117,14 +116,13 @@ export function constantVec4FragmentGraph(): GraphDocument {
 			{ id: 'e_const_w', from: constOut, to: vec4In(3) }
 		],
 		outputs: [{ name: 'image', from: portRef('n_vec4', 'vector.vec4f', 'out', 0) }],
-		consumers: [{ type: 'image', id: 'image', stage: 'fragment', outputs: ['image'] }]
 	};
 }
 
 /** Worley + iTime → vec4f pipeline (metadata-empty; relies on effectiveGraphDocument). */
 export function worleyPipelineGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_plane', 'geometry.plane', { resU: 2, resV: 2 }),
 			snapshotNode('n_persist', 'buffer.persist'),
@@ -219,13 +217,12 @@ export function worleyPipelineGraph(): GraphDocument {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 
 export function planeScalarPreviewGraph(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			snapshotNode('n_uv', 'procedural.uv'),
 			snapshotNode('n_perlin', 'noise.perlin3d'),
@@ -244,6 +241,5 @@ export function planeScalarPreviewGraph(): GraphDocument {
 			}
 		],
 		outputs: [{ name: 'field', from: { node: 'n_remap', port: 'value' } }],
-		consumers: [{ type: 'preview', outputs: ['field'] }]
 	};
 }

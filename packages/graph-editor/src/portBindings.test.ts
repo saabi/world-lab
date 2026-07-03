@@ -6,7 +6,7 @@ import { derivePortBindings } from './portBindings.js';
 describe('@world-lab/graph-editor port bindings', () => {
 	it('preserves port space and semantic tags', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n',
@@ -26,7 +26,6 @@ describe('@world-lab/graph-editor port bindings', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		};
 
 		expect(derivePortBindings(doc, 'n')[0]).toMatchObject({

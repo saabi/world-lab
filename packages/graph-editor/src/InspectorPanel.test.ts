@@ -7,7 +7,7 @@ import InspectorPanel from './InspectorPanel.svelte';
 
 function perlinNodeDoc(name?: string): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_perlin',
@@ -21,14 +21,13 @@ function perlinNodeDoc(name?: string): GraphDocument {
 		],
 		edges: [],
 		outputs: [],
-		consumers: []
 	};
 }
 
 function remapWithDrivenParamDoc(): GraphDocument {
 	const remap = getPrimitive('math.remap')!;
 	return {
-		version: '1',
+		version: '2',
 		nodes: [
 			{
 				id: 'n_src',
@@ -61,7 +60,6 @@ function remapWithDrivenParamDoc(): GraphDocument {
 			}
 		],
 		outputs: [],
-		consumers: []
 	};
 }
 

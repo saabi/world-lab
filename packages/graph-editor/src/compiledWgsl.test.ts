@@ -75,7 +75,6 @@ describe('@world-lab/graph-editor compiledGraphWgsl', () => {
 		const doc: GraphDocument = {
 			...cosinePaletteEffectGraph(),
 			outputs: [],
-			consumers: []
 		};
 		const results = await compiledGraphWgsl(doc);
 		expect(results).toHaveLength(1);

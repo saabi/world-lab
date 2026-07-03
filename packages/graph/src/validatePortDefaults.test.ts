@@ -6,7 +6,7 @@ import type { GraphDocument } from './types.js';
 describe('@world-lab/graph validateGraphCompleteness port defaults', () => {
 	it('does not warn for unconnected inputs that declare a default', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_vec4',
@@ -22,7 +22,6 @@ describe('@world-lab/graph validateGraphCompleteness port defaults', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'color', from: { node: 'n_vec4', port: 'value' } }],
-			consumers: []
 		};
 
 		const result = validateGraphCompleteness(doc);

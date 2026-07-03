@@ -104,27 +104,39 @@ function replaceNodePrimitive(node: Node, primitiveId: string): Node {
 	);
 }
 
-function pruneOutputsAndConsumers(
+function pruneOutputsAndCompatibilitySinks(
 	doc: GraphDocument,
 	nodeId: string,
 	validOutputPorts: ReadonlySet<string>
-): Pick<GraphDocument, 'outputs' | 'consumers'> {
+): Pick<GraphDocument, 'nodes' | 'outputs'> {
 	const removedOutputNames = doc.outputs
 		.filter((output) => output.from.node === nodeId && !validOutputPorts.has(output.from.port))
 		.map((output) => output.name);
 	const outputs = doc.outputs.filter(
 		(output) => output.from.node !== nodeId || validOutputPorts.has(output.from.port)
 	);
-	const consumers =
-		removedOutputNames.length === 0
-			? doc.consumers
-			: doc.consumers
-					.map((consumer) => ({
-						...consumer,
-						outputs: consumer.outputs.filter((name) => !removedOutputNames.includes(name))
-					}))
-					.filter((consumer) => consumer.outputs.length > 0);
-	return { outputs, consumers };
+	if (removedOutputNames.length === 0) return { nodes: doc.nodes, outputs };
+
+	const removed = new Set(removedOutputNames);
+	const nodes = doc.nodes.flatMap((node) => {
+		if (
+			node.primitive === 'preview.fieldSink' &&
+			typeof node.params?.outputName === 'string' &&
+			removed.has(node.params.outputName)
+		) {
+			return [];
+		}
+		if (node.primitive !== 'legacy.consumerSink' || !Array.isArray(node.params?.outputs)) {
+			return [node];
+		}
+		const sinkOutputs = node.params.outputs.filter(
+			(output): output is string => typeof output === 'string' && !removed.has(output)
+		);
+		return sinkOutputs.length > 0
+			? [{ ...node, params: { ...node.params, outputs: sinkOutputs } }]
+			: [];
+	});
+	return { nodes, outputs };
 }
 
 function createNode(doc: GraphDocument, primitiveId: string, position: { x: number; y: number }): Node {
@@ -257,27 +269,23 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			return { ...doc, nodes: [...doc.nodes, node] };
 		}
 		case 'remove-node': {
-			const removedOutputNames = doc.outputs
-				.filter((output) => output.from.node === intent.nodeId)
-				.map((output) => output.name);
-			const outputs = doc.outputs.filter((output) => output.from.node !== intent.nodeId);
-			const consumers =
-				removedOutputNames.length === 0
-					? doc.consumers
-					: doc.consumers
-							.map((consumer) => ({
-								...consumer,
-								outputs: consumer.outputs.filter((name) => !removedOutputNames.includes(name))
-							}))
-							.filter((consumer) => consumer.outputs.length > 0);
+			const { nodes, outputs } = pruneOutputsAndCompatibilitySinks(
+				doc,
+				intent.nodeId,
+				new Set()
+			);
+			const retainedNodeIds = new Set(
+				nodes.filter((node) => node.id !== intent.nodeId).map((node) => node.id)
+			);
 			return {
 				...doc,
-				nodes: doc.nodes.filter((node) => node.id !== intent.nodeId),
+				nodes: nodes.filter((node) => node.id !== intent.nodeId),
 				edges: doc.edges.filter(
-					(edge) => edge.from.node !== intent.nodeId && edge.to.node !== intent.nodeId
+					(edge) =>
+						retainedNodeIds.has(edge.from.node) &&
+						retainedNodeIds.has(edge.to.node)
 				),
-				outputs,
-				consumers
+				outputs
 			};
 		}
 		case 'duplicate-node': {
@@ -388,8 +396,20 @@ export function applyEditIntent(doc: GraphDocument, intent: GraphEditIntent): Gr
 			const nextDoc: GraphDocument = { ...doc, nodes };
 			const edges = doc.edges.filter((edge) => validateConnection(nextDoc, edge.from, edge.to).ok);
 			const validOutputPorts = new Set(replaced.outputs.map((port) => port.id));
-			const { outputs, consumers } = pruneOutputsAndConsumers(nextDoc, intent.nodeId, validOutputPorts);
-			return { ...nextDoc, edges, outputs, consumers };
+			const { nodes: prunedNodes, outputs } = pruneOutputsAndCompatibilitySinks(
+				nextDoc,
+				intent.nodeId,
+				validOutputPorts
+			);
+			const retainedNodeIds = new Set(prunedNodes.map((node) => node.id));
+			return {
+				...nextDoc,
+				nodes: prunedNodes,
+				edges: edges.filter(
+					(edge) => retainedNodeIds.has(edge.from.node) && retainedNodeIds.has(edge.to.node)
+				),
+				outputs
+			};
 		}
 		case 'add-connected-node': {
 			const sourceNode = doc.nodes.find((node) => node.id === intent.source.node);

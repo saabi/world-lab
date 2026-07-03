@@ -10,7 +10,7 @@ export const TRANSFORM_NORMAL_DISPLACE_GROUP: GroupDefinition = {
 	id: 'transform.normalDisplace',
 	category: 'transform',
 	subgraph: {
-		version: '1',
+		version: '2',
 		nodes: [
 			vectorMulScalarVec3fNode('scale_normal', 'vector.mulScalar.vec3f'),
 			vectorAddVec3fNode('add_pos', 'vector.add.vec3f')
@@ -23,7 +23,6 @@ export const TRANSFORM_NORMAL_DISPLACE_GROUP: GroupDefinition = {
 			}
 		],
 		outputs: [{ name: 'position', from: { node: 'add_pos', port: 'value' } }],
-		consumers: []
 	},
 	interface: {
 		inputs: [

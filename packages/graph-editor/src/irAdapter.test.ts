@@ -19,11 +19,10 @@ import { fullValidation } from './graphValidation.js';
 
 function emptyDoc(): GraphDocument {
 	return {
-		version: '1',
+		version: '2',
 		nodes: [],
 		edges: [],
 		outputs: [],
-		consumers: []
 	};
 }
 
@@ -74,7 +73,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 		}
 
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_source',
@@ -99,7 +98,6 @@ describe('@world-lab/graph-editor irAdapter', () => {
 			],
 			edges: [],
 			outputs: [{ name: 'height', from: { node: 'n_value', port: 'value' } }],
-			consumers: []
 		};
 		const replaced = applyEditIntent(doc, {
 			kind: 'replace-node-primitive',
@@ -196,7 +194,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 
 	it('rejects space-mismatched connections', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -223,7 +221,6 @@ describe('@world-lab/graph-editor irAdapter', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		};
 
 		const result = validateConnection(
@@ -423,7 +420,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 
 		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: 'n_effect' });
 		expect(doc.outputs).toHaveLength(0);
-		expect(doc.consumers).toHaveLength(0);
+		expect(doc.nodes.some((node) => node.primitive === 'legacy.consumerSink')).toBe(false);
 
 		const validation = fullValidation(doc);
 		expect(validation.ok).toBe(true);
@@ -431,6 +428,48 @@ describe('@world-lab/graph-editor irAdapter', () => {
 		expect(validation.issues.some((issue) => issue.kind === 'dangling-node' && issue.node === 'n_plane')).toBe(
 			false
 		);
+	});
+
+	it('rewrites and removes compatibility sinks when their outputs are deleted', () => {
+		const source = (id: string) => ({
+			id,
+			primitive: 'constant.f32',
+			inputs: [],
+			outputs: [{ id: 'value', name: 'value', direction: 'out' as const, dataType: 'f32' as const }]
+		});
+		let doc: GraphDocument = {
+			version: '2',
+			nodes: [
+				source('a'),
+				source('b'),
+				{
+					id: 'legacy',
+					primitive: 'legacy.consumerSink',
+					params: { type: 'veg-compute', outputs: ['a', 'b'] },
+					inputs: [],
+					outputs: []
+				},
+				{
+					id: 'preview',
+					primitive: 'preview.fieldSink',
+					params: { outputName: 'a' },
+					inputs: [],
+					outputs: []
+				}
+			],
+			edges: [],
+			outputs: [
+				{ name: 'a', from: { node: 'a', port: 'value' } },
+				{ name: 'b', from: { node: 'b', port: 'value' } }
+			]
+		};
+
+		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: 'a' });
+		expect(doc.nodes.find((node) => node.id === 'legacy')?.params?.outputs).toEqual(['b']);
+		expect(doc.nodes.some((node) => node.id === 'preview')).toBe(false);
+
+		doc = applyEditIntent(doc, { kind: 'remove-node', nodeId: 'b' });
+		expect(doc.nodes.some((node) => node.id === 'legacy')).toBe(false);
 	});
 
 	it('replaceNodePrimitive keeps id and position', () => {
@@ -670,7 +709,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 
 	it('mints node ids above the loaded document max suffix', () => {
 		const loaded: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_noise_worley2d_14',
@@ -683,7 +722,6 @@ describe('@world-lab/graph-editor irAdapter', () => {
 			],
 			edges: [],
 			outputs: [],
-			consumers: []
 		};
 
 		const doc = applyEditIntent(loaded, {
@@ -699,7 +737,7 @@ describe('@world-lab/graph-editor irAdapter', () => {
 
 	it('mints edge ids above the loaded document max suffix', () => {
 		const doc: GraphDocument = {
-			version: '1',
+			version: '2',
 			nodes: [
 				{
 					id: 'n_a',
@@ -728,7 +766,6 @@ describe('@world-lab/graph-editor irAdapter', () => {
 			],
 			edges: [{ id: 'e_8', from: { node: 'n_a', port: 'value' }, to: { node: 'n_b', port: 'x' } }],
 			outputs: [],
-			consumers: []
 		};
 		const next = applyEditIntent(doc, {
 			kind: 'add-edge',

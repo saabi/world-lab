@@ -1,6 +1,11 @@
 import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { effectiveGraphDocument, validateGraph, validateGraphFull } from '@world-lab/graph';
+import {
+	effectiveConsumers,
+	effectiveGraphDocument,
+	validateGraph,
+	validateGraphFull
+} from '@world-lab/graph';
 
 import { animatedWorleyPipelineGraph } from './graphBuilders.js';
 import { enumeratePreviewBuffers } from './previewBuffers.js';
@@ -47,7 +52,9 @@ describe('animatedWorleyPipelineGraph', () => {
 		);
 
 		const effective = effectiveGraphDocument(graph);
-		const imageConsumers = effective.consumers.filter((consumer) => consumer.type === 'image');
+		const imageConsumers = effectiveConsumers(effective).filter(
+			(consumer) => consumer.type === 'image'
+		);
 		expect(imageConsumers).toHaveLength(2);
 		expect(new Set(imageConsumers.map((consumer) => consumer.id)).size).toBe(2);
 		expect(new Set(effective.outputs.map((output) => output.name)).size).toBe(2);
