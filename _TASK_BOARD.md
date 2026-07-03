@@ -27,7 +27,19 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F1.5 — `TypeRef` compatibility layer** (Foundation 1, milestone 3 of 5; see
+  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
+  for this milestone only, do not re-open F1.1/F1.2/F1.3/F1.4a's design; widest-touching milestone
+  in Foundation 1, review closely on landing)
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.5-typeref-compatibility-layer.md`
+  Owns: `packages/graph/src/types.ts`, `packages/graph/src/primitive.ts`,
+  `packages/graph/src/dataType.ts`, `packages/graph/src/registry.ts`,
+  `packages/compiler/src/groupCodegen.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/runtime-cpu/src/evalGraph.ts`, `packages/graph-editor/src/graphValidation.ts`,
+  `packages/graph-editor/src/previewBackend.ts`, `packages/graph-editor/src/nodePaletteModel.ts`,
+  `packages/graph-editor/src/irAdapter.ts`, `packages/graph-editor/src/previewBuffers.ts`,
+  and their test files
+  Claimed by: — · Status: unclaimed · Recommended executor: Cursor or Codex
 
 ## Done (recent)
 
