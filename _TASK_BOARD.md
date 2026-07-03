@@ -27,7 +27,15 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F1.1 — rename static `list<T>` to `tuple<T>`** (Foundation 1, milestone 1 of 5; see
+  `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md` — frozen/approved
+  for this milestone only, do not re-open F1.2–F1.4a's design)
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.1-tuple-rename.md`
+  Owns: `packages/graph/src/types.ts`, `packages/graph/src/dataType.ts`,
+  `packages/graph/src/ports.ts`, `packages/compiler/src/groupCodegen.ts`,
+  `packages/runtime-webgpu/src/emitGraphEval.ts`, `packages/graph-editor/src/previewBuffers.ts`,
+  `packages/graph-editor/src/irAdapter.ts`, and their test files
+  Claimed by: — · Status: unclaimed · Recommended executor: Codex (pure rename, clean failing-test gate)
 
 ## Done (recent)
 
