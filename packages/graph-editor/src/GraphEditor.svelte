@@ -38,6 +38,7 @@
 	} from './previewBuffers.js';
 	import {
 		ensurePaneSelection,
+		previewBufferIdSignature,
 		prunePaneSelection,
 		syncSelectionsForGraphChange,
 		syncPreviewPanesWithLayout,
@@ -137,7 +138,6 @@
 
 	const previewDoc = $derived(effectiveGraphDocument(graph));
 	const previewBuffers = $derived(enumeratePreviewBuffers(previewDoc));
-	const previewBufferIds = $derived(new Set(previewBuffers.map((buffer) => buffer.id)));
 	const defaultPreviewBufferId = $derived(
 		inferDefaultPreviewBuffer(previewDoc)?.id ?? previewBuffers[0]?.id ?? null
 		);
@@ -177,15 +177,24 @@
 		};
 	});
 
+	let previewBufferIdSignatureSnapshot = $state('');
+
 	function syncPreviewSelectionsForGraph(doc: GraphDocument) {
-		const buffers = enumeratePreviewBuffers(doc);
-		const defaultId = inferDefaultPreviewBuffer(doc)?.id ?? buffers[0]?.id ?? null;
+		const buffers = enumeratePreviewBuffers(effectiveGraphDocument(doc));
+		const defaultId = inferDefaultPreviewBuffer(effectiveGraphDocument(doc))?.id ?? buffers[0]?.id ?? null;
 		previewBuffersByPane = syncSelectionsForGraphChange(
 			previewBuffersByPane,
-			new Set(buffers.map((buffer) => buffer.id)),
+			buffers,
 			defaultId
 		);
 	}
+
+	$effect(() => {
+		const signature = previewBufferIdSignature(previewBuffers);
+		if (signature === previewBufferIdSignatureSnapshot) return;
+		previewBufferIdSignatureSnapshot = signature;
+		syncPreviewSelectionsForGraph(graph);
+	});
 
 	function updatePreviewPaneSelection(paneId: string, selection: PreviewPaneSelection) {
 		previewBuffersByPane = { ...previewBuffersByPane, [paneId]: selection };
@@ -196,7 +205,7 @@
 		previewBuffersByPane = ensurePaneSelection(
 			previewBuffersByPane,
 			paneId,
-			previewBufferIds,
+			previewBuffers,
 			defaultPreviewBufferId
 		);
 		scheduleChromeSave();
@@ -295,7 +304,7 @@
 		previewBuffersByPane = syncPreviewPanesWithLayout(
 			previewBuffersByPane,
 			event.layout,
-			previewBufferIds,
+			previewBuffers,
 			defaultPreviewBufferId
 		);
 		scheduleChromeSave(event.layout);
@@ -329,7 +338,6 @@
 		graph = next;
 		markupParseError = null;
 		codeSaveError = null;
-		syncPreviewSelectionsForGraph(next);
 		onchange?.(next);
 		if (persist && activeDocumentName && !documentReadOnly) {
 			saveDocument(buildCurrentArtifact(activeDocumentName, false));
@@ -361,9 +369,10 @@
 		previewBuffersByPane = syncPreviewPanesWithLayout(
 			previewBuffersByPane,
 			layout,
-			previewBufferIds,
+			previewBuffers,
 			defaultPreviewBufferId
 		);
+		previewBufferIdSignatureSnapshot = previewBufferIdSignature(previewBuffers);
 	});
 
 	// Named, writable documents auto-save on every edit (see updateGraph's `persist` branch), so

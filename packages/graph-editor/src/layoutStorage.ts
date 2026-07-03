@@ -69,6 +69,9 @@ function parsePreviewPaneSelection(value: unknown): PreviewPaneSelection | null 
 		const renderer = parsePreviewRenderer(value.rendererOverride);
 		if (renderer) selection.rendererOverride = renderer;
 	}
+	if (typeof value.sourceKey === 'string' && value.sourceKey.length > 0) {
+		selection.sourceKey = value.sourceKey;
+	}
 	return selection;
 }
 

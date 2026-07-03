@@ -1,10 +1,16 @@
 import type { LayoutDocument, LayoutNode } from '@world-lab/subdivide';
 
-import type { PreviewFamily } from './previewBuffers.js';
+import {
+	previewBufferSourceKey,
+	type PreviewBuffer,
+	type PreviewFamily
+} from './previewBuffers.js';
 import type { PreviewRenderer } from './previewBackend.js';
 
 export interface PreviewPaneSelection {
 	bufferId: string;
+	/** Stable across buffer id re-derivation (`node:port` or `sink:<displayNodeId>`). */
+	sourceKey?: string;
 	familyOverride?: PreviewFamily | null;
 	rendererOverride?: PreviewRenderer | null;
 }
@@ -14,7 +20,43 @@ export type PreviewBuffersByPane = Record<string, PreviewPaneSelection>;
 /** Chrome migration bucket for legacy single-pane preview selection. */
 export const LEGACY_PREVIEW_PANE_KEY = '__legacy__';
 
+export function previewSelectionFromBuffer(buffer: PreviewBuffer): PreviewPaneSelection {
+	return {
+		bufferId: buffer.id,
+		sourceKey: previewBufferSourceKey(buffer.source)
+	};
+}
+
+export function findBufferBySourceKey(
+	buffers: readonly PreviewBuffer[],
+	sourceKey: string
+): PreviewBuffer | undefined {
+	return buffers.find((buffer) => previewBufferSourceKey(buffer.source) === sourceKey);
+}
+
 export function resolvePaneBufferId(
+	selection: PreviewPaneSelection | undefined,
+	buffers: readonly PreviewBuffer[],
+	defaultBufferId: string | null
+): string | null {
+	const bufferIds = new Set(buffers.map((buffer) => buffer.id));
+	if (bufferIds.size === 0) return null;
+
+	if (selection?.bufferId && bufferIds.has(selection.bufferId)) {
+		return selection.bufferId;
+	}
+
+	if (selection?.sourceKey) {
+		const match = findBufferBySourceKey(buffers, selection.sourceKey);
+		if (match) return match.id;
+	}
+
+	if (defaultBufferId && bufferIds.has(defaultBufferId)) return defaultBufferId;
+	return buffers[0]?.id ?? null;
+}
+
+/** @deprecated Use the buffers overload — kept for call sites migrating incrementally. */
+export function resolvePaneBufferIdSet(
 	selection: PreviewPaneSelection | undefined,
 	bufferIds: ReadonlySet<string>,
 	defaultBufferId: string | null
@@ -25,6 +67,50 @@ export function resolvePaneBufferId(
 	}
 	if (defaultBufferId && bufferIds.has(defaultBufferId)) return defaultBufferId;
 	return bufferIds.values().next().value ?? null;
+}
+
+function normalizePaneSelection(
+	selection: PreviewPaneSelection,
+	buffers: readonly PreviewBuffer[],
+	defaultBufferId: string | null
+): PreviewPaneSelection | null {
+	const bufferId = resolvePaneBufferId(selection, buffers, defaultBufferId);
+	if (!bufferId) return null;
+
+	const buffer = buffers.find((candidate) => candidate.id === bufferId);
+	const sourceKey =
+		selection.sourceKey ??
+		(buffer ? previewBufferSourceKey(buffer.source) : undefined);
+
+	if (
+		selection.bufferId === bufferId &&
+		(!sourceKey || selection.sourceKey === sourceKey)
+	) {
+		return sourceKey && !selection.sourceKey ? { ...selection, sourceKey } : selection;
+	}
+
+	return {
+		bufferId,
+		...(sourceKey !== undefined ? { sourceKey } : {}),
+		...(selection.familyOverride !== undefined
+			? { familyOverride: selection.familyOverride }
+			: {}),
+		...(selection.rendererOverride !== undefined
+			? { rendererOverride: selection.rendererOverride }
+			: {})
+	};
+}
+
+function previewSelectionsEqual(
+	a: PreviewPaneSelection,
+	b: PreviewPaneSelection
+): boolean {
+	return (
+		a.bufferId === b.bufferId &&
+		a.sourceKey === b.sourceKey &&
+		a.familyOverride === b.familyOverride &&
+		a.rendererOverride === b.rendererOverride
+	);
 }
 
 export function migrateLegacyPreviewChrome(input: {
@@ -54,11 +140,12 @@ export function migrateLegacyPreviewChrome(input: {
 export function ensurePaneSelection(
 	byPane: PreviewBuffersByPane,
 	paneId: string,
-	bufferIds: ReadonlySet<string>,
+	buffers: readonly PreviewBuffer[],
 	defaultBufferId: string | null
 ): PreviewBuffersByPane {
-	if (bufferIds.size === 0) return byPane;
+	if (buffers.length === 0) return byPane;
 
+	const bufferIds = new Set(buffers.map((buffer) => buffer.id));
 	const existing = byPane[paneId];
 	if (existing?.bufferId && bufferIds.has(existing.bufferId)) {
 		return byPane;
@@ -68,42 +155,64 @@ export function ensurePaneSelection(
 	const next = { ...byPane };
 	delete next[LEGACY_PREVIEW_PANE_KEY];
 
-	const bufferId = resolvePaneBufferId(legacy ?? existing, bufferIds, defaultBufferId);
-	if (!bufferId) return next;
+	const normalized = normalizePaneSelection(legacy ?? existing ?? { bufferId: '' }, buffers, defaultBufferId);
+	if (!normalized) return next;
 
-	next[paneId] = {
-		bufferId,
-		familyOverride: legacy?.familyOverride ?? existing?.familyOverride,
-		rendererOverride: legacy?.rendererOverride ?? existing?.rendererOverride
-	};
+	next[paneId] = normalized;
 	return next;
 }
 
 export function syncSelectionsForGraphChange(
 	byPane: PreviewBuffersByPane,
-	bufferIds: ReadonlySet<string>,
+	buffers: readonly PreviewBuffer[],
 	defaultBufferId: string | null
 ): PreviewBuffersByPane {
-	if (bufferIds.size === 0) return {};
+	if (buffers.length === 0) return {};
 
+	const bufferIds = new Set(buffers.map((buffer) => buffer.id));
 	const next: PreviewBuffersByPane = {};
+	let changed = false;
+
 	for (const [paneId, selection] of Object.entries(byPane)) {
 		if (paneId === LEGACY_PREVIEW_PANE_KEY) {
 			if (selection.bufferId && bufferIds.has(selection.bufferId)) {
 				next[paneId] = selection;
+			} else if (selection.sourceKey && findBufferBySourceKey(buffers, selection.sourceKey)) {
+				const normalized = normalizePaneSelection(selection, buffers, defaultBufferId);
+				if (normalized) next[paneId] = normalized;
 			}
 			continue;
 		}
 
-		const stillValid = bufferIds.has(selection.bufferId);
-		const bufferId = stillValid
-			? selection.bufferId
-			: resolvePaneBufferId(undefined, bufferIds, defaultBufferId);
-		if (!bufferId) continue;
+		const normalized = normalizePaneSelection(selection, buffers, defaultBufferId);
+		if (!normalized) continue;
 
-		next[paneId] = stillValid ? selection : { bufferId };
+		next[paneId] = normalized;
+		if (!(paneId in byPane) || !previewSelectionsEqual(byPane[paneId]!, normalized)) {
+			changed = true;
+		}
 	}
+
+	if (!changed && Object.keys(next).length === Object.keys(byPane).length) {
+		let same = true;
+		for (const [paneId, selection] of Object.entries(byPane)) {
+			if (paneId === LEGACY_PREVIEW_PANE_KEY) continue;
+			if (!next[paneId] || !previewSelectionsEqual(selection, next[paneId]!)) {
+				same = false;
+				break;
+			}
+		}
+		if (same) return byPane;
+	}
+
 	return next;
+}
+
+export function previewBufferIdSignature(buffers: readonly PreviewBuffer[]): string {
+	return buffers
+		.map((buffer) => `${buffer.id}\0${previewBufferSourceKey(buffer.source)}`)
+		.sort()
+		.join('\n');
 }
 
 export function collectPaneIdsByZone(layout: LayoutDocument, zone: string): string[] {
@@ -122,14 +231,14 @@ export function collectPaneIdsByZone(layout: LayoutDocument, zone: string): stri
 export function syncPreviewPanesWithLayout(
 	byPane: PreviewBuffersByPane,
 	layout: LayoutDocument,
-	bufferIds: ReadonlySet<string>,
+	buffers: readonly PreviewBuffer[],
 	defaultBufferId: string | null,
 	zone = 'preview'
 ): PreviewBuffersByPane {
 	const activePaneIds = new Set(collectPaneIdsByZone(layout, zone));
 	let next = byPane;
 	for (const paneId of activePaneIds) {
-		next = ensurePaneSelection(next, paneId, bufferIds, defaultBufferId);
+		next = ensurePaneSelection(next, paneId, buffers, defaultBufferId);
 	}
 	const pruned: PreviewBuffersByPane = {};
 	for (const [paneId, selection] of Object.entries(next)) {

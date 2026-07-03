@@ -31,9 +31,13 @@ is still open.
 
 ## Done (recent)
 
-- **Editor accessibility Phase A** — 8dbb2f9 · skip link + `<main id="main-content">` landmark
+- **Preview buffer selection persistence across graph edits** — `579138b` · stable `sourceKey`
+  per pane; sync only when buffer set changes; selection survives benign graph edits.
+
+- **Editor accessibility Phase A** — `5b64448` · skip link + `<main id="main-content">` landmark
   in webgputoy layout; `tabindex="-1"` on swap/connect dialog roots (dialog a11y-lint clean).
-  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
+  Reviewed independently — clean, matches the brief. Brief:
+  `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-a.md`
 
 
 - **Palette drag-and-drop node placement** — `9c758cc` · draggable palette primitives drop onto

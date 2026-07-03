@@ -14,7 +14,7 @@
 		type PreviewBuffer,
 		type PreviewFamily
 	} from './previewBuffers.js';
-	import { resolvePaneBufferId, type PreviewPaneSelection } from './previewPaneSelection.js';
+	import { resolvePaneBufferId, previewSelectionFromBuffer, type PreviewPaneSelection } from './previewPaneSelection.js';
 	import type { PreviewFrameLoop } from './previewFrameLoop.js';
 
 	interface Props {
@@ -41,9 +41,8 @@
 		onSelectionChange
 	}: Props = $props();
 
-	const bufferIds = $derived(new Set(buffers.map((buffer) => buffer.id)));
 	const selectedBufferId = $derived(
-		resolvePaneBufferId(selection, bufferIds, defaultBufferId)
+		resolvePaneBufferId(selection, buffers, defaultBufferId)
 	);
 	const selectedBuffer = $derived(
 		findPreviewBufferById(graph, selectedBufferId) ??
@@ -60,7 +59,9 @@
 	);
 
 	function selectPreviewBuffer(bufferId: string) {
-		onSelectionChange({ bufferId });
+		const buffer = buffers.find((candidate) => candidate.id === bufferId);
+		if (!buffer) return;
+		onSelectionChange(previewSelectionFromBuffer(buffer));
 	}
 
 	function setPreviewFamilyOverride(family: PreviewFamily) {
