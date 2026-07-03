@@ -27,18 +27,26 @@ is still open.
 
 ## Active
 
-One task pinned 2026-07-03 — found via independent review of the mesh-target-sink landing:
-the "GPU" mesh path silently, permanently falls back to CPU for realistic graphs (including
-both bundled mesh samples), and even once fixed, an independently-sourced `normal` subgraph
-isn't fully sliced into the compiled shader.
+- **Editor accessibility Phase C** (keyboard port connection — node select/move already free
+  via xyflow's own defaults, verified; only ports have zero keyboard affordance)
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-c.md`
+  Owns: `packages/graph-editor/src/GraphNodeView.svelte`
+  Claimed by: — · Status: unclaimed
 
-- **Fix the mesh-gen GPU path's silent CPU fallback**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-gpu-output-fix.md`
-  Owns: `packages/runtime-webgpu/src/consumers/meshGen.ts`,
+## Ready to route (sequenced, not parallel)
+
+- **Mesh preview UX: wireframe toggle + orbit camera**
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-preview-ux.md`
+  Owns: `packages/graph-editor/src/MeshPreviewPanel.svelte`,
   `packages/runtime-webgpu/src/consumers/surfaceMeshPreview.ts`
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Fix mesh-gen GPU path silent CPU fallback** — `b16f0aa` · synthetic `graph.outputs` for
+  mesh-gen module slicing; dual position/normal subgraph merge; `console.warn` before CPU
+  fallback; per-output WGSL entries (`plane_normal`, etc.) for independent normal ports.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-mesh-gen-gpu-output-fix.md`
 
 - **Editor accessibility Phase B** — `06e710b` · focus-trap action (Tab wrap, mount focus, restore on destroy);
   applied to DocumentList name/delete dialogs + NodeSwapMenu + PortConnectMenu; Escape wired on
