@@ -27,26 +27,31 @@ is still open.
 
 ## Active
 
-- **F1.4a — unify execution roots + migrate legacy documents** (Foundation 1, milestone 5 of 5,
-  **final milestone**; see `_docs/architecture/procedural-graph/foundation-1-elemental-contracts-plan.md`
-  — frozen/approved for this milestone only; highest-blast-radius milestone in Foundation 1,
-  review very closely on landing; includes two required bundled sample graphs for manual visual
-  verification, per standing instruction — do not skip Gate item 3)
-  Brief: `_docs/architecture/procedural-graph/briefs/F1.4a-unify-execution-roots.md`
-  Owns: `packages/graph/src/serialize.ts`, `packages/graph/src/types.ts`,
-  `packages/graph/src/graphIds.ts` (new, relocated from graph-editor), `packages/graph/src/pipeline.ts`,
-  `packages/graph/src/meshTarget.ts`, `packages/graph/src/primitives/`,
-  `packages/compiler/src/compileGraph.ts`, `packages/compiler/src/sinkAdapters.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineVertex.ts`,
-  `packages/runtime-webgpu/src/sinkHandlers.ts`,
-  `packages/graph-editor/src/graphIds.ts`, `packages/graph-editor/src/irAdapter.ts`,
-  `packages/graph-editor/src/compiledWgsl.ts`, `packages/graph-editor/src/graphCompileSignature.ts`,
-  `packages/graph-editor/src/markup/printGraph.ts`, `packages/graph-editor/src/graphBuilders.ts`,
-  `packages/graph-editor/src/samples.ts`,
-  and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._ Foundation 1 (all 5 milestones) is complete. One outstanding item: F1.4a's
+two new bundled samples (`migration-default-preview`, `migration-fullscreen-fragment`) still need
+a human browser check per its own gate item 3 — everything else is verified.
 
 ## Done (recent)
+
+- **F1.4a — unify execution roots + migrate legacy documents** — `48ea451` · **final
+  milestone in Foundation 1.** `discoverExecutionRoots` (sink nodes as the only execution root,
+  full stop); real `GraphDocumentV1`/`GraphDocumentV2` typing plus runtime shape validation in
+  `deserializeGraph` (stronger than the gate required — a bare unchecked cast was explicitly
+  accepted as debt, fixed anyway); `migrateGraphDocument` processes every `consumers` entry
+  independently via `consumerAlreadyRepresented` (checks the *actual derived invocation*, not
+  just "does any sink exist"), correctly gates `'image'` migration on every referenced output
+  being `vec4f` with a `legacyMigration` fallback otherwise; `compileConsumers` extracted from
+  `compileGraph` and `legacyConsumerDescriptors` collects every legacy-sink invocation *before*
+  one batched compile call — proven by a test reusing the exact historical fixture whose
+  shared-module bug the review process found, confirming `sharedModuleIds` still detects
+  cross-consumer sharing after migration; `pruneOutputsAndCompatibilitySinks` correctly handles
+  both `preview.fieldSink` (whole-node removal) and `legacy.consumerSink` (partial multi-output
+  array pruning, full removal only at zero remaining); two new bundled samples
+  (`migration-default-preview`, `migration-fullscreen-fragment`) bundle the exact sink-free
+  legacy shapes needed to visually re-verify both migration paths, per standing instruction —
+  **their browser visual check (the brief's own gate item 3) is still outstanding**, everything
+  else (code review + full check/test/build) is verified clean.
+  Brief: `_docs/architecture/procedural-graph/briefs/F1.4a-unify-execution-roots.md`
 
 - **F1.3 — discriminated primitive-implementation union + group registry** — `d2db00e` ·
   `PrimitiveImplementation` union with all 8 kinds; removed all ten fake WGSL modules

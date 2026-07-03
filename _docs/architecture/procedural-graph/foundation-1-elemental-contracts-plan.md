@@ -1,8 +1,12 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Revision:** 7 (2026-07-03) —
-incorporates six rounds of verified external review; see [Revision history](#revision-history) ·
-**Parent:**
+**Status:** ✅ all five milestones landed (2026-07-03) — F1.1 `b36f864`, F1.2 `3768ae2`, F1.5
+`129d35e`, F1.3 `d2db00e`, F1.4a `48ea451`; each reviewed independently against its own contract
+before being marked done. Foundation 1 is complete. One outstanding item: F1.4a's bundled-sample
+visual browser check (its own gate item 3) awaits human confirmation — everything else, code-level
+and headless, is verified. A follow-up document sequences Foundation 2 separately, not written yet.
+· **Revision:** 7 (2026-07-03) — incorporates six rounds of verified external review; see
+[Revision history](#revision-history) · **Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
 resources/frame execution), Foundation 3 (generic kernels), Foundation 4 (generic command/resource
@@ -910,7 +914,9 @@ their final Foundation 2/3 kind.
 
 ---
 
-## F1.4a — Unify execution roots + migrate legacy documents
+## F1.4a — Unify execution roots + migrate legacy documents ✅ done (`48ea451`) — code/headless
+verification complete; the two new bundled samples' visual browser check (gate item 3) is still
+pending human confirmation
 
 **Goal:** replace `GraphDocument.outputs` + `GraphDocument.consumers` + role-metadata node
 detection with one rule — exports name reusable values, **sink** nodes (per F1.3's `kind` tag) are
