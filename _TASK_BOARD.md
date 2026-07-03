@@ -27,22 +27,7 @@ is still open.
 
 ## Active
 
-Four tasks pinned 2026-07-03, file ownership verified disjoint (no two tasks touch the same
-file, so all four are safe to run in parallel; none depends on another).
-
-- **Divider visual polish** (width/hover, active-drag highlight — corner-triangle affordance
-  considered and retired, not part of this task)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-divider-visual-polish.md`
-  Owns: `packages/subdivide/src/Divider.svelte`, `packages/subdivide/src/Subdivide.svelte`,
-  `packages/subdivide/src/floatingPanel.test.ts` (new test additions only)
-  Claimed by: Auto · Status: in progress
-
-- **User-facing node names**
-  Brief: `_docs/architecture/procedural-graph/briefs/M-node-naming.md`
-  Owns: `packages/graph/src/types.ts`, `packages/graph/src/graph.test.ts` (or nearest existing
-  Node-serialization test file), `packages/graph-editor/src/irAdapter.ts`,
-  `packages/graph-editor/src/InspectorPanel.svelte`, `packages/graph-editor/src/GraphNodeView.svelte`
-  Claimed by: Cursor · Status: in progress
+Three tasks pinned 2026-07-03 (divider polish landed); file ownership verified disjoint.
 
 - **Palette drag-and-drop node placement**
   Brief: `_docs/architecture/procedural-graph/briefs/M-palette-drag-drop.md`
@@ -50,7 +35,7 @@ file, so all four are safe to run in parallel; none depends on another).
   (`GraphEditor.svelte`'s existing `addPrimitive`/`onchange` wiring is reused, not edited — if
   that assumption turns out wrong mid-task, stop and flag it here rather than editing a file
   another task might also touch)
-  Claimed by: — · Status: unclaimed
+  Claimed by: Auto · Status: in progress
 
 - **Editor accessibility Phase A** (landmarks, skip link, fix the two existing a11y-lint
   warnings)
@@ -60,6 +45,13 @@ file, so all four are safe to run in parallel; none depends on another).
   Claimed by: — · Status: unclaimed
 
 ## Done (recent)
+
+- **Divider visual polish** — axis-aligned hover/active bar, `active` prop while dragging.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-divider-visual-polish.md`
+
+- **User-facing node names** — `c2eb302` · optional `Node.name`; inspector rename field;
+  canvas label falls back to primitive id; muted primitive id under custom names.
+  Brief: `_docs/architecture/procedural-graph/briefs/M-node-naming.md`
 
 - **Primitive help coverage (frontmatter-based, all nodes)** — `af69aef` · unified
   `formatBuiltinSource` + inspector fallback; backfilled `help` across noise/math/color/

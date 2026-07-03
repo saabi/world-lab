@@ -1,7 +1,39 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
+import Divider from './Divider.svelte';
 import FloatingPanelHarness from './FloatingPanelHarness.svelte';
+import { buildRuntimeTree } from './layout/build.js';
+import type { LayoutDocument } from './layout/types.js';
+
+function twoPaneLayout(): LayoutDocument {
+	return {
+		root: {
+			type: 'group',
+			row: true,
+			pos: 0,
+			size: 1,
+			children: [
+				{ type: 'pane', id: 'left', zone: 'main', pos: 0, size: 0.5 },
+				{ type: 'pane', id: 'right', zone: 'main', pos: 0.5, size: 0.5 }
+			]
+		}
+	};
+}
+
+describe('@world-lab/subdivide Divider', () => {
+	it('adds the active class while dragging', () => {
+		const { dividers } = buildRuntimeTree(twoPaneLayout());
+		render(Divider, { divider: dividers[0]!, layoutTick: 0, active: true });
+		expect(screen.getByRole('slider').classList.contains('active')).toBe(true);
+	});
+
+	it('omits the active class when not dragging', () => {
+		const { dividers } = buildRuntimeTree(twoPaneLayout());
+		render(Divider, { divider: dividers[0]!, layoutTick: 0, active: false });
+		expect(screen.getByRole('slider').classList.contains('active')).toBe(false);
+	});
+});
 
 describe('@world-lab/subdivide floating panels', () => {
 	it('renders panel content when open and its zone matches the hosting pane', () => {

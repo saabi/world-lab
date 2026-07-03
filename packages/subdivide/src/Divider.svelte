@@ -4,12 +4,13 @@
 	interface Props {
 		divider: DividerData;
 		layoutTick: number;
+		active?: boolean;
 		onmousedown?: (event: MouseEvent) => void;
 	}
 </script>
 
 <script lang="ts">
-	let { divider, layoutTick, onmousedown }: Props = $props();
+	let { divider, layoutTick, active = false, onmousedown }: Props = $props();
 
 	const style = $derived.by(() => {
 		layoutTick;
@@ -42,6 +43,7 @@
 
 <div
 	class="divider {divider.type}"
+	class:active={active}
 	{style}
 	role="slider"
 	tabindex="0"
@@ -82,10 +84,44 @@
 	.divider::before {
 		content: '';
 		position: absolute;
-		left: calc(0px - var(--thickness) / 2);
-		top: calc(0px - var(--thickness) / 2);
-		width: calc(100% + var(--thickness));
-		height: calc(100% + var(--thickness));
 		background-color: var(--color);
+		opacity: 0.72;
+		transition:
+			opacity 0.12s ease,
+			background-color 0.12s ease,
+			width 0.12s ease,
+			height 0.12s ease,
+			left 0.12s ease,
+			top 0.12s ease;
+	}
+
+	/* Horizontal split: drag moves vertically — grow the bar on the Y axis only. */
+	.horizontal::before {
+		--visual-extra: 2px;
+		left: calc(0px - var(--thickness) / 2);
+		top: calc(0px - (var(--thickness) + var(--visual-extra)) / 2);
+		width: calc(100% + var(--thickness));
+		height: calc(var(--thickness) + var(--visual-extra));
+	}
+
+	/* Vertical split: drag moves horizontally — grow the bar on the X axis only. */
+	.vertical::before {
+		--visual-extra: 2px;
+		left: calc(0px - (var(--thickness) + var(--visual-extra)) / 2);
+		top: calc(0px - var(--thickness) / 2);
+		width: calc(var(--thickness) + var(--visual-extra));
+		height: calc(100% + var(--thickness));
+	}
+
+	.divider:hover::before,
+	.divider:focus-visible::before {
+		--visual-extra: 4px;
+		opacity: 1;
+	}
+
+	.divider.active::before {
+		--visual-extra: 4px;
+		opacity: 1;
+		background-color: var(--subdivide-menu-color, #4a6fa5);
 	}
 </style>

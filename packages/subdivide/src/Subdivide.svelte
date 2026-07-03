@@ -539,7 +539,12 @@
 		{/each}
 
 		{#each dividers as divider (divider.id)}
-			<Divider {divider} {layoutTick} onmousedown={(event) => startDrag(divider, event)} />
+			<Divider
+				{divider}
+				{layoutTick}
+				active={dragging === divider}
+				onmousedown={(event) => startDrag(divider, event)}
+			/>
 		{/each}
 
 		{#if dragging}
