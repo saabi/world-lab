@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { listSwapFamily, type NodePrimitive } from '@world-lab/graph';
+	import { focusTrap } from './focusTrap.js';
 	import { filterPrimitives } from './nodePaletteModel.js';
 
 	interface Props {
@@ -11,17 +12,10 @@
 	let { currentPrimitiveId, onselect, onclose }: Props = $props();
 
 	let searchQuery = $state('');
-	let inputEl = $state<HTMLInputElement | null>(null);
 	let menuRoot = $state<HTMLDivElement | null>(null);
 
 	const candidates = $derived(listSwapFamily(currentPrimitiveId));
 	const filtered = $derived(filterPrimitives(candidates, searchQuery));
-
-	$effect(() => {
-		if (inputEl) {
-			inputEl.focus();
-		}
-	});
 
 	$effect(() => {
 		const root = menuRoot;
@@ -45,13 +39,6 @@
 		onselect?.(primitive.id);
 		onclose?.();
 	}
-
-	function onKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			event.stopPropagation();
-			onclose?.();
-		}
-	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -61,10 +48,9 @@
 	role="dialog"
 	aria-label="Replace node"
 	tabindex="-1"
-	onkeydown={onKeydown}
+	use:focusTrap={{ onEscape: () => onclose?.() }}
 >
 	<input
-		bind:this={inputEl}
 		class="search nodrag nopan"
 		type="search"
 		placeholder="Search compatible nodes…"

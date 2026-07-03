@@ -27,15 +27,14 @@ is still open.
 
 ## Active
 
-- **Editor accessibility Phase B** (focus trap action + apply to the four existing modal-ish
-  dialogs)
-  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-b.md`
-  Owns: `packages/graph-editor/src/focusTrap.ts` (new), `packages/graph-editor/src/focusTrap.test.ts`
-  (new), `packages/graph-editor/src/DocumentList.svelte`, `packages/graph-editor/src/NodeSwapMenu.svelte`,
-  `packages/graph-editor/src/PortConnectMenu.svelte`
-  Claimed by: — · Status: unclaimed
+_(none)_
 
 ## Done (recent)
+
+- **Editor accessibility Phase B** — `be7c54b` · focus-trap action (Tab wrap, mount focus, restore on destroy);
+  applied to DocumentList name/delete dialogs + NodeSwapMenu + PortConnectMenu; Escape wired on
+  DocumentList dialogs (previously missing).
+  Brief: `_docs/architecture/procedural-graph/briefs/M-editor-a11y-phase-b.md`
 
 - **Geometry transforms, Slice B** — `f56f309` · `transform.translate`/`scale` as vector-op groups;
   `transform.rotate` extracts `planeGridEulerRotate` + WGSL parity; **Mesh — Rotated plane**

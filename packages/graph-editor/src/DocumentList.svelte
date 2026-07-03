@@ -17,6 +17,8 @@
 </script>
 
 <script lang="ts">
+	import { focusTrap } from './focusTrap.js';
+
 	const UNTITLED_VALUE = '';
 
 	let {
@@ -281,7 +283,7 @@
 
 {#if namePromptOpen}
 	<div class="dialog-backdrop" role="presentation" onclick={() => (namePromptOpen = false)}></div>
-	<div class="dialog" role="dialog" aria-label={namePromptTitle}>
+	<div class="dialog" role="dialog" aria-label={namePromptTitle} tabindex="-1" use:focusTrap={{ onEscape: () => (namePromptOpen = false) }}>
 		<label>
 			<span>{namePromptTitle}</span>
 			<input bind:value={namePromptValue} />
@@ -297,7 +299,7 @@
 
 {#if deleteTarget}
 	<div class="dialog-backdrop" role="presentation" onclick={() => (deleteTarget = null)}></div>
-	<div class="dialog" role="dialog" aria-label="Delete document">
+	<div class="dialog" role="dialog" aria-label="Delete document" tabindex="-1" use:focusTrap={{ onEscape: () => (deleteTarget = null) }}>
 		<p>Delete "{deleteTarget}"? This can't be undone.</p>
 		<div class="dialog-actions">
 			<button type="button" onclick={() => (deleteTarget = null)}>Cancel</button>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PortMatch } from '@world-lab/graph';
+	import { focusTrap } from './focusTrap.js';
 	import { filterPrimitives } from './nodePaletteModel.js';
 
 	interface Props {
@@ -11,7 +12,6 @@
 	let { matches, onselect, onclose }: Props = $props();
 
 	let searchQuery = $state('');
-	let inputEl = $state<HTMLInputElement | null>(null);
 	let menuRoot = $state<HTMLDivElement | null>(null);
 
 	const filtered = $derived.by(() => {
@@ -19,12 +19,6 @@
 		const visible = filterPrimitives(primitives, searchQuery);
 		const visibleIds = new Set(visible.map((primitive) => primitive.id));
 		return matches.filter((match) => visibleIds.has(match.primitive.id));
-	});
-
-	$effect(() => {
-		if (inputEl) {
-			inputEl.focus();
-		}
 	});
 
 	$effect(() => {
@@ -45,13 +39,6 @@
 		onselect?.(match.primitive.id);
 		onclose?.();
 	}
-
-	function onKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			event.stopPropagation();
-			onclose?.();
-		}
-	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -61,10 +48,9 @@
 	role="dialog"
 	aria-label="Connect compatible node"
 	tabindex="-1"
-	onkeydown={onKeydown}
+	use:focusTrap={{ onEscape: () => onclose?.() }}
 >
 	<input
-		bind:this={inputEl}
 		class="search nodrag nopan"
 		type="search"
 		placeholder="Search compatible nodes…"
