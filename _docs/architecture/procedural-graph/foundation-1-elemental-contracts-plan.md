@@ -1,7 +1,7 @@
 # Foundation 1 — freeze the elemental contracts: implementation plan
 
-**Status:** proposed implementation plan, not yet approved · **Revision:** 4 (2026-07-03) —
-incorporates three rounds of verified external review; see [Revision history](#revision-history) ·
+**Status:** proposed implementation plan, not yet approved · **Revision:** 5 (2026-07-03) —
+incorporates four rounds of verified external review; see [Revision history](#revision-history) ·
 **Parent:**
 [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) (Foundation 1
 of 4) · **Depends on:** nothing — this can start immediately · **Blocks:** Foundation 2 (generic
@@ -26,6 +26,58 @@ is sequenced so the live planet renderer (`apps/scene-editor`, gated per `AGENTS
 already-shipped, already-tested graph-editor feature keep working throughout, not just at the end.
 
 ## Revision history
+
+**Revision 5** incorporates a fourth verified external review, of revision 4. The core correction
+narrows F1.4a substantially — a real, welcome simplification, not just a fix:
+
+- **Revision 4's migration registry proposed structurally synthesizing real pipeline nodes for
+  consumer shapes that are not type-valid for those nodes, verified directly.** `stage.vertex`
+  requires a `geometry`-typed `mesh` input (`packages/graph/src/primitives/pipeline/index.ts:26-28`);
+  `target.mesh` requires *two* separate `vec3f` inputs, `position` and `normal`
+  (`pipeline/index.ts:71-76`); no compute-stage primitive exists in the pipeline primitives at all.
+  But `compileGraph.test.ts:42-47`'s `'vertex-pass'`/`'veg-compute'`/`'fragment-pass'` fixtures wire
+  plain scalar `f32` outputs (`cg.height`/`cg.peaks`/`cg.albedo`, all `dataType: 'f32'`) — and
+  `graph.test.ts`/`mcp-server`'s `'terrain-mesh'` fixture has exactly one `f32` output, not two
+  `vec3f` ones. None of these can be wired into the real primitives without a type error or a
+  silent behavior change. **Independently re-verified the one case revision 4 got right:**
+  `effect.cosinePalette` (the actual value wired into `fullscreenFragment.test.ts`'s `'image'`
+  consumer) genuinely outputs `vec4f` (`packages/graph/src/primitives/effect/cosinePalette.ts:14`),
+  matching `stage.fragment`'s real `color: vec4f` port exactly — `'image'`/`'fragment'` *is* safely
+  representable, when the wired output is actually `vec4f`. This also revealed that
+  `ProceduralConsumer`'s compile-as-a-stage mechanism is inherently more type-permissive than the
+  pipeline *primitives* — `compileGraph` will happily compile any output as any stage's entry point
+  regardless of whether a real `stage.vertex`/`target.mesh` node could accept that type. Foundation
+  1 should not paper over that gap with a coercion or a silent type change.
+- **F1.4a's scope is now conservative, per the reviewed recommendation:** only `'preview'` (any
+  type) and `'image'`/`'fragment'` (only when the wired output is verified `vec4f` at migration
+  time, checked per-document, not assumed uniformly) get real structural node synthesis. Every
+  other consumer shape — `'vertex-pass'`, `'fragment-pass'` with a non-`vec4f` output, `'veg-compute'`,
+  `'terrain-mesh'`, and any future unknown type — becomes `legacy.consumerSink`, concretely defined
+  as a thin bridge that delegates to the *existing*, already-working `compileGraph` consumer-
+  compilation path (proven by `compileGraph.test.ts` today) rather than inventing new compilation
+  logic. Canonical migration of these to real kernel/pass primitives is Foundation 3's job, once
+  those primitives can actually represent arbitrary-typed stage entry points.
+- `LegacyConsumerMigration`'s return type was `Node[]` — insufficient for the `'image'` migration,
+  which needs nodes, the edges wiring them together, and potentially new `outputs` entries. Changed
+  to return a `GraphMigrationPatch { nodes, edges, outputs? }`.
+- **Migration needs a shared ID-minting facility outside `graph-editor`.** Deterministic node/edge
+  ID generation (`mintNodeId`/`collectNodeIds`/`collectEdgeIds`) currently lives in
+  `packages/graph-editor/src/graphIds.ts:12` — but migration must also run from `compiler` and
+  `mcp-server` entry points, neither of which depends on `graph-editor` (verified: no
+  `@world-lab/graph-editor` dependency in either package.json). Moved the canonical facility to
+  `packages/graph`, which every consumer already depends on; `graph-editor` re-exports it for its
+  existing call sites rather than owning a second copy.
+- Added `NodePrimitiveInput` (F1.5) alongside `PortSpecInput` — without it, `registerPrimitive`'s
+  own parameter type still required fully-normalized `PortSpec[]`, leaving the intended
+  compatibility documentation-only at the actual TypeScript boundary.
+- Strengthened F1.5's GPU acceptance gate — it claimed "runs on GPU" in the Fix section but the
+  Test gate only required WGSL text generation and CPU evaluation, not an actual device compile.
+  This is exactly the "green but not really" gap `execution-and-delegation.md`'s own gate-hardening
+  rules exist to catch. Added a required device-level compile (matching the existing
+  `wgslCompile.test.ts` pattern) for the new integer/matrix-typed test primitives.
+- Moved `semantics` deduplication/canonical-ordering from a migration-time-only concern (F1.4a) to
+  a general invariant of the field itself (F1.2) — a freshly-authored or MCP-imported v2 document
+  needs the same guarantee, not just documents that happened to pass through v1→v2 migration.
 
 **Revision 4** incorporates a third verified external review, of revision 3. Two findings
 required correcting a claim this document had made — and repeated — incorrectly:
@@ -305,6 +357,10 @@ semantic properties like units or color space, which can coexist with a space on
      exactly one coordinate frame; this stays a discriminant, not a set.
    - `semantics?: SemanticTag[]` (`SemanticTag = string`) — plural, for orthogonal properties
      (e.g. `"unit:m"`, `"color:linear-srgb"`) that can co-occur with a space or with each other.
+     **Deduplicated and canonically (e.g. lexicographically) ordered whenever set** — this is a
+     general invariant of the field itself, enforced at every write path (registration, node
+     creation, deserialization, MCP-authored documents), not just a one-time migration-time cleanup
+     for documents that happen to pass through v1→v2 migration.
 2. Keep the exact-match-or-`'none'` validation rule for `space` unchanged initially — this
    sub-milestone is about openness, not a conversion graph. `semantics` starts unvalidated
    (informational/display-only) until a real need for semantic-tag validation surfaces.
@@ -332,7 +388,11 @@ semantic properties like units or color space, which can coexist with a space on
 4. **Round-trip gate:** a port's `space` and `semantics` survive node creation (`PortSpec` →
    `Port` sync), a full save→load cycle, and an explicit port-resynchronization pass, proving the
    fields propagate through every location identified above, not just `PortSpec` in isolation.
-5. `check` and `test` green for `graph`, `graph-editor`, full workspace.
+5. A test sets `semantics` with duplicate and out-of-order entries (e.g.
+   `['unit:m', 'color:linear-srgb', 'unit:m']`) through each write path (registration, node
+   creation, deserialization) and asserts the stored/serialized result is always deduplicated and
+   canonically ordered — proving this is a standing invariant, not a migration-only cleanup.
+6. `check` and `test` green for `graph`, `graph-editor`, full workspace.
 
 **Out of scope:** validating `semantics` compatibility on edges (informational only for now).
 Building a general conversion graph between arbitrary spaces. Resolving the `contract.ts`
@@ -409,10 +469,22 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
      dataType?: DataType; // deprecated authoring alias
    }
    ```
-   `registerPrimitive` accepts `PortSpecInput` and normalizes it into canonical `PortSpec` (deriving
-   `type` from `dataType` via the F1.5 mapping when only `dataType` was given). Existing primitives
-   need no source changes; new primitives may declare `type` directly. Serialized v2 `Port`
-   instances always contain `type`.
+   This alone isn't sufficient at the actual registration boundary — `registerPrimitive`'s own
+   parameter type must accept the input shape too, or callers providing bare `dataType`-only
+   literals still fail type-checking against a `NodePrimitive` whose `inputs`/`outputs` are typed
+   as fully-normalized `PortSpec[]`:
+   ```ts
+   interface NodePrimitiveInput extends Omit<NodePrimitive, 'inputs' | 'outputs'> {
+     inputs: PortSpecInput[];
+     outputs: PortSpecInput[];
+   }
+
+   function registerPrimitive(input: NodePrimitiveInput): void; // normalizes to NodePrimitive internally
+   ```
+   `registerPrimitive` accepts `NodePrimitiveInput` and normalizes each port into canonical
+   `PortSpec` (deriving `type` from `dataType` via the F1.5 mapping when only `dataType` was given).
+   Existing primitives need no source changes; new primitives may declare `type` directly.
+   Serialized v2 `Port` instances always contain `type`.
 4. Split promotion into a shared decision plus backend-specific appliers, not one function:
    - `resolveCoercion(from: TypeRef, to: TypeRef): CoercionPlan | null` — the single, shared
      decision of *whether* a promotion is legal and *what* it means (e.g. "pad with a zero Z
@@ -437,7 +509,10 @@ placeholder variants, and F1.1's deferred buffer element-typing, both want this 
    values to `coerceInputValue()` for the same cases — proving the split is behavior-preserving on
    both backends, not just one.
 3. A new test primitive using an integer port and one using a matrix type both round-trip through
-   `evalCPU` and compile to correct WGSL.
+   `evalCPU`, compile to correct WGSL, **and pass an actual device-level compile** (the
+   `wgslCompile.test.ts` pattern this package already uses elsewhere) — WGSL text generation and a
+   green CPU eval alone are not sufficient; invalid generated WGSL passes both and fails only on
+   GPU, exactly the gap `execution-and-delegation.md`'s own gate-hardening rules exist to catch.
 4. A test proves `TypeRef → DataType` correctly returns "no alias" for a `TypeRef` shape that has
    no legacy equivalent (e.g. a struct type), rather than throwing or guessing.
 5. `check` and `test` green for every package, full workspace.
@@ -676,6 +751,28 @@ pipeline shape.
   graphs is already "no explicit geometry chain, use an implicit default" — migration needs to make
   that implicit default an **explicit, synthesized** part of the v2 document, not leave a gap for
   the new kind-tag-based discovery to fall into.
+- **Most of the six confirmed consumer shapes are not type-valid for real pipeline nodes, verified
+  directly — this narrows what Foundation 1 can safely synthesize.** `stage.vertex` requires a
+  `geometry`-typed `mesh` input (`packages/graph/src/primitives/pipeline/index.ts:26-28`);
+  `target.mesh` requires two separate `vec3f` inputs, `position` and `normal` (`index.ts:71-76`);
+  no compute-stage primitive exists in the pipeline primitives at all. But
+  `compileGraph.test.ts:31-47`'s `'vertex-pass'`/`'veg-compute'`/`'fragment-pass'` fixtures wire
+  plain scalar `f32` outputs, and the `'terrain-mesh'` fixture has exactly one `f32` output, not
+  two `vec3f` ones — none of these can be wired into the real nodes without a type error or a
+  silent behavior change. **Independently re-verified the one case that does work:**
+  `effect.cosinePalette` (the value actually wired into `fullscreenFragment.test.ts`'s `'image'`
+  consumer) genuinely outputs `vec4f` (`packages/graph/src/primitives/effect/cosinePalette.ts:14`),
+  matching `stage.fragment`'s real `color: vec4f` port exactly. `ProceduralConsumer`'s
+  compile-as-a-stage mechanism is inherently more type-permissive than the pipeline primitives —
+  `compileGraph` will compile any output as any stage's entry point regardless of whether a real
+  `stage.vertex`/`target.mesh` node could accept that type. Foundation 1 must not paper over that
+  gap with a coercion or a silent type change.
+- **Deterministic ID minting lives in the wrong package for migration to use it everywhere
+  migration needs to run.** `mintNodeId`/`collectNodeIds`/`collectEdgeIds`
+  (`packages/graph-editor/src/graphIds.ts:12`) currently live in `graph-editor`, but migration must
+  also run from `compiler` and `mcp-server` entry points — neither depends on `graph-editor`
+  (verified: no `@world-lab/graph-editor` dependency in either package.json), and adding one would
+  be backwards (editor is a consumer of these packages, not a peer utility provider).
 
 **Fix:**
 1. Define the rule: **exports** (`GraphDocument.outputs`, unchanged) name reusable values.
@@ -683,54 +780,72 @@ pipeline shape.
    Foundation 1 — runtime execution derives from walking backward from every reachable sink node.
    (`kernel` and `pass` become additional root kinds once Foundations 3 and 4 respectively give
    them real shapes; neither exists as a concrete kind yet.)
-2. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function built
-   around a **registry**, not a single hardcoded case, covering every confirmed shape:
+2. Move the canonical, deterministic ID-minting facility (`mintNodeId`/`collectNodeIds`/
+   `collectEdgeIds`, or a re-derived equivalent) into `packages/graph`, which every consumer
+   already depends on. `graph-editor` re-exports it for its existing call sites rather than owning
+   a second copy — migration code (wherever it's homed) and every other package uses this one
+   facility, not a duplicate.
+3. **Introduce `GraphDocument` schema version 2** and an explicit v1→v2 migration function.
+   Migrations return a patch, not bare nodes — a single node is insufficient for shapes needing
+   wiring between multiple synthesized nodes:
    ```ts
-   type LegacyConsumerMigration = (consumer: ProceduralConsumer, doc: GraphDocument) => Node[];
+   interface GraphMigrationPatch {
+     nodes: Node[];
+     edges: Edge[];
+     outputs?: GraphOutput[];
+   }
+   type LegacyConsumerMigration = (consumer: ProceduralConsumer, doc: GraphDocument) => GraphMigrationPatch;
+   ```
+   **Scope the registry conservatively — only synthesize real structural nodes where the wired
+   type is actually valid for them, checked per-document, not assumed uniformly:**
+   ```ts
    const LEGACY_CONSUMER_MIGRATIONS: Record<string, LegacyConsumerMigration> = {
-     preview: /* synthesize a preview.fieldSink node wired from consumer.outputs[0] */,
-     image: /* synthesize the FULL chain: geometry.plane (DEFAULT_PIPELINE_GEOMETRY_PARAMS) ->
-              buffer.persist -> stage.vertex -> stage.fragment -> target.display, wired from
-              consumer.outputs — not just stage.fragment + target.display. This makes today's
+     preview: /* synthesize a preview.fieldSink node wired from consumer.outputs[0] — any type is
+              valid for a generic field-preview sink */,
+     image: /* only if the wired output's type is verified vec4f: synthesize the full chain —
+              geometry.plane (DEFAULT_PIPELINE_GEOMETRY_PARAMS) -> buffer.persist -> stage.vertex ->
+              stage.fragment -> target.display, wired from consumer.outputs. This makes today's
               runtime fallback (resolveVertexAssembly's try/catch default) an explicit, permanent
-              part of the migrated document, so PipelineGraphPlan's kind-tag-based discovery always
-              finds a complete, real chain and never needs that try/catch again. */
-     'vertex-pass': /* synthesize stage.vertex wired from consumer.outputs, same geometry defaults */,
-     'fragment-pass': /* same shape as `image` */,
-     'veg-compute': /* synthesize a compute-kernel sink wired from consumer.outputs; stage: 'compute' */,
-     'terrain-mesh': /* synthesize a target.mesh-equivalent sink wired from consumer.outputs */
+              part of the migrated document. If the wired type is NOT vec4f (a malformed/synthetic
+              edge case), fall through to the legacy.consumerSink path below instead of forcing it. */
    };
    ```
-   - For each consumer entry, look up its `type` in the registry and synthesize the corresponding
-     v2 sink node(s) if none already exist in the document. Every registry entry returns real,
-     structurally-complete nodes — no entry may synthesize a partial chain that depends on an
-     implicit runtime default surviving past migration.
+   Every other consumer type — `'vertex-pass'`, `'fragment-pass'` when its output isn't `vec4f`,
+   `'veg-compute'`, `'terrain-mesh'`, and any type not in the registry at all — migrates to a
+   generic **`legacy.consumerSink`** node (`kind: 'sink'`, per F1.3) carrying `{ type, stage,
+   outputs }` verbatim as its `SinkDefinition`'s `payload`. **Concretely, `legacy.consumerSink`'s
+   runtime handler is a thin bridge that invokes the *existing* `compileGraph` consumer-compilation
+   path (proven working today by `compileGraph.test.ts`) with the preserved descriptor** — it does
+   not invent new compilation logic; it just re-homes the current mechanism behind the new
+   sink-based root-discovery model. Canonical migration of these shapes to real kernel/pass
+   primitives is Foundation 3's job, once those primitives can represent arbitrary-typed stage
+   entry points — not Foundation 1's.
    - **Unknown consumer types are never silently discarded — this is the primary safety net, not a
-     backstop, given this document's own consumer-type research has already been wrong twice.** If
-     a document has a `consumers` entry whose `type` isn't in the registry, migration preserves it
-     as a generic `legacy.consumerSink` node carrying `{ type, stage, outputs }` verbatim, so it
-     remains discoverable and executable via a fallback path. Failing the migration outright is not
-     an acceptable alternative here — it would mean any consumer type this plan's own research
-     missed (already twice) turns into a hard failure for real user documents; preserving unknown
-     types generically is the only option that can't be defeated by an incomplete inventory.
+     backstop, given this document's own consumer-type research has been wrong twice.** Any
+     `consumers` entry whose `type` isn't specifically handled above becomes `legacy.consumerSink`
+     too, by the same mechanism. Failing the migration outright is not an acceptable alternative —
+     it would turn any consumer type this plan's own research missed (already twice) into a hard
+     failure for real user documents.
    - For documents that already have real `target.*`/`stage.*` sink nodes, migration drops the
      now-redundant `consumers` array and keeps the nodes as-is.
    - Keep graph-schema versioning (`GraphDocument.version`) and artifact/serialization-format
      versioning as separate concerns — a schema-version bump does not imply every serialized
      artifact (e.g. exported markup) changes shape for unrelated reasons.
-3. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`; all six
-   confirmed consumer-only shapes (`'preview'`, `'image'`/`'fragment'`, `'vertex-pass'`,
-   `'fragment-pass'`, `'veg-compute'`/`'compute'`, `'terrain-mesh'`); and at least one hand-written
-   document with a deliberately-unknown consumer `type`, proving the generic-preservation fallback
-   fires rather than a silent drop or a hard failure. Migrate each through v1→v2 and assert the
-   synthesized/derived result still produces the same rendered/compiled output as before migration
-   — for the `image`/`fragment` shape specifically, assert `PipelineGraphPlan` succeeds on the
-   migrated document *without* relying on `resolveVertexAssembly`'s try/catch fallback.
-4. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
+4. Build a **fixture corpus** covering: every bundled sample graph in `graphBuilders.ts`;
+   `'preview'` and genuinely-`vec4f` `'image'`/`'fragment'` (both get real structural synthesis);
+   `'vertex-pass'`, non-`vec4f` `'fragment-pass'`, `'veg-compute'`, `'terrain-mesh'` (all get
+   `legacy.consumerSink`); and at least one hand-written document with a deliberately-unknown
+   consumer `type` (also `legacy.consumerSink`). Migrate each through v1→v2 and assert: for the
+   structurally-synthesized shapes, the same rendered/compiled output as before migration (and for
+   `image`/`fragment` specifically, that `PipelineGraphPlan` succeeds on the migrated document
+   *without* relying on `resolveVertexAssembly`'s try/catch fallback); for the `legacy.consumerSink`
+   shapes, that `compileGraph`'s existing consumer path still executes them identically via the
+   bridge.
+5. Retire `GraphDocument.consumers`/`ProceduralConsumer` as a live authoring field once migration
    is proven — new documents are always v2, authored without `consumers`.
-5. Update the 6 files reading `.consumers` to read post-migration v2 documents instead, one file
+6. Update the 6 files reading `.consumers` to read post-migration v2 documents instead, one file
    at a time, with a parity test per file.
-6. Narrow planner change only: teach `PipelineGraphPlan` to discover today's fixed pipeline shape
+7. Narrow planner change only: teach `PipelineGraphPlan` to discover today's fixed pipeline shape
    (geometry → persist → vertex → fragment → display) by walking `implementation.kind` tags
    instead of hardcoded primitive-id strings. **Do not** attempt to generalize the planner beyond
    this one shape — a planner for arbitrary sink/kernel topologies needs the resource/hazard model
@@ -743,11 +858,12 @@ pipeline shape.
    byte-identical WGSL for compiled shader text; pixel-equivalent for rendered previews; canonical
    v2 serialization (not byte-identical v1 text) for markup export; a browser visual gate for the
    bundled samples. Not one blanket "byte-identical" claim across all of these.
-2. The full fixture corpus (every bundled sample + all six confirmed consumer-only shapes + the
-   unknown-consumer-type fixture) migrates v1→v2 with no silent loss of execution roots — the
-   unknown-type fixture specifically proves the generic-preservation fallback fires instead of a
-   silent drop or a hard failure; the `image`/`fragment` fixture specifically proves
-   `PipelineGraphPlan` succeeds on the migrated document without needing `resolveVertexAssembly`'s
+2. The full fixture corpus migrates v1→v2 with no silent loss of execution roots: the
+   structurally-synthesized shapes (`'preview'`, `vec4f`-`'image'`) produce identical output to
+   before migration; the `legacy.consumerSink`-routed shapes (`'vertex-pass'`, non-`vec4f`
+   `'fragment-pass'`, `'veg-compute'`, `'terrain-mesh'`, unknown types) still execute correctly via
+   the bridge to `compileGraph`'s existing consumer path; the `image`/`fragment` fixture
+   specifically proves `PipelineGraphPlan` succeeds without needing `resolveVertexAssembly`'s
    try/catch fallback.
 3. `effectiveOutputs`/`effectiveConsumers`/`derivePipelineConsumers`/`deriveMeshTargets` are
    **rehomed**, not deleted outright — their logic now lives inside the corresponding
@@ -763,8 +879,7 @@ pipeline shape.
    not caching the first result) produces identical node/edge IDs and identical serialized output
    both times; migrating an already-v2 document is a no-op (byte-identical output); synthesized
    node/edge IDs are proven collision-free against every existing ID in the document being
-   migrated; `semantics` arrays are deduplicated and stored in a canonical (e.g. sorted) order so
-   equivalent tag sets don't produce spuriously different serializations.
+   migrated (using the relocated `packages/graph` ID facility from step 2 above).
 7. `check` and `test` green for every package, full workspace, with special attention to
    `graph-editor`.
 
