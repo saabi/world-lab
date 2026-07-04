@@ -645,6 +645,28 @@ phases place relative to this roadmap as follows:
   executor (F2.4) to bind a spectrogram buffer as a texture input, the same "resource GPU binds"
   gap tracked in `pending_issues.md`. Do not start Phase C before F2.3 lands.
 
+### Stream graphs (parallel track)
+
+CPU-first **typed event/stream processing** — not WebGPU pipeline stages. See
+[stream-graphs.md](./stream-graphs.md) for the full spec (`stream<T>`, `future<T>`,
+multi-emitter primitives, mux/demux/filter, promise nodes, worker pool). Phases relative to
+this roadmap:
+
+- **Phase A** (types + minimal file source → map/filter → sink) has no Foundation 2–4
+  dependency — only Foundation 1 contracts (structural `TypeRef`, `command` kind, semantic
+  tags), already landed. Can start in parallel with Foundation 2/3/4 when prioritized.
+- **Phase B** (async spawn/await/awaitAll, multi-emitter, demux) reuses the same CPU hazard /
+  planner ideas as F2's frame graph but stays package-local to `runtime-cpu`; F2.1 lifetime
+  concepts help shared-buffer feedback between stream windows and audio blocks.
+- **Phase C** (live sources, table preview, `stream.window` → audio block bridge) is editor +
+  host work; no GPU executor required.
+- **Phase D** (optional stream aggregates as shader inputs) is gated on resource GPU binds
+  (F2.3+), same as audio Phase C.
+
+Streams complement [audio-graphs.md](./audio-graphs.md): blocks for fixed-quantum media,
+streams for unbounded sequences; `async.awaitAll` joins parallel WASM/API work on batched
+stream items.
+
 ## Brief and documentation impact
 
 ### Continue
