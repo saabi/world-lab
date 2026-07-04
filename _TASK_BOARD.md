@@ -27,9 +27,10 @@ is still open.
 
 ## Active
 
-- **F2.3 — runtime resource realization** (Foundation 2, milestone 3 of 5 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — bind-group layout
-  derivation deliberately deferred to Foundation 3, see brief's Context)
+- **F2.3 — runtime resource realization** (Foundation 2, milestone 3 of 5; revision 2 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — cache fingerprint
+  now covers derived usage/format, not just size; removed targets pruned; zero-usage buffers
+  rejected; bind-group layout derivation deliberately deferred to Foundation 3, see brief's Context)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.3-runtime-resource-realization.md`
   Owns: `packages/runtime-webgpu/src/frameGraph/realize.ts` (new) and its test file
   Claimed by: · Status: · Recommended executor: Cursor or Codex

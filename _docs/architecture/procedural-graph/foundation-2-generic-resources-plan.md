@@ -89,7 +89,7 @@ this generalization is achievable without touching the algorithm, only the type 
    `Pass`, per F2.1's own brief. Keep pure and exhaustively headless-tested, matching
    `order.test.ts`'s existing rigor exactly. **Contract:**
    [F2.2-resource-dependency-planner.md](./briefs/F2.2-resource-dependency-planner.md).
-3. **F2.3 — runtime resource realization.** The actually-missing piece: allocate real WebGPU
+3. **F2.3 — runtime resource realization (rev. 2).** The actually-missing piece: allocate real WebGPU
    resources (buffers and textures) from F2.2's descriptors and derive usage flags — buffer usage
    via F2.1's `resolveBufferUsage` over `Pass.bindings` (its first real consumer), texture usage
    inferred structurally from the `PassGraph` (written → `RENDER_ATTACHMENT`, read →
