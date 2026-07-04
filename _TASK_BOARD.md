@@ -27,18 +27,20 @@ is still open.
 
 ## Active
 
-- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone; revision 2 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — two bundled,
-  pickable samples: same-frame cross-pass texture read + previous-frame buffer feedback (renamed
-  from "texture feedback" for precision); narrowly scoped, not Foundation 3's generic kernel/binding
-  model, see brief's Context)
+- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone; revision 3 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — buffer sample now
+  driven by its own fully independent `BufferFeedbackExecutor`, never sharing `GraphFrameExecutor`'s
+  `ResourceRealizer`; `previewFrameLoop.ts`/`previewBuffers.ts` wired so it actually dispatches and
+  is selectable; strict grid/viewport dimension match required; narrowly scoped, not Foundation 3's
+  generic kernel/binding model, see brief's Context)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
   Owns: `packages/graph/src/primitives/host/channel.ts` (new),
   `packages/graph/src/bufferFeedbackTarget.ts` (new — `target.bufferFeedback` sink + derivation),
   `packages/runtime-webgpu/src/emitGraphEval.ts`,
   `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new),
+  `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new — `BufferFeedbackExecutor`),
   `packages/runtime-webgpu/src/graphFrameExecutor.ts`, `packages/runtime-webgpu/src/graphFramePlan.ts`,
+  `packages/graph-editor/src/previewFrameLoop.ts`, `packages/graph-editor/src/previewBuffers.ts`,
   `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`, and their
   test files
   Claimed by: · Status: · Recommended executor: Cursor or Codex
