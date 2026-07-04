@@ -665,7 +665,8 @@ this roadmap:
 
 Streams complement [audio-graphs.md](./audio-graphs.md): blocks for fixed-quantum media,
 streams for unbounded sequences; `async.awaitAll` joins parallel WASM/API work on batched
-stream items.
+stream items. **`signal<T>`** and **`sink.host`** provide graph→host egress for UI, scene
+selection, and pick results without polling the full graph each frame.
 
 ### Preview monitors (editor track)
 
@@ -674,6 +675,16 @@ TouchDesigner-style **probes** on arbitrary output ports without sink nodes. See
 for Phase A; reuses `enumeratePreviewBuffers`, `evaluateGraphOutput`, and existing preview
 panels. Follow-on from landed `M-preview-buffer-list.md` (node-probe was explicitly out of
 scope for v1). No `GraphDocument` IR change required for Phase A.
+
+### Picking and collision (parallel track)
+
+Graph-authored **pick** and **collision** consumers over the same surface subgraph as render/
+mesh-gen. See [picking-and-collision.md](./picking-and-collision.md). Egress uses
+`signal<PickResult>` and `signal<HeightfieldUpdated>` from
+[stream-graphs.md](./stream-graphs.md); continuous walk samples block heightfields, not
+streams. Phase A (CPU pick on `executeMeshGen` in WebGPUToy) is Foundation-independent;
+Phase C GPU pick pass extends deferred `RenderBackend.renderPickingPass`; Phase D scene walk
+follows planet rendering gates in `AGENTS.md`.
 
 ## Brief and documentation impact
 

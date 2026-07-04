@@ -27,6 +27,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [audio-graphs.md](./audio-graphs.md) | **Spec (proposed):** CPU-first audio graphs — block consumer, STFT/spectrogram resources, Web Audio host, optional GPU viz | `graph`, `runtime-cpu`, `graph-editor`, `apps/webgputoy` |
 | [stream-graphs.md](./stream-graphs.md) | **Spec (proposed):** CPU stream processing — `stream<T>` / `future<T>` types, multi-emitter primitives, mux/demux/filter, promise nodes (`spawn`/`await`/`awaitAll`), worker pool | `graph`, `runtime-cpu`, `graph-editor`, `apps/webgputoy` |
 | [preview-monitors.md](./preview-monitors.md) | **Spec (proposed):** TouchDesigner-style preview probes — monitor any output port without sink nodes; editor-scoped `PreviewProbe`, buffer-list integration | `graph-editor`, `apps/webgputoy` |
+| [picking-and-collision.md](./picking-and-collision.md) | **Spec (proposed):** graph pick/collision consumers — same surface subgraph as render; `signal<PickResult>` egress; heightfield block collision | `graph`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `apps/scene-editor` |
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
 | [noise-functions.glsl](./noise-functions.glsl) | Source/reference GLSL noise functions for future `noise.*` primitive harvests | `procedural-wgsl`, `graph` |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |

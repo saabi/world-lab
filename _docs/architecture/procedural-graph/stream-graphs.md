@@ -16,11 +16,13 @@ alongside value math. This spec describes how to add:
 
 1. **`stream<T>`** — first-class port types for unbounded (or windowed) sequences
 2. **`future<T>`** — typed async handles for worker/WASM/API work (not live JS `Promise` in JSON)
-3. **Pipeline primitives** — sources, multi-emitter processors, filters, mux/demux, batch/window
-4. **Promise nodes** — `spawn`, `await`, `awaitAll`, `tryAwait` as command primitives
+3. **`signal<T>`** — lightweight graph→host notifications (UI, scene, selection) — see [Host egress](#host-egress-and-ui-signals)
+4. **Pipeline primitives** — sources, multi-emitter processors, filters, mux/demux, batch/window
+5. **Promise nodes** — `spawn`, `await`, `awaitAll`, `tryAwait` as command primitives
 
 CPU execution is primary. Streams compose with [audio graphs](./audio-graphs.md) (block
-resources) and optional GPU visualization later.
+resources), [picking and collision](./picking-and-collision.md) (discrete hit events),
+and optional GPU visualization later.
 
 ## Problem
 
@@ -53,6 +55,7 @@ without bending the render pipeline:
 | Parallel async work | `async.spawn` → `future<T>` → `async.await` / `async.awaitAll` |
 | Batch for STFT / embed | `stream.window` → block buffer (bridges to [audio-graphs.md](./audio-graphs.md)) |
 | Preview / export | `sink.*` command consumers (table, JSONL, scalar counts) |
+| UI / scene updates | `signal<T>` + `sink.host` — graph→host egress (not bulk data) |
 
 Open semantic tags ([F1.2](./foundation-1-elemental-contracts-plan.md)) carry domain meaning
 without planet- or NLP-specific coupling in the IR core.
@@ -61,9 +64,10 @@ without planet- or NLP-specific coupling in the IR core.
 
 | Abstraction | Granularity | Example |
 |-------------|-------------|---------|
-| **Block resource** | Fixed `N` items per tick | Audio quantum, STFT frame, GPU upload chunk |
-| **Stream** | Sequence of `T` (unbounded or capped) | Tokens, entities, MIDI events |
-| **Future** | Single async result | WASM NER call, file read, one API round-trip |
+| **Block resource** | Fixed `N` items per tick | Audio quantum, STFT frame, heightfield tile, GPU upload chunk |
+| **Stream** | Sequence of `T` (unbounded or capped) | Tokens, entities, contact events, pick history |
+| **Future** | Single async result | WASM NER call, GPU pick readback, file read |
+| **Signal** | Graph→host notification (often small `T`) | “table dirty”, `PickResult`, progress tick |
 
 Composition:
 
@@ -108,6 +112,92 @@ sibling. Futures bridge streams to workers without exposing raw semaphores to au
 ```
 
 Use `semantics: ['entity:company']` on ports for editor filtering and swap-by-contract.
+
+### `signal<T>`
+
+```ts
+{ kind: 'signal'; payload: TypeRef }  // void-ish tick, enum, struct summary, PickResult, …
+```
+
+- **Ingress** (`host-input`) = host → graph each tick (`time`, `playback.*`, pointer ray).
+- **Egress** (`signal`) = graph → host when something worth reacting to happens.
+- Serialized graph wires **signal ports** to `sink.host` primitives; runtime delivers to
+  registered handlers — **no JS callbacks in `GraphDocument`**.
+
+Keep **bulk data** on `stream<T>` or buffer resources; use **signals** to tell the shell
+*what changed* (repaint this panel, update selection, rebake nav).
+
+## Host egress and UI signals
+
+### Symmetry with `host-input`
+
+`HostBinding` today covers `invocation`, `playback`, `interaction`, `session`, … Proposed
+egress binding on `sink.host` primitives:
+
+```ts
+interface HostEgressBinding {
+  context: 'ui' | 'scene' | 'session';
+  key: string;   // 'validation' | 'preview.<probeId>' | 'pick' | 'progress' | …
+}
+```
+
+The **graph stays app-agnostic**; `apps/webgputoy` and `apps/scene-editor` map `key` →
+components. See [preview-monitors.md](./preview-monitors.md) for probe-driven preview updates
+without polling the whole graph.
+
+### Primitives
+
+| Primitive | Role |
+|-----------|------|
+| `signal.emit` | Command: fire one notification (optional wired payload) |
+| `stream.tap` / `stream.onItem` | Per stream item → `signal.emit` (or batched) |
+| `sink.host` | Declares host-facing signal output; stream-consumer execution root |
+| `signal.coalesce` | Batch/throttle/debounce before egress (policy param) |
+
+Example (NER + inspector):
+
+```
+ner.extract → out.companies : stream<Company>        // data path
+            → out.updated   : signal<BatchMeta>      // { count, revision }
+                    └────────► host → table pane refresh
+```
+
+### Host subscription layer (not in `GraphDocument`)
+
+```ts
+interface HostSignalSubscription {
+  source: PortRef;
+  mode: 'each' | 'batch' | 'latest';
+  handler: (payload: unknown) => void;
+}
+```
+
+Stream consumer drains host-bound sinks after each item/batch; posts to main thread;
+default **one UI flush per `requestAnimationFrame`** per subscription.
+
+| Mode | Use |
+|------|-----|
+| `each` | Low-rate auditable events |
+| `batch` | Table preview, validation lists |
+| `latest` | Meters, hover pick, status text |
+| `debounce(ms)` | Live typing sources |
+
+Integrates with [preview-monitors](./preview-monitors.md): a stream monitor subscribes to the
+same bus instead of polling `refreshEpoch`.
+
+### Picking and collision (egress only)
+
+Hit-test **math** is consumer work ([picking-and-collision.md](./picking-and-collision.md));
+egress uses the same channel:
+
+```
+host.pointer (ray) → pick.mesh consumer → signal<PickResult>  → selection / inspector
+heightfield bake   → signal<HeightfieldUpdated>             → nav / UI invalidation
+contact solver     → stream<ContactEvent>                   → gameplay (optional)
+```
+
+Continuous walk collision samples a **block heightfield buffer** synchronously; signals
+notify when the field rebakes — do not stream per-foot samples.
 
 ## Primitive kinds
 
@@ -203,6 +293,7 @@ is forbidden (`realtimeSafe` flag on primitive metadata).
 | `sink.export.jsonl` | file / download |
 | `sink.count` | scalar rate / total |
 | `sink.discard` | explicit black hole for unused branches |
+| `sink.host` | typed `signal<T>` → registered host handler |
 
 ## Promise nodes vs semaphores
 
@@ -245,7 +336,8 @@ Sibling to audio block consumer and `meshGen` — not `evalGraph` per sample.
     → bind host inputs (clock, session id, …)
     → run stream consumer (topological waves per item or batch)
     → update future table (spawn/await)
-    → write sink outputs / preview buffers
+    → drain sink.host / signal ports → host subscriptions
+    → write other sink outputs / preview buffers
 ```
 
 **Backpressure** (per `stream` edge, declared on primitive or consumer):
@@ -328,6 +420,7 @@ Optional parallel API path:
 
 - `source.text.live` with backpressure policies
 - `sink.preview.table` in graph-editor
+- `sink.host` + `HostSignalSubscription` in graph-editor (validation, probes)
 - `stream.window` bridge to audio block buffers
 - WASM behind `async.spawn` for hot paths
 
@@ -346,6 +439,8 @@ Optional parallel API path:
 
 ## Related docs
 
+- [picking-and-collision.md](./picking-and-collision.md) — pick/collision consumers; `signal<PickResult>` egress
+- [preview-monitors.md](./preview-monitors.md) — probe UI driven by host signals
 - [audio-graphs.md](./audio-graphs.md) — block-oriented sibling; `source.fromBlock` bridge
 - [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) — command vs value, frame hazards
 - [foundation-2-generic-resources-plan.md](./foundation-2-generic-resources-plan.md) — lifetime/history for CPU buffers
@@ -359,3 +454,4 @@ Optional parallel API path:
 3. **Union types:** explicit `union` `TypeRef` variant for `demux`, or struct + tag field only?
 4. **Stream preview sampling:** show last N items vs aggregate counts for unbounded live streams?
 5. **Relation to `flow.forEach`:** container nodes over static lists vs `stream.map` over dynamic sequences — document mutual exclusion or lowering path?
+6. **Host key registry:** central map in graph-editor vs per-app handler tables only?

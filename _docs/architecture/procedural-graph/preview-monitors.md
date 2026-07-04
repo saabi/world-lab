@@ -224,6 +224,8 @@ Probes remain non-execution; stream sinks stay explicit `sink.*` nodes.
 
 ## Related docs
 
+- [stream-graphs.md](./stream-graphs.md) — `signal<T>` / `sink.host` for incremental pane updates
+- [picking-and-collision.md](./picking-and-collision.md) — `signal<PickResult>` on monitored mesh ports
 - [editor.md](./editor.md) — editor responsibilities, no planet rendering in package
 - [briefs/M-preview-buffer-list.md](./briefs/M-preview-buffer-list.md) — buffer-list preview (landed); probes are the planned follow-on
 - [stream-graphs.md](./stream-graphs.md) — stream port monitors
