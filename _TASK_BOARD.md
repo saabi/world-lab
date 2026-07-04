@@ -27,14 +27,18 @@ is still open.
 
 ## Active
 
-- **F2.4 — generic frame executor** (Foundation 2, milestone 4 of 5 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — deliberately does
-  not add a channel-read primitive or cross-pass WGSL sampling; flags a sequencing question for the
-  Foundation 2 proof step that follows, see brief's Handoff)
+- **F2.4 — generic frame executor** (Foundation 2, milestone 4 of 5; revision 2 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — fixes a blocking
+  multi-target `COPY_SRC` gap via a new additive `PassGraph.readbackTargets` field, and resolves
+  `consumerId → writeTarget → GraphFramePass` explicitly instead of a silently-skippable lookup;
+  deliberately does not add a channel-read primitive or cross-pass WGSL sampling; flags a
+  sequencing question for the Foundation 2 proof step that follows, see brief's Handoff)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.4-generic-frame-executor.md`
   Owns: `packages/runtime-webgpu/src/graphFrameExecutor.ts`,
   `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/frameGraph/types.ts`,
+  `packages/runtime-webgpu/src/frameGraph/realize.ts`,
+  `packages/runtime-webgpu/src/graphFramePlan.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
   and their test files
   Claimed by: · Status: · Recommended executor: Cursor or Codex
 

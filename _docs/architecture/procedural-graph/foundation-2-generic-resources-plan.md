@@ -102,10 +102,15 @@ this generalization is achievable without touching the algorithm, only the type 
    genuinely new code otherwise — nothing today does GPU-side resource allocation for the frame
    graph. **Contract:**
    [F2.3-runtime-resource-realization.md](./briefs/F2.3-runtime-resource-realization.md).
-4. **F2.4 — generic frame executor.** Replace `GraphFrameExecutor`'s independent-only bypass with
+4. **F2.4 — generic frame executor (rev. 2).** Replace `GraphFrameExecutor`'s independent-only bypass with
    real execution of F2.2's ordered DAG over F2.3's realized resources. Incremental, not a
    flag-day rewrite: today's zero-dependency preview case must keep working throughout (it's the
-   trivial case of the general executor, not a separate code path to maintain alongside it).
+   trivial case of the general executor, not a separate code path to maintain alongside it). Also
+   fixes a blocking defect this milestone's own real multi-target execution exposed in F2.2/F2.3's
+   landed code: `inferTextureUsage` only granted `COPY_SRC` to `graph.display`, but
+   `buildIndependentPassGraph` only ever marks the *first* independent target as `display` — every
+   other live preview target would fail WebGPU validation on readback. Fixed via a new, additive
+   `PassGraph.readbackTargets` field (no existing F2.1–F2.3 test breaks).
    **Deliberately does not add a channel-read primitive or any cross-pass WGSL sampling** — no
    primitive/codegen path for that exists yet, and none is authorable today, so this milestone
    wires the ordering/realization machinery into the executable case that already exists. This
