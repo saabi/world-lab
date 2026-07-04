@@ -27,13 +27,15 @@ is still open.
 
 ## Active
 
-- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone — see
+- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone; revision 2 — see
   `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — two bundled,
-  pickable samples: two-pass texture feedback + buffer feedback; narrowly scoped, not Foundation 3's
-  generic kernel/binding model, see brief's Context)
+  pickable samples: same-frame cross-pass texture read + previous-frame buffer feedback (renamed
+  from "texture feedback" for precision); narrowly scoped, not Foundation 3's generic kernel/binding
+  model, see brief's Context)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
   Owns: `packages/graph/src/primitives/host/channel.ts` (new),
-  `packages/compiler/src/stageEntry.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/graph/src/bufferFeedbackTarget.ts` (new — `target.bufferFeedback` sink + derivation),
+  `packages/runtime-webgpu/src/emitGraphEval.ts`,
   `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
   `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new),
   `packages/runtime-webgpu/src/graphFrameExecutor.ts`, `packages/runtime-webgpu/src/graphFramePlan.ts`,

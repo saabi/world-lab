@@ -122,17 +122,21 @@ this generalization is achievable without touching the algorithm, only the type 
    real document until at least a minimal channel-read primitive (texture case) and/or a minimal
    compute-dispatch capability (buffer case) exists — see the brief's Handoff. **Contract:**
    [F2.4-generic-frame-executor.md](./briefs/F2.4-generic-frame-executor.md).
-5. **Foundation 2 proof.** Two bundled, hardcoded samples, not just unit tests: a two-pass
-   render-target sample (one pass feeds another, both textures — the ShaderToy-multibuffer-style
-   case the old brief targeted) **and** a small buffer-feedback sample (a minimal ping-pong, e.g. a
-   cellular-automaton step over a storage buffer — via a hand-written fragment entry using WGSL's
-   native storage-buffer write, not a compute dispatch, so this doesn't wait on Foundation 3). The
-   buffer sample is not optional polish — it's the concrete test that the resource-history model
-   didn't quietly stay texture-only under a more general-looking type signature. Per this project's
-   standing instruction, both are pickable editor samples, not headless-only fixtures. Narrowly
-   scoped: one new `input.channel` host-input primitive + WGSL emission branch (using the
-   already-reserved `HostBinding{context:'read-resource'}` and already-existing `BindingDecl`
-   texture/sampler/storage-read kinds), not Foundation 3's generic kernel/binding model. **Contract:**
+5. **Foundation 2 proof (rev. 2).** Two bundled, hardcoded samples, not just unit tests: a
+   same-frame **cross-pass texture read** (one pass feeds another, both `transient` — ordering
+   only, no ping-pong; renamed from "texture feedback" for precision) **and** a small
+   previous-frame **buffer-feedback** sample (a minimal ping-pong, e.g. a cellular-automaton step
+   over a storage buffer — via a fully self-contained, hand-written fragment WGSL module using
+   WGSL's native storage-buffer write, not a compute dispatch, so this doesn't wait on Foundation
+   3). The buffer sample is not optional polish — it's the concrete test that the resource-history
+   model didn't quietly stay texture-only under a more general-looking type signature, and it alone
+   exercises `ResourceRealizer`'s double-buffering (the texture sample doesn't need it). Per this
+   project's standing instruction, both are pickable editor samples, not headless-only fixtures;
+   the buffer sample gets a small, dedicated `target.bufferFeedback` sink so it actually dispatches
+   from the editor, not just typechecks as a document. Narrowly scoped: one new `input.channel`
+   host-input primitive + self-contained WGSL emission branch (using the already-reserved
+   `HostBinding{context:'read-resource'}` and already-existing `BindingDecl` texture/sampler
+   kinds), not Foundation 3's generic kernel/binding model. **Contract:**
    [F2.5-foundation-2-proof.md](./briefs/F2.5-foundation-2-proof.md).
 
 Only once Foundation 2's resource model is real does Foundation 3 (generic vertex/fragment/compute
