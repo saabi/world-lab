@@ -90,10 +90,18 @@ this generalization is achievable without touching the algorithm, only the type 
    `order.test.ts`'s existing rigor exactly. **Contract:**
    [F2.2-resource-dependency-planner.md](./briefs/F2.2-resource-dependency-planner.md).
 3. **F2.3 — runtime resource realization.** The actually-missing piece: allocate real WebGPU
-   resources (buffers and textures) from F2.2's descriptors, derive bind-group layouts and usage
-   flags, support persistent buffers and texture/buffer ping-pong history (physical double-
-   buffering for anything `collectFeedbackTargets` flags). This is genuinely new code — nothing
-   today does GPU-side resource allocation for the frame graph.
+   resources (buffers and textures) from F2.2's descriptors and derive usage flags — buffer usage
+   via F2.1's `resolveBufferUsage` over `Pass.bindings` (its first real consumer), texture usage
+   inferred structurally from the `PassGraph` (written → `RENDER_ATTACHMENT`, read →
+   `TEXTURE_BINDING`, display → additionally `COPY_SRC`) since `TypeRef`'s texture variant has no
+   declared-usage floor to combine with. Supports persistent buffers and texture/buffer ping-pong
+   history (physical double-buffering for anything `collectFeedbackTargets` flags). **Bind-group
+   layout derivation is deliberately deferred to Foundation 3** — it needs a kernel's binding-index/
+   shader-stage information, which doesn't exist until then; inventing one now would repeat the
+   exact F2.2/Foundation-3 circularity F2.1's own revision 3 already caught and fixed. This is
+   genuinely new code otherwise — nothing today does GPU-side resource allocation for the frame
+   graph. **Contract:**
+   [F2.3-runtime-resource-realization.md](./briefs/F2.3-runtime-resource-realization.md).
 4. **F2.4 — generic frame executor.** Replace `GraphFrameExecutor`'s independent-only bypass with
    real execution of F2.2's ordered DAG over F2.3's realized resources. Incremental, not a
    flag-day rewrite: today's zero-dependency preview case must keep working throughout (it's the

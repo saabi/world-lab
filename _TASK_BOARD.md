@@ -27,7 +27,12 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F2.3 — runtime resource realization** (Foundation 2, milestone 3 of 5 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — bind-group layout
+  derivation deliberately deferred to Foundation 3, see brief's Context)
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.3-runtime-resource-realization.md`
+  Owns: `packages/runtime-webgpu/src/frameGraph/realize.ts` (new) and its test file
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
