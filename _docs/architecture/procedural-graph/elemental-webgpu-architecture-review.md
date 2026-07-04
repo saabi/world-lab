@@ -686,6 +686,26 @@ streams. Phase A (CPU pick on `executeMeshGen` in WebGPUToy) is Foundation-indep
 Phase C GPU pick pass extends deferred `RenderBackend.renderPickingPass`; Phase D scene walk
 follows planet rendering gates in `AGENTS.md`.
 
+### Mesh geometry and navigation (parallel track)
+
+Mesh processing, spatial acceleration, quasi-convex decomposition, physics collider authoring,
+and **portal-graph navigation** (A* after decomp; straight legs inside quasi-convex cells).
+See [mesh-geometry-and-navigation.md](./mesh-geometry-and-navigation.md). Complements
+[picking-and-collision.md](./picking-and-collision.md) (ray pick + heightfield exterior walk).
+Phase A–C are CPU/WASM-heavy and can proceed without Foundation 2 GPU executor; scene handoff
+(Phase D) aligns with `/scene` locomotion gates.
+
+### CPU elemental model (canonical ADR)
+
+All CPU/stream/mesh/nav/preview parallel tracks share one elemental layer. See
+[cpu-elemental-model.md](./cpu-elemental-model.md) for schedule modes, **`cpu-handle`** port type,
+F2-extended **`ResourceShape`** (`{ kind: 'cpu', schema }`), partition kinds, typed spatial/geometry
+primitives, landed **`HostBinding`** + **`HostEgressBinding`**, PlanningCore + executors, and
+`SessionPresentation`.
+Consolidation: [spec-consolidation-2026-07.md](./spec-consolidation-2026-07.md) (rev. 3 addendum).
+**E1** may route after rev. 3 ADR merge — implement `cpu-handle`, stream/future/signal, extend
+`ResourceShape` and `ResourceBinding.expectedRevision`.
+
 ## Brief and documentation impact
 
 ### Continue

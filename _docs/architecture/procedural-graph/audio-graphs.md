@@ -17,6 +17,13 @@ CPU execution is the primary path. GPU binding of audio buffers or spectrogram
 textures is optional follow-on work (see [pending_issues.md](../../pending_issues.md)
 “resource GPU binds”).
 
+## Elemental binding
+
+Block scheduling and playback host inputs: [cpu-elemental-model.md](./cpu-elemental-model.md)
+(`ConsumerProfile: audio.block`, `BlockExecutor`, `host.port` context `playback`).
+Signal drain at **audio quantum boundary** — not rAF. `sink.audio` = sink family **export**.
+Stream bridge: `source.fromBlock` in [stream-graphs.md](./stream-graphs.md).
+
 ## Problem
 
 Visual consumers (mesh preview, vegetation, ShaderToy) are built; audio is only
@@ -57,11 +64,12 @@ planet-specific coupling.
 
 ## Execution model
 
-### Block consumer (new)
+### Block consumer (`ConsumerProfile: audio.block`)
 
 Visual `evalGraph` evaluates **one sample context** (procedural `uv`, `position`, …).
-Audio needs a **block scheduler** — sibling to `meshGen` / vegetation consumers, not a
-reuse of scalar heatmap preview.
+Audio uses the **`BlockExecutor`** — sibling to meshGen / vegetation consumers, not scalar
+heatmap preview. Profile fields from ADR: `blockSize`, `backpressure`, `queueOwner: 'host'`,
+`latencyClass: 'realtime'`, signal drain at quantum boundary.
 
 ```
 [Web Audio host]
@@ -221,6 +229,8 @@ Optional v2: mel scale, onset, envelope follower, resample, pitch.
 
 ## Related docs
 
+- [cpu-elemental-model.md](./cpu-elemental-model.md) — block consumer profile, host ports
+- [stream-graphs.md](./stream-graphs.md) — `source.fromBlock` bridge
 - [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) — resource inputs, CPU runtime
 - [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) — sinks include `audio output`
 - [implementation-plan.md](./implementation-plan.md) — M8 resource inputs (CPU views landed)

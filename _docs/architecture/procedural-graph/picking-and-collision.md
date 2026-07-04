@@ -11,15 +11,25 @@ mesh generation — one conceptual terrain function for visible geometry, walk h
 pick rays ([`virtual_planet_architecture_plan.md`](../../specs/virtual_planet_architecture_plan.md)
 §11).
 
-This spec defines:
+This spec defines **vertical slices and phases** for:
 
-1. **Consumers** — `pick.mesh`, `collision.bakeHeightfield`, `collision.sample` (CPU and GPU paths)
-2. **Host inputs** — pointer ray, camera (`interaction` context on existing `HostBinding`)
-3. **Egress** — `signal<PickResult>`, `stream<ContactEvent>`, `signal<HeightfieldUpdated>` via
+1. **Pick consumer** — Mode A: `spatial.rayField`; Mode B: `spatial.ray` + `ConsumerProfile: pick.event`
+2. **Heightfield** — `spatial.buildHeightfield` + `spatial.sampleHeight` (block + event)
+3. **Host inputs** — pointer ray, camera (`interaction` context on existing `HostBinding`)
+4. **Egress** — `signal<SpatialHit>`, `stream<ContactEvent>`, `signal<ResourceRevision>` via
    [stream-graphs.md](./stream-graphs.md) host egress (not bulk geometry on signals)
+
+Canonical types and signal delivery: [cpu-elemental-model.md](./cpu-elemental-model.md).
 
 Streams/signals carry **hits and invalidation**; continuous foot collision **samples block
 buffers** (audio/heightfield scheduling), not per-frame event streams.
+
+## Elemental binding
+
+Pick and heightfield: [cpu-elemental-model.md](./cpu-elemental-model.md). Mode A → **`spatial.rayField`**;
+Mode B → **`spatial.ray`** (not `pick.mesh`). Heightfield: **`spatial.buildHeightfield`** /
+**`spatial.sampleHeight`**. Struct **`SpatialHit`** (not `PickResult`).
+This spec retains phase delivery and scene integration detail only.
 
 ## Problem
 
@@ -29,8 +39,8 @@ buffers** (audio/heightfield scheduling), not per-frame event streams.
 | Scene orbit pick | Screen-space disc on body centers — not terrain/mesh graph |
 | Mesh-gen (Mode B) | `executeMeshGen` for preview; collision/export planned, not wired |
 | WebGPUToy | Mesh preview orbit; no graph pick |
-| CPU runtime | `runtime-cpu` tagline mentions picking; no graph pick consumer |
-| Host egress | Preview polls RAF/`refreshEpoch`; no `signal<PickResult>` |
+| CPU runtime | `runtime-cpu` tagline mentions picking; no pick consumer |
+| Host egress | Preview polls RAF/`refreshEpoch`; no `signal<SpatialHit>` |
 
 Authors cannot click a displaced procedural mesh in the graph editor and get a stable hit
 with world position/normal from the **same** `position`/`normal` ports used for preview.
@@ -41,12 +51,12 @@ with world position/normal from the **same** `position`/`normal` ports used for 
 |---------|------------------|
 | Pointer / camera | `host-input` (`interaction`: `pointer.ray`, `camera.*`) |
 | Same math as render | Pick consumer slices **same** `PortRef`s as `target.mesh` / vertex kernel |
-| Mode A (vertex procedural) | GPU pick pass or CPU ray march on field |
-| Mode B (stored mesh) | Ray–triangle on `executeMeshGen` buffers |
-| Click / hover | `signal<PickResult>` (`latest` for hover) |
-| Async GPU readback | `future<PickResult>` → `signal<PickResult>` |
-| Walk / slide | `collision.bakeHeightfield` → `buffer` tile; sync `sample` at `(x,z)` |
-| Field rebake | `signal<HeightfieldUpdated>` → nav / UI |
+| Mode A (vertex procedural) | `spatial.rayField` on same `PortRef`s as render, or GPU pick pass |
+| Mode B (stored mesh) | `spatial.ray` on BVH from `spatial.buildBvh` + mesh buffers |
+| Click / hover | `signal<SpatialHit>` (`latest` for hover; `interaction` context drain) |
+| Async GPU readback | `future<SpatialHit>` → `signal<SpatialHit>` |
+| Walk / slide | `spatial.buildHeightfield` → block tile; `spatial.sampleHeight` at `(x,z)` |
+| Field rebake | `signal<ResourceRevision>` → nav / UI |
 | Discrete contacts | `stream<ContactEvent>` (gameplay; optional) |
 
 Relation to elemental surface model ([elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md)):
@@ -59,16 +69,17 @@ same mapping subgraph — not separate engine subsystems.
 |--|---------------------------|--------------------------|
 | **Planet / patches** | Instance grid + vertex kernel | Optional bake for export |
 | **WebGPUToy preview** | GPU field / fragment path | `target.mesh` + `executeMeshGen` ✅ |
-| **Pick** | GPU pick pass (id, depth, bary) or CPU analytic march | Ray–mesh on generated `vertexBuffer` / `indexBuffer` |
-| **Continuous collision** | Sample planet kernel or local heightfield bake from same graph | Sample baked heightfield from graph |
+| **Pick** | `spatial.rayField` (CPU analytic march) or GPU pick pass | `spatial.ray` on BVH from `executeMeshGen` |
+| **Continuous collision** | Sample planet kernel or local heightfield bake from same graph | `spatial.sampleHeight` on baked heightfield |
 
 Do not mix pick math across modes without documenting which `position` source is authoritative.
 
-## Result types (proposed structs)
+## Result types
+
+Canonical struct: **`SpatialHit`** ([cpu-elemental-model.md](./cpu-elemental-model.md) struct catalog).
 
 ```ts
-// TypeRef structs — ids TBD in graph package
-PickResult {
+SpatialHit {
   hit: bool
   worldPos: vec3f
   normal: vec3f
@@ -79,66 +90,74 @@ PickResult {
   materialId: u32  // optional
 }
 
-ContactEvent {
+ContactEvent {  // alias: SpatialContact in ADR index
   bodyId: u32
   point: vec3f
   normal: vec3f
   penetration: f32
 }
-
-HeightfieldMeta {
-  center: vec3f
-  sizeMeters: f32
-  resolution: u32
-  revision: u32
-}
 ```
+
+`PickResult` is deprecated — codegen may alias one release.
 
 Semantics tags: `semantics: ['pick:hit']`, `['collision:contact']`.
 
 ## Consumers
 
-### `pick.mesh` / `pick.field` (new)
+### Pick event consumer (`ConsumerProfile: pick.event`)
 
-Sibling to `meshGen` and stream consumer — **not** a value primitive.
+Wires **Mode-specific spatial primitive** — not a separate `pick.mesh` primitive kind.
 
-**Inputs (host + graph):**
+| Mode | Primitive | Required inputs |
+|------|-----------|-----------------|
+| **A** (field / procedural) | `spatial.rayField` | `PortRef` position (+ optional normal), `host-input` ray |
+| **B** (mesh-gen) | `spatial.ray` | `spatial.bvh` from `spatial.buildBvh`, `host-input` ray |
+
+**Mode B inputs:**
 
 | Port / binding | Source |
 |----------------|--------|
-| `position` | `PortRef` — same as mesh preview |
+| `bvh` | `spatial.bvh` from `spatial.buildBvh` on mesh `revision` |
+| `ray.origin`, `ray.direction` | `host-input` `interaction` |
+
+**Mode A inputs:**
+
+| Port / binding | Source |
+|----------------|--------|
+| `position` | `PortRef` — same as mesh preview / vertex kernel |
 | `normal` | optional `PortRef` |
 | `ray.origin`, `ray.direction` | `host-input` `interaction` |
-| `tessellation` | grid size, face count (Mode B / CPU march) |
+| `tessellation` | grid size for analytic march resolution |
 
 **Outputs:**
 
 | Port | Type | Egress |
 |------|------|--------|
-| `result` | `PickResult` struct | `signal.emit` on pointer up or throttled hover |
-| `hits` (optional) | `stream<PickResult>` | brush / multi-select tools |
+| `hit` | `SpatialHit` struct | `signal.emit` on pointer up or throttled hover |
+| `hits` (optional) | `stream<SpatialHit>` | brush / multi-select tools |
 
-**CPU analytic path (v1-friendly):** ray march + bisect on scalar field / position along ray
-(same agreement rule as colorlab `picking.ts` vs renderer). Headless-testable.
+**CPU analytic path (Mode A):** `spatial.rayField` — ray march + bisect on scalar field / position
+along ray (same agreement rule as colorlab `picking.ts` vs renderer). Headless-testable.
 
-**GPU path:** offscreen pass encoding linear depth + ids; readback → `future<PickResult>` →
-`signal<PickResult>` (see deferred `RenderBackend.renderPickingPass`).
+**GPU path (Mode A/B):** offscreen pass encoding linear depth + ids; readback → `future<SpatialHit>` →
+`signal<SpatialHit>` (see deferred `RenderBackend.renderPickingPass`).
 
-### `collision.bakeHeightfield` (compute consumer)
+### Heightfield (`spatial.buildHeightfield`)
 
-Writes a **block resource** `buffer<f32>` (or `texture`) tile:
+Compute/event consumer — writes a **block resource** `buffer<f32>` (or `texture`) tile:
 
 - R: height meters
 - G/B: normal xz or material id (packing TBD)
 
 Params: `center`, `sizeMeters`, `resolution`, `updateThreshold`.
 
-On successful bake → `signal<HeightfieldUpdated>` with `HeightfieldMeta`.
+On successful bake → `signal<ResourceRevision>`.
 
-### `collision.sample` (value or command)
+### Height sample (`spatial.sampleHeight`)
 
-Sync sample at world `(x, z)` from the current heightfield buffer → height + normal.
-Used every simulation step for walking — **not** streamed.
+Sync sample at world `(x, z)` from `spatial.heightfield` → height + normal.
+Used every simulation step for walking — **not** streamed. Runs under block or event executor
+depending on wiring.
 
 ## Host integration
 
@@ -147,12 +166,12 @@ Used every simulation step for walking — **not** streamed.
 ```
 pointer down/up on MeshPreviewPanel
   → bind host.pointer ray from preview camera
-  → pick.mesh consumer (CPU v1)
-  → signal<PickResult> key 'pick'
+  → pick.event consumer → spatial.rayField (Mode A) or spatial.ray (Mode B)
+  → signal<SpatialHit> key 'pick'  (interaction context: immediate / latest)
   → inspector shows hit uv / world pos; optional gizmo
 ```
 
-Works with [preview-monitors.md](./preview-monitors.md): monitor `result` port or subscribe
+Works with [preview-monitors.md](./preview-monitors.md): monitor `hit` port or subscribe
 to `pick` signal — no `target.*` ghost node.
 
 ### Scene editor (`/scene`)
@@ -160,27 +179,27 @@ to `pick` signal — no `target.*` ghost node.
 - Short term: keep orbit body disc pick for solar-system bodies.
 - Terrain/mesh graph pick: embed pick consumer over planet surface subgraph when Mode A/B
   graphs are scene-bound ([editor-and-scene-integration.md](./editor-and-scene-integration.md)).
-- Walk collision: local heightfield bake consumer + CPU sample — aligns with architecture
+- Walk collision: `spatial.buildHeightfield` + `spatial.sampleHeight` — aligns with architecture
   plan §11.2; async readback acceptable for pick, **not** for per-frame foot placement.
 
-## Egress patterns (from stream-graphs)
+## Egress patterns
 
 | Need | Abstraction |
 |------|-------------|
-| Click select | `signal<PickResult>` on pointer up |
-| Hover highlight | `signal<PickResult>` mode `latest` + throttle |
+| Click select | `signal<SpatialHit>` on pointer up |
+| Hover highlight | `signal<SpatialHit>` mode `latest` + throttle |
 | GPU readback latency | `async.spawn(readback)` → `await` → `signal` |
-| Nav mesh rebuild | `signal<HeightfieldUpdated>` |
+| Nav mesh rebuild | `signal<ResourceRevision>` |
 | Physics manifold | `stream<ContactEvent>` |
-| Per-frame foot IK | **buffer sample** — not stream |
+| Per-frame foot IK | **block sample** via `spatial.sampleHeight` — not stream |
 
-Do **not** stream tessellated triangles; mesh stays `MeshResource` / GPU buffers.
+Do **not** stream tessellated triangles; mesh stays typed `geometry.mesh` resource / GPU buffers.
 
 ## Packages
 
 | Package | Role |
 |---------|------|
-| `graph` | `PickResult` structs, `pick.*` / `collision.*` primitive registration |
+| `graph` | `SpatialHit` struct, spatial primitive registration |
 | `runtime-cpu` | CPU ray march pick, heightfield sample |
 | `runtime-webgpu` | GPU pick pass, mesh buffer pick, heightfield compute bake |
 | `graph-editor` | Mesh preview click → pick consumer; `HostSignalSubscription` |
@@ -195,41 +214,46 @@ Do **not** stream tessellated triangles; mesh stays `MeshResource` / GPU buffers
 
 ## Phased delivery
 
-### Phase A — CPU pick on mesh-gen (WebGPUToy)
+Requires ADR **E0** accepted, then **E1→E3→E5** for types, executors, spatial primitives.
 
-- `pick.mesh` consumer over `executeMeshGen` buffers (Mode B)
+### Phase A — CPU pick on mesh-gen (WebGPUToy, Mode B)
+
+- `spatial.buildBvh` + `spatial.ray` over `executeMeshGen` buffers (Mode B)
 - `host.pointer` bindings in mesh preview
-- `signal<PickResult>` → inspector readout
-- Headless: ray hits known sphere mesh
+- `signal<SpatialHit>` → inspector readout
+- Headless: ray hits known sphere mesh → expected `SpatialHit`
 
-### Phase B — Field / analytic pick + hover
+### Phase B — Field / analytic pick + hover (Mode A)
 
-- CPU ray march on scalar/position field (field graphs)
-- Throttled hover `signal` mode `latest`
+- `spatial.rayField` on scalar/position field (field graphs)
+- Throttled hover `signal` mode `latest` (`interaction` context)
 - Integrate `sink.host` from stream-graphs Phase C
 
 ### Phase C — GPU pick pass (planet)
 
 - Implement `renderPickingPass` encoding ids + depth
-- `future` readback → `signal<PickResult>`
+- `future` readback → `signal<SpatialHit>`
 - Patch/face id decoding
 
 ### Phase D — Heightfield collision tile
 
-- `collision.bakeHeightfield` compute consumer
-- `collision.sample` + `signal<HeightfieldUpdated>`
+- `spatial.buildHeightfield` compute consumer
+- `spatial.sampleHeight` + `signal<ResourceRevision>`
 - Scene-editor walk sampler (deferred rendering gate per `AGENTS.md`)
 
 ## Test gates
 
-1. Headless: pick ray → known `PickResult` on synthetic mesh-gen graph
+1. Headless: pick ray → known `SpatialHit` on synthetic mesh-gen graph
 2. Pick uses same `position` port as `target.mesh` preview (regression)
 3. Miss returns `hit: false` without throw
-4. `signal` handler fires once per click, not per RAF poll
-5. `check` + `test` green for touched packages
+4. `signal` handler fires once per click (interaction drain), not per RAF poll
+5. `spatial.sampleHeight` rejects `spatial.bvh` at plan time; `spatial.ray` rejects unwired BVH
+6. `check` + `test` green for touched packages
 
 ## Related docs
 
+- [cpu-elemental-model.md](./cpu-elemental-model.md) — typed spatial primitives, signal runtime, executors
+- [spec-consolidation-2026-07.md](./spec-consolidation-2026-07.md) — before→after mapping
 - [stream-graphs.md](./stream-graphs.md) — `signal<T>`, `sink.host`, subscriptions
 - [preview-monitors.md](./preview-monitors.md) — debug observe pick port
 - [briefs/M-mesh-gen-consumer.md](./briefs/M-mesh-gen-consumer.md) — Mode B scope (preview/collision/export)

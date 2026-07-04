@@ -24,6 +24,13 @@ CPU execution is primary. Streams compose with [audio graphs](./audio-graphs.md)
 resources), [picking and collision](./picking-and-collision.md) (discrete hit events),
 and optional GPU visualization later.
 
+## Elemental binding
+
+Canonical CPU/host rules: [cpu-elemental-model.md](./cpu-elemental-model.md). This spec
+defines **stream operators, async nodes, and NER-style examples** only. Schedule modes,
+`signal<T>` runtime model, `sink.host`, typed resources + revision, and consumer profiles
+are defined in the ADR — not duplicated here.
+
 ## Problem
 
 Today the graph is optimized for **scalar/field evaluation** and **render-pipeline resources**:
@@ -67,7 +74,7 @@ without planet- or NLP-specific coupling in the IR core.
 | **Block resource** | Fixed `N` items per tick | Audio quantum, STFT frame, heightfield tile, GPU upload chunk |
 | **Stream** | Sequence of `T` (unbounded or capped) | Tokens, entities, contact events, pick history |
 | **Future** | Single async result | WASM NER call, GPU pick readback, file read |
-| **Signal** | Graph→host notification (often small `T`) | “table dirty”, `PickResult`, progress tick |
+| **Signal** | Graph→host notification (often small `T`) | “table dirty”, `SpatialHit`, progress tick |
 
 Composition:
 
@@ -116,7 +123,7 @@ Use `semantics: ['entity:company']` on ports for editor filtering and swap-by-co
 ### `signal<T>`
 
 ```ts
-{ kind: 'signal'; payload: TypeRef }  // void-ish tick, enum, struct summary, PickResult, …
+{ kind: 'signal'; payload: TypeRef }
 ```
 
 - **Ingress** (`host-input`) = host → graph each tick (`time`, `playback.*`, pointer ray).
@@ -124,7 +131,11 @@ Use `semantics: ['entity:company']` on ports for editor filtering and swap-by-co
 - Serialized graph wires **signal ports** to `sink.host` primitives; runtime delivers to
   registered handlers — **no JS callbacks in `GraphDocument`**.
 
-Keep **bulk data** on `stream<T>` or buffer resources; use **signals** to tell the shell
+**Runtime semantics** (emission buffer, ordering, context-specific drain): see
+[cpu-elemental-model.md § Signal runtime model](./cpu-elemental-model.md#signal-runtime-model).
+Do not duplicate here.
+
+Keep **bulk data** on `stream<T>` or typed resources; use **signals** to tell the shell
 *what changed* (repaint this panel, update selection, rebake nav).
 
 ## Host egress and UI signals
@@ -167,13 +178,14 @@ ner.extract → out.companies : stream<Company>        // data path
 ```ts
 interface HostSignalSubscription {
   source: PortRef;
-  mode: 'each' | 'batch' | 'latest';
+  mode: 'each' | 'batch' | 'latest' | { debounce: number };
   handler: (payload: unknown) => void;
 }
 ```
 
-Stream consumer drains host-bound sinks after each item/batch; posts to main thread;
-default **one UI flush per `requestAnimationFrame`** per subscription.
+Executor drains emission buffers after each producer tick; host adapter applies
+**context-specific default drain** (see ADR § Signal runtime model). Subscription `mode`
+overrides the default.
 
 | Mode | Use |
 |------|-----|
@@ -191,9 +203,9 @@ Hit-test **math** is consumer work ([picking-and-collision.md](./picking-and-col
 egress uses the same channel:
 
 ```
-host.pointer (ray) → pick.mesh consumer → signal<PickResult>  → selection / inspector
-heightfield bake   → signal<HeightfieldUpdated>             → nav / UI invalidation
-contact solver     → stream<ContactEvent>                   → gameplay (optional)
+host.pointer (ray) → pick.event consumer → spatial.ray → signal<SpatialHit>  → selection / inspector
+heightfield bake   → signal<ResourceRevision>                              → nav / UI invalidation
+contact solver     → stream<ContactEvent>                                  → gameplay (optional)
 ```
 
 Continuous walk collision samples a **block heightfield buffer** synchronously; signals
@@ -404,8 +416,10 @@ Optional parallel API path:
 
 ### Phase A — Types + minimal vertical slice
 
+Requires ADR **E0** + **E1** (`TypeRef` extensions).
+
 - Add `stream<T>` and `future<T>` to `TypeRef` + coercion/validation
-- `executeStreamGraph` (name TBD) in `runtime-cpu`
+- `StreamExecutor` in `runtime-cpu`
 - `source.text.file` → `stream.map` → `stream.filter` → `sink.count`
 - Headless tests with synthetic iterator
 
@@ -439,10 +453,12 @@ Optional parallel API path:
 
 ## Related docs
 
-- [picking-and-collision.md](./picking-and-collision.md) — pick/collision consumers; `signal<PickResult>` egress
+- [picking-and-collision.md](./picking-and-collision.md) — pick/collision consumers; `signal<SpatialHit>` egress
 - [preview-monitors.md](./preview-monitors.md) — probe UI driven by host signals
 - [audio-graphs.md](./audio-graphs.md) — block-oriented sibling; `source.fromBlock` bridge
-- [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) — command vs value, frame hazards
+- [cpu-elemental-model.md](./cpu-elemental-model.md) — canonical patterns
+- [spec-consolidation-2026-07.md](./spec-consolidation-2026-07.md) — consolidation memo
+- [elemental-webgpu-architecture-review.md](./elemental-webgpu-architecture-review.md) — GPU elemental track
 - [foundation-2-generic-resources-plan.md](./foundation-2-generic-resources-plan.md) — lifetime/history for CPU buffers
 - [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) — CPU runtime services
 - [node-model-design-notes.md](./node-model-design-notes.md) — list containers (`flow.forEach`) complement streams

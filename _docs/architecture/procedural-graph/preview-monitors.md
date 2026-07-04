@@ -16,6 +16,12 @@ already routes `PreviewBuffer` entries to the correct panel via `previewFamily`.
 adds **probes**: session- or artifact-scoped `PortRef` sources unioned into that enumeration,
 reusing `evaluateGraphOutput`, GPU/effect panels, and mesh preview paths unchanged.
 
+## Elemental binding
+
+Observation is **not a sink family** — probes live only under `SessionPresentation`
+([cpu-elemental-model.md](./cpu-elemental-model.md)). Host egress for incremental updates:
+`sink.host` in [stream-graphs.md](./stream-graphs.md).
+
 ## Problem
 
 Today preview buffers come only from **authored surfaces**:
@@ -224,11 +230,11 @@ Probes remain non-execution; stream sinks stay explicit `sink.*` nodes.
 
 ## Related docs
 
+- [cpu-elemental-model.md](./cpu-elemental-model.md) — `SessionPresentation` (observation is not a sink)
 - [stream-graphs.md](./stream-graphs.md) — `signal<T>` / `sink.host` for incremental pane updates
-- [picking-and-collision.md](./picking-and-collision.md) — `signal<PickResult>` on monitored mesh ports
+- [picking-and-collision.md](./picking-and-collision.md) — `signal<SpatialHit>` on monitored mesh ports
 - [editor.md](./editor.md) — editor responsibilities, no planet rendering in package
 - [briefs/M-preview-buffer-list.md](./briefs/M-preview-buffer-list.md) — buffer-list preview (landed); probes are the planned follow-on
-- [stream-graphs.md](./stream-graphs.md) — stream port monitors
 - [audio-graphs.md](./audio-graphs.md) — block audio preview
 - [pipeline-as-graph.md](./pipeline-as-graph.md) — real targets vs debug monitors
 

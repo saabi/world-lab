@@ -24,10 +24,13 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | **ADR:** no owned WGSL AST; codegen as text; signature inference; linker/Use.GPU policy | `compiler`, `procedural-wgsl` |
 | [runtime-and-tessellation.md](./runtime-and-tessellation.md) | Consumers, WebGPU pipelines, shared/graph-described surfaces | `runtime-webgpu` |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Generic inputs, CPU runtime services, image/mesh/audio resources, tessellation-as-primitives | `graph`, `runtime-webgpu`, `runtime-cpu` |
+| [cpu-elemental-model.md](./cpu-elemental-model.md) | **ADR (accepted, pending E1):** F2-aligned resource model — `cpu-handle`, `ResourceShape` CPU variant, partition kinds, typed primitives, PlanningCore + executors | `graph`, `runtime-cpu`, `graph-editor` |
+| [spec-consolidation-2026-07.md](./spec-consolidation-2026-07.md) | **Memo (2026-07):** spec dedup review; rev. 2–3 addenda — frozen analysis | (docs) |
 | [audio-graphs.md](./audio-graphs.md) | **Spec (proposed):** CPU-first audio graphs — block consumer, STFT/spectrogram resources, Web Audio host, optional GPU viz | `graph`, `runtime-cpu`, `graph-editor`, `apps/webgputoy` |
 | [stream-graphs.md](./stream-graphs.md) | **Spec (proposed):** CPU stream processing — `stream<T>` / `future<T>` types, multi-emitter primitives, mux/demux/filter, promise nodes (`spawn`/`await`/`awaitAll`), worker pool | `graph`, `runtime-cpu`, `graph-editor`, `apps/webgputoy` |
 | [preview-monitors.md](./preview-monitors.md) | **Spec (proposed):** TouchDesigner-style preview probes — monitor any output port without sink nodes; editor-scoped `PreviewProbe`, buffer-list integration | `graph-editor`, `apps/webgputoy` |
-| [picking-and-collision.md](./picking-and-collision.md) | **Spec (proposed):** graph pick/collision consumers — same surface subgraph as render; `signal<PickResult>` egress; heightfield block collision | `graph`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `apps/scene-editor` |
+| [picking-and-collision.md](./picking-and-collision.md) | **Spec (proposed):** graph pick/collision consumers — same surface subgraph as render; `signal<SpatialHit>` egress; heightfield block collision | `graph`, `runtime-cpu`, `runtime-webgpu`, `graph-editor`, `apps/scene-editor` |
+| [mesh-geometry-and-navigation.md](./mesh-geometry-and-navigation.md) | **Spec (proposed):** geometry ops, typed spatial builds, partition kinds (solid/walkable/freeSpace), physics colliders, `nav.view` + portal **A\*** navigation | `graph`, `runtime-cpu`, `apps/scene-editor`, `graph-editor` |
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
 | [noise-functions.glsl](./noise-functions.glsl) | Source/reference GLSL noise functions for future `noise.*` primitive harvests | `procedural-wgsl`, `graph` |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |
@@ -46,6 +49,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [work-plan.md](./work-plan.md) | **Prioritized backlog (2026-06-29):** Tier 1 = fully functional editor pipeline, then engine / library / PoC | all |
 | [primitive-library.md](./primitive-library.md) | **Catalogue:** every node built/planned/discussed — fields, domain, inputs, + geometry/buffer/stage/target families; low-hanging fruit | `graph`, `procedural-wgsl` |
 | [node-model-design-notes.md](./node-model-design-notes.md) | **Design:** collections/loops (lights→PBR), elemental geometry + transforms, node-swap UX (Blender math vs perf) | `graph`, `compiler`, `graph-editor` |
+| [group-function-round-trip-proposal.md](./group-function-round-trip-proposal.md) | **Proposal:** `functionToGroup` — `@node`/`@arg` metadata, literal disambiguation, multi-output encoding, structural graph-equivalence tests | `compiler`, `graph`, `graph-editor` |
 | [execution-and-delegation.md](./execution-and-delegation.md) | Model-tier allocation per milestone, contract-first workflow | all |
 | [TASK_BOARD.md](./TASK_BOARD.md) | **Retired 2026-07-03** — unified into the root [`_TASK_BOARD.md`](../../../_TASK_BOARD.md), the live task board | all |
 | [HANDOFF.md](./HANDOFF.md) | Stable index of task-specific handoff records | all |
