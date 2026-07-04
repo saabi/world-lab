@@ -106,6 +106,13 @@ this generalization is achievable without touching the algorithm, only the type 
    real execution of F2.2's ordered DAG over F2.3's realized resources. Incremental, not a
    flag-day rewrite: today's zero-dependency preview case must keep working throughout (it's the
    trivial case of the general executor, not a separate code path to maintain alongside it).
+   **Deliberately does not add a channel-read primitive or any cross-pass WGSL sampling** — no
+   primitive/codegen path for that exists yet, and none is authorable today, so this milestone
+   wires the ordering/realization machinery into the executable case that already exists. This
+   surfaces a real sequencing question for item 5 below: neither proof sample can be built as a
+   real document until at least a minimal channel-read primitive (texture case) and/or a minimal
+   compute-dispatch capability (buffer case) exists — see the brief's Handoff. **Contract:**
+   [F2.4-generic-frame-executor.md](./briefs/F2.4-generic-frame-executor.md).
 5. **Foundation 2 proof.** Two bundled, hardcoded samples, not just unit tests: a two-pass
    render-target sample (one pass feeds another, both textures — the ShaderToy-multibuffer-style
    case the old brief targeted) **and** a small buffer-feedback sample (a minimal compute

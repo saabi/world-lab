@@ -27,7 +27,16 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
+- **F2.4 — generic frame executor** (Foundation 2, milestone 4 of 5 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — deliberately does
+  not add a channel-read primitive or cross-pass WGSL sampling; flags a sequencing question for the
+  Foundation 2 proof step that follows, see brief's Handoff)
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.4-generic-frame-executor.md`
+  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.ts`,
+  `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
+  and their test files
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
