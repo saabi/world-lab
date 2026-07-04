@@ -624,6 +624,27 @@ Rebuild specialized capabilities as groups and samples:
 Each sample should use the same planner and executor. Adding one must not add a new
 domain-specific executor.
 
+### Audio graphs (parallel track)
+
+Not Foundation-sequence dependent — the IR is already domain-agnostic (`audio` is a
+`ResourceDataType` since M8) and audio's block consumer is CPU-only, sibling to `meshGen`/
+vegetation, not a GPU executor. See [audio-graphs.md](./audio-graphs.md) for the full spec; its
+phases place relative to this roadmap as follows:
+
+- **Phase A** (block consumer, mic/file input, one `evalCPU` primitive) has no Foundation 2-4
+  dependency at all — it only needs Foundation 1's contracts (primitive registration, `evalCPU`,
+  open semantic tags for `space: 'time'` frames), already landed. Can be briefed and start
+  independently, in parallel with Foundation 2/3/4, whenever it's prioritized.
+- **Phase B** (multi-resolution spectrograms, overlap-add) needs a persistent-state-between-blocks
+  model for sliding windows. This reuses the *lifetime concept* Foundation 2 generalizes
+  (`ResourceLifetime.transient/persistent/history`, F2.1 ✅ landed), not `runtime-webgpu`'s GPU
+  frame-graph itself — audio's persistent state is CPU-side, package-local to `runtime-cpu`. F2.1
+  alone is sufficient to design Phase B's state model against; no need to wait for F2.3/F2.4.
+- **Phase C** (optional GPU spectrogram visualization) is the one part of this spec that is a real
+  Foundation 2 consumer — it needs actual GPU resource realization (F2.3) and a generalized
+  executor (F2.4) to bind a spectrogram buffer as a texture input, the same "resource GPU binds"
+  gap tracked in `pending_issues.md`. Do not start Phase C before F2.3 lands.
+
 ## Brief and documentation impact
 
 ### Continue

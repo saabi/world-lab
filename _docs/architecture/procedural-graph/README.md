@@ -24,6 +24,7 @@ builds on the existing `@virtual-planet/schema` package and the cube-sphere
 | [wgsl-parsing-and-codegen.md](./wgsl-parsing-and-codegen.md) | **ADR:** no owned WGSL AST; codegen as text; signature inference; linker/Use.GPU policy | `compiler`, `procedural-wgsl` |
 | [runtime-and-tessellation.md](./runtime-and-tessellation.md) | Consumers, WebGPU pipelines, shared/graph-described surfaces | `runtime-webgpu` |
 | [inputs-cpu-and-resources.md](./inputs-cpu-and-resources.md) | Generic inputs, CPU runtime services, image/mesh/audio resources, tessellation-as-primitives | `graph`, `runtime-webgpu`, `runtime-cpu` |
+| [audio-graphs.md](./audio-graphs.md) | **Spec (proposed):** CPU-first audio graphs — block consumer, STFT/spectrogram resources, Web Audio host, optional GPU viz | `graph`, `runtime-cpu`, `graph-editor`, `apps/webgputoy` |
 | [vegetation.md](./vegetation.md) | Dual-frequency fields, peak placement, coverage vs instances | vegetation consumer |
 | [noise-functions.glsl](./noise-functions.glsl) | Source/reference GLSL noise functions for future `noise.*` primitive harvests | `procedural-wgsl`, `graph` |
 | [editor.md](./editor.md) | Standalone + embeddable schema-driven editor | `graph-editor` |

@@ -235,6 +235,7 @@
   uncertainty entirely) plus a per-canvas `WeakMap` buffer cache so camera moves don't regenerate
   geometry. Brief: `M-mesh-preview-ux.md`.
 - **resource GPU binds**: image/mesh/audio as actual GPU shader inputs (M8 delivered CPU views only) — required for ShaderToy `iChannel` textures (S1). `design-vs-implementation-audit.md`.
+- **audio graphs (CPU-first)**: live wave/mic/file input, configurable buffer size, multi-resolution spectrograms, and custom JS/WASM processing — IR already has `audio` resources + `AudioCpuView`; missing block-oriented audio consumer, STFT primitives, wired `AudioPreviewPanel`, and `sink.audio`. Spec: `architecture/procedural-graph/audio-graphs.md` (phased A→B→C; GPU spectrogram viz optional in C). Placed in the Foundation roadmap (2026-07-03): Phase A is Foundation-independent (CPU-only, can start any time); Phase B only needs F2.1's lifetime concept, already landed; Phase C (optional GPU viz) is gated on F2.3 landing. See `elemental-webgpu-architecture-review.md`'s "Roadmap realignment §Audio graphs".
 - **list container nodes** (`flow.forEach`/`reduce`/`map`): `list<T>` lowering landed (Slice 4); the container nodes for arbitrary per-element subgraphs (e.g. N dynamic lights) are a follow-on. `node-model-design-notes.md` §A.
 
 ## Standard library — node gaps
