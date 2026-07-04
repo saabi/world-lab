@@ -667,6 +667,14 @@ Streams complement [audio-graphs.md](./audio-graphs.md): blocks for fixed-quantu
 streams for unbounded sequences; `async.awaitAll` joins parallel WASM/API work on batched
 stream items.
 
+### Preview monitors (editor track)
+
+TouchDesigner-style **probes** on arbitrary output ports without sink nodes. See
+[preview-monitors.md](./preview-monitors.md). Foundation-independent — `graph-editor` only
+for Phase A; reuses `enumeratePreviewBuffers`, `evaluateGraphOutput`, and existing preview
+panels. Follow-on from landed `M-preview-buffer-list.md` (node-probe was explicitly out of
+scope for v1). No `GraphDocument` IR change required for Phase A.
+
 ## Brief and documentation impact
 
 ### Continue
