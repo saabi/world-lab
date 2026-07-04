@@ -144,6 +144,7 @@ export function createPreviewFrameLoop(options: PreviewFrameLoopOptions): Previe
 			destroyed = true;
 			cancelAnimationFrame(rafId);
 			listeners.clear();
+			executor.dispose();
 			device?.destroy();
 			device = null;
 			executor = new GraphFrameExecutor();

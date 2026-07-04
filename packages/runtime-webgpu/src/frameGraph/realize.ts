@@ -109,7 +109,7 @@ export function inferTextureUsage(
 	if (graph.passes.some((pass) => pass.reads.some((read) => read.target === targetId))) {
 		usage |= GPUTextureUsage.TEXTURE_BINDING;
 	}
-	if (graph.display === targetId) {
+	if (graph.display === targetId || graph.readbackTargets?.includes(targetId)) {
 		usage |= GPUTextureUsage.COPY_SRC;
 	}
 	return usage;

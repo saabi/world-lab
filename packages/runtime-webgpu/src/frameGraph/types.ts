@@ -44,4 +44,5 @@ export interface PassGraph {
 	targets: ResourceTarget[];
 	passes: Pass[];
 	display: string;
+	readbackTargets?: readonly string[];
 }

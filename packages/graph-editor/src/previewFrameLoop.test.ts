@@ -11,6 +11,7 @@ const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: numbe
 		n_target_display_1: new Uint8Array(64)
 	}
 }));
+const disposeMock = vi.fn();
 
 vi.mock('@world-lab/runtime-webgpu', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@world-lab/runtime-webgpu')>();
@@ -22,6 +23,7 @@ vi.mock('@world-lab/runtime-webgpu', async (importOriginal) => {
 		})),
 		GraphFrameExecutor: class {
 			execute = executeMock;
+			dispose = disposeMock;
 		}
 	};
 });
@@ -29,6 +31,7 @@ vi.mock('@world-lab/runtime-webgpu', async (importOriginal) => {
 describe('createPreviewFrameLoop', () => {
 	beforeEach(() => {
 		executeMock.mockClear();
+		disposeMock.mockClear();
 		vi.stubGlobal('navigator', { gpu: {} });
 		vi.stubGlobal(
 			'requestAnimationFrame',
@@ -74,6 +77,7 @@ describe('createPreviewFrameLoop', () => {
 		unsubA();
 		unsubB();
 		loop.destroy();
+		expect(disposeMock).toHaveBeenCalledTimes(1);
 
 		expect(executeMock).toHaveBeenCalled();
 		const host = executeMock.mock.calls[0]?.[0]?.host;

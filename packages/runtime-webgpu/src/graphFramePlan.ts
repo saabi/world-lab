@@ -36,6 +36,7 @@ export function buildIndependentPassGraph(passes: GraphFramePass[]): PassGraph {
 			writeTarget: pass.targetId,
 			reads: []
 		})),
-		display: passes[0]?.targetId ?? ''
+		display: passes[0]?.targetId ?? '',
+		readbackTargets: passes.map((pass) => pass.targetId)
 	};
 }

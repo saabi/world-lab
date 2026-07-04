@@ -217,6 +217,11 @@ describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 		const output = cosinePaletteEffectOutput();
 		const width = 64;
 		const height = 64;
+		const target = device.createTexture({
+			size: { width, height },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
 
 		const result = await executeFullscreenFragment({
 			device,
@@ -224,7 +229,8 @@ describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 			output,
 			width,
 			height,
-			host: { iTime: 0, iFrame: 0, iMouse: [0, 0, 0, 0] }
+			host: { iTime: 0, iFrame: 0, iMouse: [0, 0, 0, 0] },
+			target
 		});
 
 		expect(result.width).toBe(width);
@@ -238,6 +244,7 @@ describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 			expect(actual[i]).toBeLessThanOrEqual(expected[i]! + 2);
 		}
 
+		target.destroy();
 		device.destroy();
 	});
 
@@ -248,6 +255,11 @@ describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 
 		const graph = constantVec4FragmentGraph();
 		const output = constantVec4FragmentOutput();
+		const target = device.createTexture({
+			size: { width: 32, height: 32 },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
 
 		const result = await executeFullscreenFragment({
 			device,
@@ -255,12 +267,14 @@ describe('@world-lab/runtime-webgpu executeFullscreenFragment', () => {
 			output,
 			width: 32,
 			height: 32,
-			host: { iTime: 0, iFrame: 0, iMouse: [0, 0, 0, 0] }
+			host: { iTime: 0, iFrame: 0, iMouse: [0, 0, 0, 0] },
+			target
 		});
 
 		expect(result.pixels.byteLength).toBe(32 * 32 * 4);
 		expect(result.pixels[0]).toBeGreaterThan(0);
 
+		target.destroy();
 		device.destroy();
 	});
 });

@@ -36,6 +36,7 @@ export interface FullscreenFragmentInput {
 	width: number;
 	height: number;
 	host: ShaderToyHostInputs;
+	target: GPUTexture;
 }
 
 export interface FullscreenFragmentResult {
@@ -257,19 +258,12 @@ export async function executeFullscreenFragment(
 		entries: bindGroupEntries
 	});
 
-	const texture = device.createTexture({
-		label: 'fullscreen-fragment-target',
-		size: { width, height },
-		format: 'rgba8unorm',
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
-	});
-
 	const encoder = device.createCommandEncoder({ label: 'fullscreen-fragment' });
 	const pass = encoder.beginRenderPass({
 		label: 'fullscreen-fragment',
 		colorAttachments: [
 			{
-				view: texture.createView(),
+				view: input.target.createView(),
 				loadOp: 'clear',
 				storeOp: 'store',
 				clearValue: { r: 0, g: 0, b: 0, a: 1 }
@@ -290,7 +284,7 @@ export async function executeFullscreenFragment(
 		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
 	});
 	encoder.copyTextureToBuffer(
-		{ texture },
+		{ texture: input.target },
 		{ buffer: readbackBuffer, bytesPerRow, rowsPerImage: height },
 		{ width, height }
 	);
@@ -307,7 +301,6 @@ export async function executeFullscreenFragment(
 
 	uniformBuffer?.destroy();
 	graphParamsBuffer?.destroy();
-	texture.destroy();
 	readbackBuffer.destroy();
 
 	return { width, height, pixels };

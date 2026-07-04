@@ -40,7 +40,7 @@ is still open.
   `packages/runtime-webgpu/src/frameGraph/realize.ts`,
   `packages/runtime-webgpu/src/graphFramePlan.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
   and their test files
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.

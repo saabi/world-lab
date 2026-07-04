@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@world-lab/graph';
 
 import { buildPassOrder } from './frameGraph/order.js';
+import { inferTextureUsage } from './frameGraph/realize.js';
 import { buildIndependentPassGraph, planIndependentGraphFramePasses } from './graphFramePlan.js';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
@@ -113,5 +114,12 @@ describe('graphFramePlan', () => {
 			lifetime: { kind: 'transient' },
 			size: { kind: 'screen-relative', scale: 1 }
 		});
+		expect(graph.readbackTargets).toEqual([
+			'pipeline_image_n_display_a',
+			'pipeline_image_n_display_b'
+		]);
+		for (const target of graph.targets) {
+			expect(inferTextureUsage(graph, target.id) & GPUTextureUsage.COPY_SRC).not.toBe(0);
+		}
 	});
 });
