@@ -27,21 +27,27 @@ is still open.
 
 ## Active
 
-- **F2.2 — resource dependency planner** (Foundation 2, milestone 2 of 5; revision 2 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — `ResourceTarget`
-  is now a discriminated union (shape/size correlation enforced), `collectFeedbackTargets` only
-  counts `history`-lifetime targets, not `persistent`)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.2-resource-dependency-planner.md`
-  Owns: `packages/runtime-webgpu/src/frameGraph/types.ts`,
-  `packages/runtime-webgpu/src/frameGraph/order.ts`,
-  `packages/runtime-webgpu/src/graphFramePlan.ts`, `packages/graph/src/resources.ts`, and their
-  test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.2 — resource dependency planner** — `397af7f` · `ResourceTarget` generalized to a
+  discriminated union (`BufferResourceTarget`/`TextureResourceTarget`, shape/size correlation
+  enforced, samplers excluded — all proven via `@ts-expect-error` compile checks in one test);
+  `ResourceRead.version` replaces `previousFrame`, newly validated by a new
+  `invalid-history-read` issue kind (rejects a `'previous'` read against anything but a
+  `history`-lifetime target); `collectFeedbackTargets` corrected to count only `history`-lifetime
+  targets (not `persistent`, and no longer auto-including the display target — display retention
+  confirmed still handled by `computeLifetimes`'s existing special case, tested directly);
+  `resolveBufferSizes` added parallel to `resolveTargetSizes`; `collectResourceInstances`
+  materializes `ResourceInstance`s from a real `GraphDocument`, following `executionRoots.ts`'s
+  exact pattern; `Pass.bindings` reserved and proven inert. Test suite covers every gate item
+  precisely, including the corrected (not merely renamed) chain-graph feedback assertion. Full
+  workspace check/test/build green.
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.2-resource-dependency-planner.md`
 
 - **F2.1 — generic resource type algebra** — `04f5319` · `ResourceTemplate`/`ResourceInstance`
   (id-less template on the primitive, `id: node.id` only on the materialized instance — fixes

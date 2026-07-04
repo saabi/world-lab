@@ -70,7 +70,7 @@ this generalization is achievable without touching the algorithm, only the type 
    `ResourceDescriptor` its real shape (as `ResourceTemplate`/`ResourceInstance`, id-less template
    vs. materialized instance, after a pre-implementation review round). Pure types + inference, no
    runtime allocation yet.
-2. **F2.2 — resource dependency planner (rev. 2).** Generalizes `frameGraph/types.ts`'s
+2. **F2.2 — resource dependency planner ✅ done (`397af7f`), rev. 2.** Generalizes `frameGraph/types.ts`'s
    `RenderTarget`/`ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union as a discriminated
    union (`ResourceTarget` = buffer-shaped variant paired only with an element-count size,
    texture-shaped variant paired only with a pixel size — shape and size can no longer disagree),
