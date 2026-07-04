@@ -33,8 +33,9 @@ is still open.
   textures** rejected; storage textures rejected rather than mis-derived as `RENDER_ATTACHMENT`;
   bind-group layout derivation deliberately deferred to Foundation 3, see brief's Context)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.3-runtime-resource-realization.md`
-  Owns: `packages/runtime-webgpu/src/frameGraph/realize.ts` (new) and its test file
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Owns: `packages/runtime-webgpu/src/frameGraph/realize.ts` (new),
+  `packages/runtime-webgpu/src/index.ts`, and its test file
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
