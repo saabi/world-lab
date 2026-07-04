@@ -27,25 +27,30 @@ is still open.
 
 ## Active
 
-- **F2.4 — generic frame executor** (Foundation 2, milestone 4 of 5; revision 2 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — fixes a blocking
-  multi-target `COPY_SRC` gap via a new additive `PassGraph.readbackTargets` field, and resolves
-  `consumerId → writeTarget → GraphFramePass` explicitly instead of a silently-skippable lookup;
-  deliberately does not add a channel-read primitive or cross-pass WGSL sampling; flags a
-  sequencing question for the Foundation 2 proof step that follows, see brief's Handoff)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.4-generic-frame-executor.md`
-  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.ts`,
-  `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/frameGraph/types.ts`,
-  `packages/runtime-webgpu/src/frameGraph/realize.ts`,
-  `packages/runtime-webgpu/src/graphFramePlan.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
-  and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
+
+**Note:** Foundation 2's plan flags a real sequencing question before the proof step can be
+briefed — neither proof sample (two-pass texture feedback, buffer feedback) can exist as a real
+document yet; see `F2.4-generic-frame-executor.md`'s Handoff.
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.4 — generic frame executor** — `37f496a` · **final milestone landed in Foundation 2.**
+  `GraphFrameExecutor` routes every frame through `buildPassOrder` + a persistent, device-keyed
+  `ResourceRealizer`, replacing per-frame texture allocate/destroy; `consumerId → writeTarget →
+  GraphFramePass` resolved explicitly, with a dedicated test proving it throws (not silently skips)
+  on an inconsistent plan — verified by directly reading the mocked-`buildIndependentPassGraph`
+  test that constructs exactly that scenario; the blocking multi-target `COPY_SRC` gap is fixed via
+  the additive `PassGraph.readbackTargets` field, proven both at the unit level
+  (`graphFramePlan.test.ts`, reusing the existing `dualDisplayGraph` fixture) and via a new
+  real-device multi-target test (`dualTargetPipelineGraph`) neither prior test could catch;
+  `executeFullscreenFragment`/`PipelineGraphExecutor` take a caller-owned `target` texture, no
+  internal allocation; `dispose()` wired into `previewFrameLoop.ts`'s teardown. Test suite covers
+  every gate item from both revision rounds. Full workspace check/test/build green.
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.4-generic-frame-executor.md`
 
 - **F2.3 — runtime resource realization** — `f355221` · `ResourceRealizer` allocates real
   `GPUBuffer`/`GPUTexture` per target; cache fingerprint (verified in the actual diff) includes

@@ -1,6 +1,8 @@
 # Foundation 2 — generic resources and frame execution: sequencing plan
 
-**Status:** proposed sequencing plan, not yet approved · **Parent:**
+**Status:** F2.1–F2.4 all landed (`04f5319`, `397af7f`, `f355221`, `37f496a`) — only the Foundation 2
+proof step remains, and F2.4's own brief flags a real sequencing question that needs resolving
+before it's briefed (see item 5 below and F2.4's Handoff) · **Parent:**
 [elemental-webgpu-architecture-review.md, Foundation 2](./elemental-webgpu-architecture-review.md#roadmap-realignment)
 · **Depends on:** Foundation 1, complete (F1.1 `b36f864`, F1.2 `3768ae2`, F1.5 `129d35e`, F1.3
 `d2db00e`, F1.4a `48ea451`) · **Blocks:** Foundation 3 (generic kernels — needs Foundation 2's
@@ -102,7 +104,7 @@ this generalization is achievable without touching the algorithm, only the type 
    genuinely new code otherwise — nothing today does GPU-side resource allocation for the frame
    graph. **Contract:**
    [F2.3-runtime-resource-realization.md](./briefs/F2.3-runtime-resource-realization.md).
-4. **F2.4 — generic frame executor (rev. 2).** Replace `GraphFrameExecutor`'s independent-only bypass with
+4. **F2.4 — generic frame executor ✅ done (`37f496a`), rev. 2.** Replace `GraphFrameExecutor`'s independent-only bypass with
    real execution of F2.2's ordered DAG over F2.3's realized resources. Incremental, not a
    flag-day rewrite: today's zero-dependency preview case must keep working throughout (it's the
    trivial case of the general executor, not a separate code path to maintain alongside it). Also
