@@ -1,3 +1,4 @@
+import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
 
 import type {
@@ -6,7 +7,13 @@ import type {
 	ResourceLifetime,
 	ResourceTemplate
 } from './implementation.js';
-import { inferBufferUsage, resolveBufferUsage } from './resources.js';
+import { registerPrimitive } from './registry.js';
+import {
+	collectResourceInstances,
+	inferBufferUsage,
+	resolveBufferUsage
+} from './resources.js';
+import type { GraphDocument } from './types.js';
 
 const BUFFER_TEMPLATE: ResourceTemplate = {
 	shape: {
@@ -17,6 +24,15 @@ const BUFFER_TEMPLATE: ResourceTemplate = {
 	},
 	lifetime: { kind: 'persistent' }
 };
+
+registerPrimitive({
+	id: 'test.resourceInstance',
+	category: 'test',
+	inputs: [],
+	outputs: [],
+	params: Type.Object({}),
+	implementation: { kind: 'resource', template: BUFFER_TEMPLATE }
+});
 
 describe('resource contracts', () => {
 	it('restricts templates to resource-shaped TypeRefs', () => {
@@ -58,6 +74,22 @@ describe('resource contracts', () => {
 			{ kind: 'history', slots: 2 }
 		];
 		expect(JSON.parse(JSON.stringify(lifetimes))).toEqual(lifetimes);
+	});
+
+	it('materializes distinct node-owned instances from one primitive template', () => {
+		const doc: GraphDocument = {
+			version: '2',
+			nodes: [
+				{ id: 'resource-a', primitive: 'test.resourceInstance', inputs: [], outputs: [] },
+				{ id: 'resource-b', primitive: 'test.resourceInstance', inputs: [], outputs: [] }
+			],
+			edges: [],
+			outputs: []
+		};
+		expect(collectResourceInstances(doc)).toEqual([
+			{ id: 'resource-a', ...BUFFER_TEMPLATE },
+			{ id: 'resource-b', ...BUFFER_TEMPLATE }
+		]);
 	});
 });
 

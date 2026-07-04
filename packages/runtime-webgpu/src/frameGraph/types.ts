@@ -1,32 +1,47 @@
-export type TargetSize =
+import type {
+	ResourceBinding,
+	ResourceLifetime,
+	ResourceShape
+} from '@world-lab/graph';
+
+export type TextureTargetSize =
 	| { kind: 'screen-relative'; scale: number }
 	| { kind: 'fixed'; width: number; height: number };
 
-export interface RenderTarget {
+export interface BufferResourceTarget {
 	id: string;
-	format: GPUTextureFormat;
-	size: TargetSize;
-	/** Forced persistent (feedback/history); display adds this dynamically. */
-	persistent?: boolean;
+	shape: Extract<ResourceShape, { kind: 'buffer' }>;
+	lifetime: ResourceLifetime;
+	size: { kind: 'element-count'; count: number };
 }
 
-export interface ChannelRead {
+export interface TextureResourceTarget {
+	id: string;
+	shape: Extract<ResourceShape, { kind: 'texture' }>;
+	lifetime: ResourceLifetime;
+	size: TextureTargetSize;
+}
+
+export type ResourceTarget = BufferResourceTarget | TextureResourceTarget;
+
+export interface ResourceRead {
 	channel: number;
 	target: string;
-	previousFrame?: boolean;
+	version?: 'previous';
 	sampler?: { filter: 'nearest' | 'linear'; wrap: 'clamp' | 'repeat' };
 }
 
 export interface Pass {
 	consumerId: string;
 	writeTarget: string;
-	reads: ChannelRead[];
+	reads: ResourceRead[];
+	bindings?: ResourceBinding[];
 	iterations?: number;
 	pure?: boolean;
 }
 
 export interface PassGraph {
-	targets: RenderTarget[];
+	targets: ResourceTarget[];
 	passes: Pass[];
 	display: string;
 }

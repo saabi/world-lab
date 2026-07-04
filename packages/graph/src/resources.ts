@@ -1,5 +1,9 @@
-import type { ResourceBinding } from './implementation.js';
-import type { BufferUsageFlag } from './types.js';
+import type {
+	ResourceBinding,
+	ResourceInstance
+} from './implementation.js';
+import { getPrimitive } from './registry.js';
+import type { BufferUsageFlag, GraphDocument } from './types.js';
 
 export function inferBufferUsage(
 	bindings: readonly ResourceBinding[]
@@ -12,4 +16,15 @@ export function resolveBufferUsage(
 	bindings: readonly ResourceBinding[]
 ): BufferUsageFlag[] {
 	return [...new Set([...declared, ...inferBufferUsage(bindings)])];
+}
+
+export function collectResourceInstances(doc: GraphDocument): ResourceInstance[] {
+	const instances: ResourceInstance[] = [];
+	for (const node of doc.nodes) {
+		const implementation = getPrimitive(node.primitive)?.implementation;
+		if (implementation?.kind === 'resource') {
+			instances.push({ id: node.id, ...implementation.template });
+		}
+	}
+	return instances;
 }

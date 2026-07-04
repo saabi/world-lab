@@ -104,8 +104,14 @@ describe('graphFramePlan', () => {
 
 	it('builds a pass graph with no same-frame read edges between independent targets', () => {
 		const passes = planIndependentGraphFramePasses(dualDisplayGraph());
-		const order = buildPassOrder(buildIndependentPassGraph(passes));
+		const graph = buildIndependentPassGraph(passes);
+		const order = buildPassOrder(graph);
 		expect(order.order.sort()).toEqual(['pipeline_image_n_display_a', 'pipeline_image_n_display_b']);
-		expect(order.feedbackTargets.sort()).toEqual(['pipeline_image_n_display_a']);
+		expect(order.feedbackTargets).toEqual([]);
+		expect(graph.targets[0]).toMatchObject({
+			shape: { kind: 'texture', format: 'rgba8unorm' },
+			lifetime: { kind: 'transient' },
+			size: { kind: 'screen-relative', scale: 1 }
+		});
 	});
 });

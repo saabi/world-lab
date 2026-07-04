@@ -1,4 +1,8 @@
-import type { PassGraph } from './types.js';
+import type {
+	BufferResourceTarget,
+	PassGraph,
+	TextureResourceTarget
+} from './types.js';
 
 export interface PassOrderResult {
 	order: string[];
@@ -9,7 +13,8 @@ export interface PassOrderResult {
 export type FrameGraphIssue =
 	| { kind: 'intra-frame-cycle'; cycle: string[] }
 	| { kind: 'dangling-target'; pass: string; target: string }
-	| { kind: 'read-write-same-pass'; pass: string; target: string };
+	| { kind: 'read-write-same-pass'; pass: string; target: string }
+	| { kind: 'invalid-history-read'; pass: string; target: string };
 
 function targetIds(graph: PassGraph): Set<string> {
 	return new Set(graph.targets.map((target) => target.id));
@@ -27,7 +32,7 @@ function writerOfTarget(
 }
 
 function sameFrameReads(reads: PassGraph['passes'][number]['reads']) {
-	return reads.filter((read) => !read.previousFrame);
+	return reads.filter((read) => read.version !== 'previous');
 }
 
 function buildAdjacency(graph: PassGraph): {
@@ -64,6 +69,7 @@ function buildAdjacency(graph: PassGraph): {
 export function validatePassGraph(graph: PassGraph): FrameGraphIssue[] {
 	const issues: FrameGraphIssue[] = [];
 	const knownTargets = targetIds(graph);
+	const targetsById = new Map(graph.targets.map((target) => [target.id, target]));
 
 	for (const pass of graph.passes) {
 		if (!knownTargets.has(pass.writeTarget)) {
@@ -84,7 +90,18 @@ export function validatePassGraph(graph: PassGraph): FrameGraphIssue[] {
 				continue;
 			}
 
-			if (read.target === pass.writeTarget && !read.previousFrame) {
+			if (
+				read.version === 'previous' &&
+				targetsById.get(read.target)?.lifetime.kind !== 'history'
+			) {
+				issues.push({
+					kind: 'invalid-history-read',
+					pass: pass.consumerId,
+					target: read.target,
+				});
+			}
+
+			if (read.target === pass.writeTarget && read.version !== 'previous') {
 				issues.push({
 					kind: 'read-write-same-pass',
 					pass: pass.consumerId,
@@ -137,27 +154,9 @@ function expandPassOrder(baseOrder: readonly string[], graph: PassGraph): string
 }
 
 function collectFeedbackTargets(graph: PassGraph): string[] {
-	const feedback = new Set<string>();
-
-	for (const target of graph.targets) {
-		if (target.persistent) {
-			feedback.add(target.id);
-		}
-	}
-
-	for (const pass of graph.passes) {
-		for (const read of pass.reads) {
-			if (read.previousFrame) {
-				feedback.add(read.target);
-			}
-		}
-	}
-
-	if (graph.display) {
-		feedback.add(graph.display);
-	}
-
-	return [...feedback];
+	return graph.targets
+		.filter((target) => target.lifetime.kind === 'history')
+		.map((target) => target.id);
 }
 
 function computeLifetimes(
@@ -237,7 +236,9 @@ function formatIssue(issue: FrameGraphIssue): string {
 		case 'dangling-target':
 			return `Dangling target "${issue.target}" referenced by pass "${issue.pass}"`;
 		case 'read-write-same-pass':
-			return `Pass "${issue.pass}" reads its write target "${issue.target}" without previousFrame`;
+			return `Pass "${issue.pass}" reads its current write target "${issue.target}"`;
+		case 'invalid-history-read':
+			return `Pass "${issue.pass}" reads previous version of non-history target "${issue.target}"`;
 	}
 }
 
@@ -264,6 +265,7 @@ export function resolveTargetSizes(
 	const sizes: Record<string, { width: number; height: number }> = {};
 
 	for (const target of graph.targets) {
+		if (!isTextureResourceTarget(target)) continue;
 		if (target.size.kind === 'fixed') {
 			sizes[target.id] = {
 				width: target.size.width,
@@ -279,4 +281,27 @@ export function resolveTargetSizes(
 	}
 
 	return sizes;
+}
+
+export function resolveBufferSizes(
+	graph: PassGraph,
+): Record<string, { elementCount: number }> {
+	const sizes: Record<string, { elementCount: number }> = {};
+	for (const target of graph.targets) {
+		if (!isBufferResourceTarget(target)) continue;
+		sizes[target.id] = { elementCount: target.size.count };
+	}
+	return sizes;
+}
+
+function isBufferResourceTarget(
+	target: PassGraph['targets'][number]
+): target is BufferResourceTarget {
+	return target.shape.kind === 'buffer';
+}
+
+function isTextureResourceTarget(
+	target: PassGraph['targets'][number]
+): target is TextureResourceTarget {
+	return target.shape.kind === 'texture';
 }

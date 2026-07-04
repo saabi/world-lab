@@ -20,7 +20,13 @@ export function planIndependentGraphFramePasses(doc: GraphDocument): GraphFrameP
 export function buildIndependentPassGraph(passes: GraphFramePass[]): PassGraph {
 	const targets = passes.map((pass) => ({
 		id: pass.targetId,
-		format: 'rgba8unorm' as GPUTextureFormat,
+		shape: {
+			kind: 'texture' as const,
+			dimension: '2d' as const,
+			sample: 'float' as const,
+			format: 'rgba8unorm'
+		},
+		lifetime: { kind: 'transient' as const },
 		size: { kind: 'screen-relative' as const, scale: 1 }
 	}));
 	return {
