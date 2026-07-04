@@ -1,8 +1,10 @@
 # Foundation 2 — generic resources and frame execution: sequencing plan
 
-**Status:** F2.1–F2.4 all landed (`04f5319`, `397af7f`, `f355221`, `37f496a`) — only the Foundation 2
-proof step remains, and F2.4's own brief flags a real sequencing question that needs resolving
-before it's briefed (see item 5 below and F2.4's Handoff) · **Parent:**
+**Status:** F2.1–F2.4 all landed (`04f5319`, `397af7f`, `f355221`, `37f496a`) — the sequencing
+question F2.4 flagged is resolved: F2.5 (proof) absorbs one minimal, narrowly-scoped channel-read
+primitive rather than waiting for Foundation 3, and the buffer-feedback sample uses a hand-written
+fragment entry (WGSL's native storage-buffer write) rather than waiting for compute dispatch — see
+[F2.5-foundation-2-proof.md](./briefs/F2.5-foundation-2-proof.md) · **Parent:**
 [elemental-webgpu-architecture-review.md, Foundation 2](./elemental-webgpu-architecture-review.md#roadmap-realignment)
 · **Depends on:** Foundation 1, complete (F1.1 `b36f864`, F1.2 `3768ae2`, F1.5 `129d35e`, F1.3
 `d2db00e`, F1.4a `48ea451`) · **Blocks:** Foundation 3 (generic kernels — needs Foundation 2's
@@ -122,11 +124,16 @@ this generalization is achievable without touching the algorithm, only the type 
    [F2.4-generic-frame-executor.md](./briefs/F2.4-generic-frame-executor.md).
 5. **Foundation 2 proof.** Two bundled, hardcoded samples, not just unit tests: a two-pass
    render-target sample (one pass feeds another, both textures — the ShaderToy-multibuffer-style
-   case the old brief targeted) **and** a small buffer-feedback sample (a minimal compute
-   ping-pong, e.g. a cellular-automaton or particle-count accumulator over a storage buffer). The
+   case the old brief targeted) **and** a small buffer-feedback sample (a minimal ping-pong, e.g. a
+   cellular-automaton step over a storage buffer — via a hand-written fragment entry using WGSL's
+   native storage-buffer write, not a compute dispatch, so this doesn't wait on Foundation 3). The
    buffer sample is not optional polish — it's the concrete test that the resource-history model
    didn't quietly stay texture-only under a more general-looking type signature. Per this project's
-   standing instruction, both are pickable editor samples, not headless-only fixtures.
+   standing instruction, both are pickable editor samples, not headless-only fixtures. Narrowly
+   scoped: one new `input.channel` host-input primitive + WGSL emission branch (using the
+   already-reserved `HostBinding{context:'read-resource'}` and already-existing `BindingDecl`
+   texture/sampler/storage-read kinds), not Foundation 3's generic kernel/binding model. **Contract:**
+   [F2.5-foundation-2-proof.md](./briefs/F2.5-foundation-2-proof.md).
 
 Only once Foundation 2's resource model is real does Foundation 3 (generic vertex/fragment/compute
 kernels) have something correct to bind against — kernels need typed resource bindings, and

@@ -27,11 +27,19 @@ is still open.
 
 ## Active
 
-_No unclaimed tasks._
-
-**Note:** Foundation 2's plan flags a real sequencing question before the proof step can be
-briefed — neither proof sample (two-pass texture feedback, buffer feedback) can exist as a real
-document yet; see `F2.4-generic-frame-executor.md`'s Handoff.
+- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — two bundled,
+  pickable samples: two-pass texture feedback + buffer feedback; narrowly scoped, not Foundation 3's
+  generic kernel/binding model, see brief's Context)
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
+  Owns: `packages/graph/src/primitives/host/channel.ts` (new),
+  `packages/compiler/src/stageEntry.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new),
+  `packages/runtime-webgpu/src/graphFrameExecutor.ts`, `packages/runtime-webgpu/src/graphFramePlan.ts`,
+  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`, and their
+  test files
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
