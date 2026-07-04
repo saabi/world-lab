@@ -27,8 +27,10 @@ is still open.
 
 ## Active
 
-- **F2.2 — resource dependency planner** (Foundation 2, milestone 2 of 5 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md`)
+- **F2.2 — resource dependency planner** (Foundation 2, milestone 2 of 5; revision 2 — see
+  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — `ResourceTarget`
+  is now a discriminated union (shape/size correlation enforced), `collectFeedbackTargets` only
+  counts `history`-lifetime targets, not `persistent`)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.2-resource-dependency-planner.md`
   Owns: `packages/runtime-webgpu/src/frameGraph/types.ts`,
   `packages/runtime-webgpu/src/frameGraph/order.ts`,

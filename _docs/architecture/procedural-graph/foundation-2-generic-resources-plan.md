@@ -70,17 +70,24 @@ this generalization is achievable without touching the algorithm, only the type 
    `ResourceDescriptor` its real shape (as `ResourceTemplate`/`ResourceInstance`, id-less template
    vs. materialized instance, after a pre-implementation review round). Pure types + inference, no
    runtime allocation yet.
-2. **F2.2 — resource dependency planner.** Generalizes `frameGraph/types.ts`'s `RenderTarget`/
-   `ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union (renamed `ResourceTarget`/
-   `ResourceRead`), and updates `resolveTargetSizes` to be resource-kind-aware (texture-shaped
-   resources resolve viewport-relative pixel dimensions; buffer-shaped resources resolve element
-   count via a new, parallel `resolveBufferSizes` function, not an overload of the texture-only
-   one). `validatePassGraph`/`buildAdjacency`/`topologicalOrder`/`collectFeedbackTargets`/
-   `computeLifetimes`/`buildPassOrder` themselves need **no algorithmic changes** — verified above,
-   they already operate on opaque IDs and booleans. Also materializes `ResourceInstance`s from a
-   real `GraphDocument` (`collectResourceInstances`, `@world-lab/graph`) and reserves (but does not
-   yet consume) planner-level `ResourceBinding[]` on `Pass`, per F2.1's own brief. Keep pure and
-   exhaustively headless-tested, matching `order.test.ts`'s existing rigor exactly. **Contract:**
+2. **F2.2 — resource dependency planner (rev. 2).** Generalizes `frameGraph/types.ts`'s
+   `RenderTarget`/`ChannelRead`/`Pass`/`PassGraph` to the F2.1 `Resource` union as a discriminated
+   union (`ResourceTarget` = buffer-shaped variant paired only with an element-count size,
+   texture-shaped variant paired only with a pixel size — shape and size can no longer disagree),
+   and updates `resolveTargetSizes` to be resource-kind-aware (texture-shaped resources resolve
+   viewport-relative pixel dimensions; buffer-shaped resources resolve element count via a new,
+   parallel `resolveBufferSizes` function, not an overload of the texture-only one).
+   `validatePassGraph`/`buildAdjacency`/`topologicalOrder`/`computeLifetimes`/`buildPassOrder`
+   themselves need **no algorithmic changes** — verified above, they already operate on opaque IDs
+   and booleans. `collectFeedbackTargets`'s own criterion is corrected, not just generalized: only
+   `history`-lifetime targets (genuinely ping-ponged) count as feedback — a `persistent` target is
+   exactly one allocation and must not be told apart as needing a second — and the old unconditional
+   "always retain the display target" line is removed, since within-frame display retention was
+   already `computeLifetimes`'s job, a separate concern from cross-frame ping-pong. Also
+   materializes `ResourceInstance`s from a real `GraphDocument` (`collectResourceInstances`,
+   `@world-lab/graph`) and reserves (but does not yet consume) planner-level `ResourceBinding[]` on
+   `Pass`, per F2.1's own brief. Keep pure and exhaustively headless-tested, matching
+   `order.test.ts`'s existing rigor exactly. **Contract:**
    [F2.2-resource-dependency-planner.md](./briefs/F2.2-resource-dependency-planner.md).
 3. **F2.3 — runtime resource realization.** The actually-missing piece: allocate real WebGPU
    resources (buffers and textures) from F2.2's descriptors, derive bind-group layouts and usage
