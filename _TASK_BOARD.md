@@ -27,20 +27,25 @@ is still open.
 
 ## Active
 
-- **F2.3 — runtime resource realization** (Foundation 2, milestone 3 of 5; revision 3 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — cache fingerprint
-  covers derived usage/format, not just size; removed targets pruned; zero-usage buffers **and
-  textures** rejected; storage textures rejected rather than mis-derived as `RENDER_ATTACHMENT`;
-  bind-group layout derivation deliberately deferred to Foundation 3, see brief's Context)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.3-runtime-resource-realization.md`
-  Owns: `packages/runtime-webgpu/src/frameGraph/realize.ts` (new),
-  `packages/runtime-webgpu/src/index.ts`, and its test file
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+_No unclaimed tasks._
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.3 — runtime resource realization** — `f355221` · `ResourceRealizer` allocates real
+  `GPUBuffer`/`GPUTexture` per target; cache fingerprint (verified in the actual diff) includes
+  full `shape` plus derived usage/size/format, not just size — stronger than the brief's own
+  minimum; removed targets destroyed and pruned (tested directly); zero-usage buffers **and**
+  textures rejected before allocation; storage textures (`shape.access` set) rejected with a clear
+  "deferred" error rather than mis-derived as `RENDER_ATTACHMENT`; `history`-lifetime targets
+  double-buffered via a frame-parity flip, with a defensive fallback so single-slot resources never
+  index out of bounds after `advanceFrame()`; partial-allocation failure cleans up already-allocated
+  slots before rethrowing (a robustness addition beyond the brief). Test suite (`realize.test.ts`,
+  442 lines) covers every gate item precisely, including both regression rounds. Full workspace
+  check/test/build green, plus the real-device gate test.
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.3-runtime-resource-realization.md`
 
 - **F2.2 — resource dependency planner** — `397af7f` · `ResourceTarget` generalized to a
   discriminated union (`BufferResourceTarget`/`TextureResourceTarget`, shape/size correlation
