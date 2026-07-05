@@ -32,7 +32,7 @@ is still open.
   Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md` (Post-landing
   follow-up section)
   Owns: `packages/runtime-webgpu/src/graphFrameExecutor.test.ts` only — no production code changes
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.

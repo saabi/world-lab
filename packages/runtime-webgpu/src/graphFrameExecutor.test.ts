@@ -172,6 +172,14 @@ describe('GraphFrameExecutor', () => {
 		expect(mock.textures[0]?.destroy).toHaveBeenCalledTimes(1);
 	});
 
+	it('cascades disposal to the buffer-feedback executor', () => {
+		const disposeSpy = vi.spyOn(BufferFeedbackExecutor.prototype, 'dispose');
+
+		new GraphFrameExecutor().dispose();
+
+		expect(disposeSpy).toHaveBeenCalledTimes(1);
+	});
+
 	it('recreates and disposes resources when the device identity changes', async () => {
 		const disposeSpy = vi.spyOn(ResourceRealizer.prototype, 'dispose');
 		const first = mockDevice();
