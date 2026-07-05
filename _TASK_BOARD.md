@@ -35,15 +35,20 @@ is still open.
   generic kernel/binding model, see brief's Context)
   Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
   Owns: `packages/graph/src/primitives/host/channel.ts` (new),
+  `packages/graph/src/primitives/host/index.ts`,
+  `packages/graph/src/primitives/pipeline/index.ts`, `packages/graph/src/index.ts`,
   `packages/graph/src/bufferFeedbackTarget.ts` (new — `target.bufferFeedback` sink + derivation),
+  `packages/runtime-webgpu/src/graphReachability.ts` (new — shared channel index/reachability),
   `packages/runtime-webgpu/src/emitGraphEval.ts`,
   `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
   `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new — `BufferFeedbackExecutor`),
+  `packages/runtime-webgpu/src/index.ts`,
   `packages/runtime-webgpu/src/graphFrameExecutor.ts`, `packages/runtime-webgpu/src/graphFramePlan.ts`,
   `packages/graph-editor/src/previewFrameLoop.ts`, `packages/graph-editor/src/previewBuffers.ts`,
+  `packages/graph-editor/src/EffectPreviewPanel.svelte`, `packages/graph-editor/src/GraphEditor.svelte`,
   `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`, and their
   test files
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.

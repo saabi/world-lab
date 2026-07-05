@@ -42,6 +42,7 @@ export interface PipelineGraphInput {
 	height: number;
 	host: ShaderToyHostInputs;
 	target: GPUTexture;
+	channelTargets?: ReadonlyMap<number, GPUTexture>;
 }
 
 /** Stable cache identity for geometry realized through `buffer.persist`. */
@@ -268,7 +269,8 @@ export class PipelineGraphExecutor {
 			width: input.width,
 			height: input.height,
 			host: input.host,
-			target: input.target
+			target: input.target,
+			channelTargets: input.channelTargets
 		});
 	}
 }

@@ -2,7 +2,11 @@ import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
 import { getPrimitive, type GraphDocument, type Node, type PortRef } from '@world-lab/graph';
 
-import { cosinePaletteEffectGraph, defaultPreviewGraph } from './graphBuilders.js';
+import {
+	bufferFeedbackGraph,
+	cosinePaletteEffectGraph,
+	defaultPreviewGraph
+} from './graphBuilders.js';
 import {
 	allPreviewFamilyDataTypes,
 	enumeratePreviewBuffers,
@@ -102,6 +106,17 @@ describe('previewFamily', () => {	it('maps every DataType to the family table', 
 });
 
 describe('enumeratePreviewBuffers', () => {
+	it('lists a buffer-feedback sink as an image keyed by the sink id', () => {
+		const buffer = enumeratePreviewBuffers(bufferFeedbackGraph())[0];
+		expect(buffer).toMatchObject({
+			id: 'n_buffer_feedback',
+			source: { sinkNode: 'n_buffer_feedback' },
+			dataType: 'storageBuffer',
+			family: 'image',
+			inferred: true
+		});
+	});
+
 	it('lists the scalar field output as data', () => {
 		const buffers = enumeratePreviewBuffers(defaultPreviewGraph());
 		expect(buffers).toHaveLength(1);

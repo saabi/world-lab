@@ -2,7 +2,9 @@ import type { GraphDocument } from '@world-lab/graph';
 
 import {
 	animatedWorleyPipelineGraph,
+	bufferFeedbackGraph,
 	cosinePaletteEffectGraph,
+	crossPassTextureReadGraph,
 	defaultPreviewGraph,
 	displacedSphereMeshGraph,
 	legacyFullscreenFragmentGraph,
@@ -38,6 +40,16 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'shadertoy-cosine-palette',
 		label: 'ShaderToy — Cosine palette',
 		build: cosinePaletteEffectGraph
+	},
+	{
+		id: 'foundation-cross-pass-texture',
+		label: 'Foundation — Cross-pass texture read',
+		build: crossPassTextureReadGraph
+	},
+	{
+		id: 'foundation-buffer-feedback',
+		label: 'Foundation — Buffer feedback',
+		build: bufferFeedbackGraph
 	},
 	{
 		id: 'mesh-displaced-sphere',

@@ -248,6 +248,72 @@ export function cosinePaletteEffectGraph(): GraphDocument {
 	};
 }
 
+/** Foundation 2 proof: display B samples display A through input.channel in the same frame. */
+export function crossPassTextureReadGraph(): GraphDocument {
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode('n_plane', 'geometry.plane', { x: 0, y: 40 }, { resU: 2, resV: 2 }),
+			snapshotNode('n_persist', 'buffer.persist', { x: 220, y: 40 }),
+			snapshotNode('n_vertex', 'stage.vertex', { x: 440, y: 40 }),
+			snapshotNode('n_red', 'constant.f32', { x: 180, y: 180 }, { value: 0.2 }),
+			snapshotNode('n_green', 'constant.f32', { x: 180, y: 240 }, { value: 0.55 }),
+			snapshotNode('n_blue', 'constant.f32', { x: 180, y: 300 }, { value: 0.9 }),
+			snapshotNode('n_alpha', 'constant.f32', { x: 180, y: 360 }, { value: 1 }),
+			snapshotNode('n_base', 'vector.vec4f', { x: 420, y: 240 }),
+			snapshotNode('n_fragment_a', 'stage.fragment', { x: 680, y: 100 }),
+			snapshotNode('n_display_a', 'target.display', { x: 920, y: 100 }),
+			snapshotNode(
+				'n_channel',
+				'input.channel',
+				{ x: 420, y: 360 },
+				{ channel: 0, sourceDisplayId: 'n_display_a' }
+			),
+			snapshotNode('n_factor', 'constant.f32', { x: 420, y: 460 }, { value: 0.65 }),
+			snapshotNode('n_tint', 'vector.mulScalar.vec4f', { x: 650, y: 400 }),
+			snapshotNode('n_fragment_b', 'stage.fragment', { x: 680, y: 300 }),
+			snapshotNode('n_display_b', 'target.display', { x: 920, y: 300 })
+		],
+		edges: [
+			edge('e_plane_persist', 'n_plane', 'geometry.plane', 'n_persist', 'buffer.persist', 0, 0),
+			edge('e_persist_vertex', 'n_persist', 'buffer.persist', 'n_vertex', 'stage.vertex', 0, 0),
+			edge('e_red_base', 'n_red', 'constant.f32', 'n_base', 'vector.vec4f', 0, 0),
+			edge('e_green_base', 'n_green', 'constant.f32', 'n_base', 'vector.vec4f', 0, 1),
+			edge('e_blue_base', 'n_blue', 'constant.f32', 'n_base', 'vector.vec4f', 0, 2),
+			edge('e_alpha_base', 'n_alpha', 'constant.f32', 'n_base', 'vector.vec4f', 0, 3),
+			edge('e_vertex_fragment_a', 'n_vertex', 'stage.vertex', 'n_fragment_a', 'stage.fragment', 0, 0),
+			edge('e_base_fragment_a', 'n_base', 'vector.vec4f', 'n_fragment_a', 'stage.fragment', 0, 1),
+			edge('e_fragment_display_a', 'n_fragment_a', 'stage.fragment', 'n_display_a', 'target.display', 0, 0),
+			edge('e_vertex_fragment_b', 'n_vertex', 'stage.vertex', 'n_fragment_b', 'stage.fragment', 0, 0),
+			edge('e_channel_tint', 'n_channel', 'input.channel', 'n_tint', 'vector.mulScalar.vec4f', 0, 0),
+			edge('e_factor_tint', 'n_factor', 'constant.f32', 'n_tint', 'vector.mulScalar.vec4f', 0, 1),
+			edge('e_tint_fragment_b', 'n_tint', 'vector.mulScalar.vec4f', 'n_fragment_b', 'stage.fragment', 0, 1),
+			edge('e_fragment_display_b', 'n_fragment_b', 'stage.fragment', 'n_display_b', 'target.display', 0, 0)
+		],
+		outputs: [
+			{ name: 'base', from: portRef('n_base', 'vector.vec4f', 'out', 0) },
+			{ name: 'channel_read', from: portRef('n_tint', 'vector.mulScalar.vec4f', 'out', 0) }
+		]
+	};
+}
+
+/** Foundation 2 proof; dimensions intentionally match createPreviewFrameLoop's 256px default. */
+export function bufferFeedbackGraph(): GraphDocument {
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode(
+				'n_buffer_feedback',
+				'target.bufferFeedback',
+				{ x: 320, y: 180 },
+				{ gridWidth: 256, gridHeight: 256 }
+			)
+		],
+		edges: [],
+		outputs: []
+	};
+}
+
 /**
  * Mesh preview sample: UV → cube face → spherify → Perlin height → normal displace → target.mesh.
  * Load from the document picker; select the mesh buffer tab in preview to see the bumpy sphere.

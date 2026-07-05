@@ -53,7 +53,7 @@
 		void targetId;
 		void frameLoop;
 
-		if (!canvas || !output || !targetId || !frameLoop || blockMessage) {
+		if (!canvas || !targetId || !frameLoop || blockMessage) {
 			statusMessage = null;
 			return;
 		}
@@ -86,12 +86,12 @@
 	<p class="hint">Animation clock is shared across preview panes; pointer is local to this pane.</p>
 	{#if blockMessage}
 		<p class="blocked">{blockMessage}</p>
-	{:else if output && targetId && frameLoop}
+	{:else if targetId && frameLoop}
 		<canvas bind:this={canvas} width={size} height={size} class="effect-canvas"></canvas>
 		{#if statusMessage}
 			<p class="status">{statusMessage}</p>
 		{/if}
-	{:else if output}
+	{:else if output || targetId}
 		<p class="empty">Preview loop unavailable — wire a pipeline display target.</p>
 	{:else}
 		<p class="empty">Wire a vec4 image output with a fragment consumer.</p>

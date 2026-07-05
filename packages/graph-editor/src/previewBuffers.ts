@@ -1,5 +1,6 @@
 import {
 	deriveMeshTargets,
+	deriveBufferFeedbackTarget,
 	derivePipelinePresentations,
 	effectiveOutputs,
 	isPipelineTarget,
@@ -228,6 +229,17 @@ export function enumeratePreviewBuffers(doc: GraphDocument): PreviewBuffer[] {
 		if (seenMeshSinkIds.has(descriptor.meshNodeId)) continue;
 		seenMeshSinkIds.add(descriptor.meshNodeId);
 		buffers.push(bufferFromMeshSink(doc, descriptor.meshNodeId));
+	}
+	const bufferFeedbackTarget = deriveBufferFeedbackTarget(doc);
+	if (bufferFeedbackTarget) {
+		buffers.push({
+			id: bufferFeedbackTarget.sinkNodeId,
+			label: labelForNode(doc, bufferFeedbackTarget.sinkNodeId),
+			source: { sinkNode: bufferFeedbackTarget.sinkNodeId },
+			dataType: 'storageBuffer',
+			family: 'image',
+			inferred: true
+		});
 	}
 
 	return buffers;

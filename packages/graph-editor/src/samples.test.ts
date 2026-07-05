@@ -15,14 +15,16 @@ import { enumeratePreviewBuffers, inferDefaultPreviewBuffer, resolveMeshPreviewR
 import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js';
 
 describe('graph-editor samples registry', () => {
-	it('contains the Worley, cosine-palette, and mesh samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(7);
+	it('contains the pipeline, Foundation 2, and mesh samples', () => {
+		expect(GRAPH_SAMPLES.length).toBe(9);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
 		expect(getGraphSample('mesh-rigid-transforms')?.label).toContain('Rigid transforms');
 		expect(getGraphSample('migration-default-preview')).toBeDefined();
 		expect(getGraphSample('migration-fullscreen-fragment')).toBeDefined();
+		expect(getGraphSample('foundation-cross-pass-texture')).toBeDefined();
+		expect(getGraphSample('foundation-buffer-feedback')).toBeDefined();
 	});
 
 	it('builds a valid fragment-image graph for the ShaderToy sample', () => {

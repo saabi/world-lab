@@ -1,12 +1,18 @@
-import type { GraphDocument } from '@world-lab/graph';
+import {
+	deriveBufferFeedbackTarget,
+	type GraphDocument
+} from '@world-lab/graph';
 import type { WgslModuleResolver } from '@world-lab/compiler';
 
 import type { ShaderToyHostInputs } from './consumers/fullscreenFragment.js';
+import { BufferFeedbackExecutor } from './consumers/bufferFeedback.js';
 import { buildPassOrder } from './frameGraph/order.js';
 import { ResourceRealizer } from './frameGraph/realize.js';
 import {
 	buildIndependentPassGraph,
-	planIndependentGraphFramePasses
+	buildPassGraphWithChannelReads,
+	planIndependentGraphFramePasses,
+	resolveChannelDependencies
 } from './graphFramePlan.js';
 import { PipelineGraphExecutor } from './pipelineGraph.js';
 
@@ -36,6 +42,7 @@ export interface GraphFrameExecuteResult {
 /** Runs all independent pipeline targets in one frame with shared ShaderToy host uniforms. */
 export class GraphFrameExecutor {
 	private readonly pipeline = new PipelineGraphExecutor();
+	private readonly bufferFeedback = new BufferFeedbackExecutor();
 	private realizer: ResourceRealizer | undefined;
 	private realizerDevice: GPUDevice | undefined;
 
@@ -50,13 +57,28 @@ export class GraphFrameExecutor {
 
 	dispose(): void {
 		this.realizer?.dispose();
+		this.bufferFeedback.dispose();
 		this.realizer = undefined;
 		this.realizerDevice = undefined;
 	}
 
 	async execute(input: GraphFrameExecuteInput): Promise<GraphFrameExecuteResult> {
+		const bufferTarget = deriveBufferFeedbackTarget(input.graph);
+		if (
+			bufferTarget &&
+			(bufferTarget.gridWidth !== input.width || bufferTarget.gridHeight !== input.height)
+		) {
+			throw new Error(
+				`target.bufferFeedback grid (${bufferTarget.gridWidth}x${bufferTarget.gridHeight}) ` +
+					`must match the frame viewport (${input.width}x${input.height})`
+			);
+		}
 		const passes = planIndependentGraphFramePasses(input.graph);
-		const passGraph = buildIndependentPassGraph(passes);
+		const channelDependencies = resolveChannelDependencies(input.graph, passes);
+		const passGraph =
+			channelDependencies.length === 0
+				? buildIndependentPassGraph(passes)
+				: buildPassGraphWithChannelReads(passes, channelDependencies);
 		const order = buildPassOrder(passGraph);
 		const realizer = this.realizerFor(input.device);
 		realizer.realizeAll(passGraph, { width: input.width, height: input.height });
@@ -83,6 +105,14 @@ export class GraphFrameExecutor {
 				iFrame: input.host.iFrame,
 				iMouse: input.host.pointers[pass.targetId] ?? [0, 0, 0, 0]
 			};
+			const channelTargets = new Map<number, GPUTexture>();
+			for (const dependency of channelDependencies) {
+				if (dependency.consumerId !== consumerId) continue;
+				channelTargets.set(
+					dependency.channel,
+					realizer.resolve(dependency.sourceTargetId).write as GPUTexture
+				);
+			}
 			const result = await this.pipeline.execute({
 				device: input.device,
 				graph: input.graph,
@@ -91,12 +121,21 @@ export class GraphFrameExecutor {
 				width: input.width,
 				height: input.height,
 				host,
-				target: realizer.resolve(pass.targetId).write as GPUTexture
+				target: realizer.resolve(pass.targetId).write as GPUTexture,
+				...(channelTargets.size > 0 ? { channelTargets } : {})
 			});
 			targets[pass.targetId] = result.pixels;
 		}
 
 		realizer.advanceFrame();
+		if (bufferTarget) {
+			const result = await this.bufferFeedback.execute(
+				input.device,
+				bufferTarget.gridWidth,
+				bufferTarget.gridHeight
+			);
+			targets[bufferTarget.sinkNodeId] = result.pixels;
+		}
 		return { width: input.width, height: input.height, targets };
 	}
 }

@@ -37,6 +37,7 @@ export interface FullscreenFragmentInput {
 	height: number;
 	host: ShaderToyHostInputs;
 	target: GPUTexture;
+	channelTargets?: ReadonlyMap<number, GPUTexture>;
 }
 
 export interface FullscreenFragmentResult {
@@ -52,6 +53,10 @@ export interface FullscreenFragmentAssembly {
 	params: GraphParamField[];
 	/** Whether ShaderToy host uniforms are declared at `@binding(0)`. */
 	usesShaderToyHost: boolean;
+	channelBindings: ReadonlyMap<
+		number,
+		{ textureBinding: number; samplerBinding: number }
+	>;
 }
 
 function packGraphParams(
@@ -139,13 +144,13 @@ export async function assembleFullscreenFragmentModuleAsync(
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
 	const usesShaderToyHost = wgslReferencesShaderToyUniform(libraryWithEval);
 	const hasGraphParams = emitted.params.length > 0;
-	const paramsBinding = usesShaderToyHost ? 1 : 0;
 
 	const bindings: BindingDecl[] = [];
+	let nextBinding = 0;
 	if (usesShaderToyHost) {
 		bindings.push({
 			group: 0,
-			binding: 0,
+			binding: nextBinding++,
 			name: 'u',
 			kind: 'uniform',
 			wgslType: 'ShaderToyUniforms'
@@ -154,11 +159,36 @@ export async function assembleFullscreenFragmentModuleAsync(
 	if (hasGraphParams) {
 		bindings.push({
 			group: 0,
-			binding: paramsBinding,
+			binding: nextBinding++,
 			name: 'params',
 			kind: 'uniform',
 			wgslType: 'GraphParams'
 		});
+	}
+	const channelBindings = new Map<
+		number,
+		{ textureBinding: number; samplerBinding: number }
+	>();
+	for (const channel of emitted.usedChannels) {
+		const textureBinding = nextBinding++;
+		const samplerBinding = nextBinding++;
+		channelBindings.set(channel, { textureBinding, samplerBinding });
+		bindings.push(
+			{
+				group: 0,
+				binding: textureBinding,
+				name: `channel${channel}`,
+				kind: 'texture',
+				wgslType: 'texture_2d<f32>'
+			},
+			{
+				group: 0,
+				binding: samplerBinding,
+				name: `channel${channel}Sampler`,
+				kind: 'sampler',
+				wgslType: 'sampler'
+			}
+		);
 	}
 
 	const stage = assembleStageEntry(
@@ -177,7 +207,14 @@ export async function assembleFullscreenFragmentModuleAsync(
 		: [paramsStruct, vertexWgsl, stage.code].filter(Boolean);
 	const code = codeParts.join('\n\n');
 
-	return { code, outputName, vertexCount, params: emitted.params, usesShaderToyHost };
+	return {
+		code,
+		outputName,
+		vertexCount,
+		params: emitted.params,
+		usesShaderToyHost,
+		channelBindings
+	};
 }
 
 async function createRenderPipeline(device: GPUDevice, shaderCode: string): Promise<GPURenderPipeline> {
@@ -204,11 +241,13 @@ export async function executeFullscreenFragment(
 	}
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
-	const { code, vertexCount, params, usesShaderToyHost } = await assembleFullscreenFragmentModuleAsync(
-		graph,
-		output,
-		resolver
-	);
+	const { code, vertexCount, params, usesShaderToyHost, channelBindings } =
+		await assembleFullscreenFragmentModuleAsync(graph, output, resolver);
+	for (const channel of channelBindings.keys()) {
+		if (!input.channelTargets?.has(channel)) {
+			throw new Error(`Missing channel target for channel ${channel}`);
+		}
+	}
 	const pipeline = await createRenderPipeline(device, code);
 	const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
@@ -251,6 +290,22 @@ export async function executeFullscreenFragment(
 			binding: usesShaderToyHost ? 1 : 0,
 			resource: { buffer: graphParamsBuffer }
 		});
+	}
+
+	for (const [channel, bindings] of channelBindings) {
+		const target = input.channelTargets!.get(channel)!;
+		bindGroupEntries.push(
+			{ binding: bindings.textureBinding, resource: target.createView() },
+			{
+				binding: bindings.samplerBinding,
+				resource: device.createSampler({
+					magFilter: 'linear',
+					minFilter: 'linear',
+					addressModeU: 'clamp-to-edge',
+					addressModeV: 'clamp-to-edge'
+				})
+			}
+		);
 	}
 
 	const bindGroup = device.createBindGroup({

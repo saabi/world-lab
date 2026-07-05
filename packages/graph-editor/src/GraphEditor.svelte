@@ -2,7 +2,11 @@
 	import { onMount } from 'svelte';
 	import Subdivide from '@world-lab/subdivide/Subdivide.svelte';
 	import type { LayoutDocument, FloatingPanelSpec } from '@world-lab/subdivide';
-	import { effectiveGraphDocument, type GraphDocument } from '@world-lab/graph';
+	import {
+		deriveBufferFeedbackTarget,
+		effectiveGraphDocument,
+		type GraphDocument
+	} from '@world-lab/graph';
 
 	import PreviewZone from './PreviewZone.svelte';
 	import GraphCanvas from './GraphCanvas.svelte';
@@ -161,7 +165,10 @@
 		const signature = compileSignature;
 		void previewRefreshEpoch;
 
-		if (planIndependentGraphFramePasses(doc).length === 0) {
+		if (
+			planIndependentGraphFramePasses(doc).length === 0 &&
+			!deriveBufferFeedbackTarget(doc)
+		) {
 			previewFrameLoop?.destroy();
 			previewFrameLoop = null;
 			return;

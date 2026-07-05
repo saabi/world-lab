@@ -21,6 +21,7 @@ import {
 } from '@world-lab/graph';
 import { emitCoercion } from '@world-lab/compiler';
 import { Value } from '@world-lab/schema';
+import { parseChannelIndex, upstreamNodeIds } from './graphReachability.js';
 
 export interface GraphParamField {
 	/** Uniform struct field name. */
@@ -37,6 +38,8 @@ export interface EmittedGraphEval {
 	params: GraphParamField[];
 	/** Final scalar expression for the requested output port. */
 	resultExpr: string;
+	/** Distinct input.channel indices referenced by the emitted graph slice. */
+	usedChannels: number[];
 }
 
 export interface EmitGraphEvalOptions {
@@ -100,45 +103,19 @@ function emitHostInput(
 	if (binding.context === 'playback' && binding.key === 'iTime') {
 		return `let ${variable}: f32 = ${opts?.iTimeExpr ?? 'u.iTime'};`;
 	}
+	if (binding.context === 'read-resource' && binding.key === 'channel') {
+		const channelIndex = parseChannelIndex(
+			node.params?.channel,
+			`input.channel node ${node.id}`
+		);
+		return (
+			`let ${variable} = textureSample(channel${channelIndex}, channel${channelIndex}Sampler, ` +
+			`position.xy / vec2<f32>(textureDimensions(channel${channelIndex})));`
+		);
+	}
 	throw new Error(
 		`Unsupported host binding in this evaluation context: ${binding.context}.${binding.key}`
 	);
-}
-
-function topologicalSort(doc: GraphDocument, outputNodeId: string): string[] {
-	const nodeMap = new Map(doc.nodes.map((node) => [node.id, node]));
-	const incoming = new Map<string, Set<string>>();
-	for (const node of doc.nodes) {
-		incoming.set(node.id, new Set());
-	}
-	for (const edge of doc.edges) {
-		if (!nodeMap.has(edge.from.node) || !nodeMap.has(edge.to.node)) continue;
-		incoming.get(edge.to.node)?.add(edge.from.node);
-	}
-
-	const sorted: string[] = [];
-	const visiting = new Set<string>();
-	const visited = new Set<string>();
-
-	const visit = (nodeId: string): void => {
-		if (visited.has(nodeId)) return;
-		if (visiting.has(nodeId)) {
-			throw new Error(`Graph cycle detected at node: ${nodeId}`);
-		}
-		visiting.add(nodeId);
-		for (const upstreamId of incoming.get(nodeId) ?? []) {
-			visit(upstreamId);
-		}
-		visiting.delete(nodeId);
-		visited.add(nodeId);
-		sorted.push(nodeId);
-	};
-
-	if (!nodeMap.has(outputNodeId)) {
-		throw new Error(`Unknown output node: ${outputNodeId}`);
-	}
-	visit(outputNodeId);
-	return sorted;
 }
 
 function findOutputPort(node: Node, portId: string) {
@@ -192,6 +169,7 @@ function collectParamFields(doc: GraphDocument, nodeIds: string[]): GraphParamFi
 		if (!node) continue;
 		const primitive = getPrimitive(node.primitive);
 		if (!primitive) continue;
+		if (primitive.implementation.kind === 'host-input') continue;
 		const incoming = doc.edges.filter((edge) => edge.to.node === nodeId);
 		const bindings = resolveParamBindings(node, primitive, incoming);
 		const params = resolveParams(node);
@@ -256,8 +234,9 @@ function emitGraphEval(
 		throw new Error(`${outputTypeError}; got ${describePortType(outputPort)}`);
 	}
 
-	const nodeIds = topologicalSort(doc, output.node);
+	const nodeIds = upstreamNodeIds(doc, output.node);
 	const body: string[] = [];
+	const usedChannels = new Set<number>();
 
 	for (const nodeId of nodeIds) {
 		const node = doc.nodes.find((candidate) => candidate.id === nodeId);
@@ -270,6 +249,14 @@ function emitGraphEval(
 		}
 
 		if (primitive.implementation.kind === 'host-input') {
+			if (
+				primitive.implementation.binding.context === 'read-resource' &&
+				primitive.implementation.binding.key === 'channel'
+			) {
+				usedChannels.add(
+					parseChannelIndex(node.params?.channel, `input.channel node ${node.id}`)
+				);
+			}
 			body.push(emitHostInput(node, primitive.implementation.binding, opts));
 			continue;
 		}
@@ -449,7 +436,8 @@ function emitGraphEval(
 	return {
 		body,
 		params: collectParamFields(doc, nodeIds),
-		resultExpr: portVar(output.node, output.port)
+		resultExpr: portVar(output.node, output.port),
+		usedChannels: [...usedChannels].sort((a, b) => a - b)
 	};
 }
 

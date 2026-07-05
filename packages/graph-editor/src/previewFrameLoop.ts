@@ -1,4 +1,4 @@
-import type { GraphDocument } from '@world-lab/graph';
+import { deriveBufferFeedbackTarget, type GraphDocument } from '@world-lab/graph';
 import {
 	GraphFrameExecutor,
 	planIndependentGraphFramePasses,
@@ -63,7 +63,8 @@ export function createPreviewFrameLoop(options: PreviewFrameLoopOptions): Previe
 		if (inFlight) return;
 
 		const passes = planIndependentGraphFramePasses(options.graph);
-		if (passes.length === 0) {
+		const bufferFeedbackTarget = deriveBufferFeedbackTarget(options.graph);
+		if (passes.length === 0 && !bufferFeedbackTarget) {
 			emit({
 				iTime: 0,
 				iFrame: 0,

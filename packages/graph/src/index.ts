@@ -46,6 +46,11 @@ export {
 } from './pipeline.js';
 export { deriveMeshTargets, isMeshTarget, type MeshTargetDescriptor } from './meshTarget.js';
 export {
+	deriveBufferFeedbackTarget,
+	isBufferFeedbackTarget,
+	type BufferFeedbackTargetDescriptor
+} from './bufferFeedbackTarget.js';
+export {
 	HASH12_PARITY,
 	HASH22_PARITY,
 	HASH32_PARITY,

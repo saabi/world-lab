@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { effectiveGraphDocument } from '@world-lab/graph';
 
-import { animatedWorleyPipelineGraph } from './graphBuilders.js';
+import {
+	animatedWorleyPipelineGraph,
+	bufferFeedbackGraph
+} from './graphBuilders.js';
 
 const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: number } }) => ({
 	width: 4,
@@ -91,5 +94,21 @@ describe('createPreviewFrameLoop', () => {
 			expect(snapshot.iFrame).toBe(first.iFrame);
 			expect(snapshot.iTime).toBe(first.iTime);
 		}
+	});
+
+	it('dispatches a buffer-only graph instead of reporting no pipeline targets', async () => {
+		const { createPreviewFrameLoop } = await import('./previewFrameLoop.js');
+		const loop = createPreviewFrameLoop({
+			graph: bufferFeedbackGraph(),
+			compileSignature: 'buffer-feedback',
+			width: 256,
+			now: () => 1000
+		});
+
+		await new Promise<void>((resolve) => queueMicrotask(resolve));
+		await new Promise<void>((resolve) => queueMicrotask(resolve));
+		loop.destroy();
+
+		expect(executeMock).toHaveBeenCalled();
 	});
 });

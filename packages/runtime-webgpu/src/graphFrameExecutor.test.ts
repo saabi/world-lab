@@ -1,5 +1,9 @@
 import '@world-lab/graph';
-import { effectiveGraphDocument, type GraphDocument } from '@world-lab/graph';
+import {
+	effectiveGraphDocument,
+	getPrimitive,
+	type GraphDocument
+} from '@world-lab/graph';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GraphFrameExecutor } from './graphFrameExecutor.js';
@@ -7,6 +11,7 @@ import * as graphFramePlan from './graphFramePlan.js';
 import * as order from './frameGraph/order.js';
 import { ResourceRealizer } from './frameGraph/realize.js';
 import { PipelineGraphExecutor } from './pipelineGraph.js';
+import { BufferFeedbackExecutor } from './consumers/bufferFeedback.js';
 import { cosinePalettePipelineGraph } from '../test/sampleGraphs.js';
 
 const hasWebGPU =
@@ -74,6 +79,23 @@ function dualTargetPipelineGraph(): GraphDocument {
 			}
 		],
 		outputs: []
+	};
+}
+
+function withBufferFeedback(graph: GraphDocument, width = 4, height = 4): GraphDocument {
+	const primitive = getPrimitive('target.bufferFeedback')!;
+	return {
+		...graph,
+		nodes: [
+			...graph.nodes,
+			{
+				id: 'n_buffer_feedback',
+				primitive: primitive.id,
+				params: { gridWidth: width, gridHeight: height },
+				inputs: [],
+				outputs: []
+			}
+		]
 	};
 }
 
@@ -227,6 +249,53 @@ describe('GraphFrameExecutor', () => {
 			iFrame: 7,
 			iMouse: [0.5, 0.5, 0, 0]
 		});
+	});
+
+	it('merges buffer feedback pixels without sharing the pipeline resource lifecycle', async () => {
+		const pixels = new Uint8Array(64).fill(17);
+		const bufferExecute = vi
+			.spyOn(BufferFeedbackExecutor.prototype, 'execute')
+			.mockResolvedValue({ pixels });
+		const graph = withBufferFeedback(effectiveGraphDocument(cosinePalettePipelineGraph()));
+		const mock = mockDevice();
+		const executor = new GraphFrameExecutor();
+
+		const first = await executor.execute({
+			device: mock.device,
+			graph,
+			width: 4,
+			height: 4,
+			host: { iTime: 0, iFrame: 0, pointers: {} }
+		});
+		await executor.execute({
+			device: mock.device,
+			graph,
+			width: 4,
+			height: 4,
+			host: { iTime: 0, iFrame: 1, pointers: {} }
+		});
+
+		expect(bufferExecute).toHaveBeenCalledTimes(2);
+		expect(first.targets.n_buffer_feedback).toBe(pixels);
+		expect(mock.createTexture).toHaveBeenCalledTimes(1);
+	});
+
+	it('rejects a buffer-feedback grid that differs from the frame viewport', async () => {
+		const graph = withBufferFeedback(
+			effectiveGraphDocument(cosinePalettePipelineGraph()),
+			8,
+			4
+		);
+		await expect(
+			new GraphFrameExecutor().execute({
+				device: mockDevice().device,
+				graph,
+				width: 4,
+				height: 4,
+				host: { iTime: 0, iFrame: 0, pointers: {} }
+			})
+		).rejects.toThrow(/must match the frame viewport/);
+		expect(pipelineSpy).not.toHaveBeenCalled();
 	});
 
 	it.skipIf(!hasWebGPU)('renders all independent targets on a device', async () => {

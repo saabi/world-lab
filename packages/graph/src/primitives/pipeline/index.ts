@@ -6,6 +6,7 @@ import type { NodePrimitiveInput } from '../../primitive.js';
 import { registerPrimitive } from '../../registry.js';
 import { DISPLAY_SINK_DEFINITION } from '../../pipeline.js';
 import { MESH_SINK_DEFINITION } from '../../meshTarget.js';
+import { BUFFER_FEEDBACK_SINK_DEFINITION } from '../../bufferFeedbackTarget.js';
 
 const noParams = Type.Object({});
 
@@ -89,6 +90,23 @@ const primitives: NodePrimitiveInput[] = [
 			role: 'meshTarget',
 			help: 'Declare a mesh to render in the geometry preview pane.',
 			usage: 'Wire vec3f position and normal fields, then set gridSize and faceCount for tessellation.'
+		}
+	},
+	{
+		id: 'target.bufferFeedback',
+		category: 'target/sink',
+		inputs: [],
+		outputs: [],
+		params: Type.Object({
+			gridWidth: Type.Integer({ minimum: 1, default: 256 }),
+			gridHeight: Type.Integer({ minimum: 1, default: 256 })
+		}),
+		implementation: { kind: 'sink', sink: BUFFER_FEEDBACK_SINK_DEFINITION },
+		metadata: {
+			description: 'Runs the bundled previous-frame storage-buffer feedback proof.',
+			pure: false,
+			deterministic: true,
+			role: 'bufferFeedbackTarget'
 		}
 	}
 ];
