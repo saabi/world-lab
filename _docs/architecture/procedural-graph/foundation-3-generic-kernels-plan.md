@@ -71,6 +71,21 @@ shape of the work is "design something new," not "generalize an existing algorit
   (`implementation.ts:62,72`) with `GpuCommandKind = string` — no real shape, one incidental
   reference in `coercion.ts:59` (a structural-equality check, not real usage). This is Foundation
   4's seam, not Foundation 3's — see "What this plan deliberately does not do."
+- **Stage-visibility restriction already has a precedent — `HostBinding.stages?: ShaderStage[]`
+  (`implementation.ts:21`), used today by `host.fragCoord` (`stages: ['fragment']`,
+  `packages/graph/src/primitives/host/fragCoord.ts:14`) — but it is declared, not enforced.**
+  Confirmed by grep: `emitGraphEval.ts` never reads `binding.stages` anywhere: nothing checks a
+  host-input's declared stage restriction against the stage actually being emitted for. A kernel's
+  new resource-binding stage visibility should reuse this same field shape (not invent a second,
+  parallel one), but should be validated where `HostBinding.stages` currently is not — a real,
+  narrow enforcement gap this milestone closes for its own new bindings, without retrofitting
+  `HostBinding`'s pre-existing, separate gap (out of scope — see below).
+- **Package dependency direction constrains where a graph-level/compiler-level binding split can
+  live**: `@world-lab/graph` has zero workspace dependencies beyond `@world-lab/schema`;
+  `@world-lab/compiler` depends on `@world-lab/graph` (never the reverse); `@world-lab/runtime-webgpu`
+  depends on both (confirmed via each package's `package.json`). A graph-level `KernelBindingTemplate`
+  must therefore live in `@world-lab/graph`, and any pure translation to the compiler's `BindingDecl`
+  must live in `@world-lab/compiler` (which can import from `graph`) — not the other way around.
 
 ## The key constraint, stated precisely
 
@@ -88,16 +103,21 @@ gaps is independently verified above and independently necessary — none is opt
 ## Sequence
 
 1. **F3.1 — kernel & binding type algebra (pure types, no runtime dispatch yet).** Give
-   `{ kind: 'kernel'; stage }` its real declared shape: which built-in stage inputs a kernel uses
-   (`vertex_index`/`instance_index`/`position`/`global_invocation_id`, stage-restricted — compute
-   inputs illegal on a vertex kernel and vice versa), and which resource bindings it declares
-   (id-less at declaration time, resolved the same way `ResourceTemplate`→`ResourceInstance`
-   resolves — mirroring F2.1's own id-less/instance split so this milestone doesn't repeat the
-   mistake F1.3 already caught once). Add `storage-read-write` to `BindingDecl.kind` and its WGSL
-   address-space table (`stageEntry.ts`'s `bindingVar`). Derive a kernel's `BindingDecl[]` from its
-   declared bindings plus `Pass.bindings`/`ResourceBinding[]` — this milestone's binding-declaration
-   codegen is `Pass.bindings`'s first consumer beyond usage inference, but still does not build
-   actual `GPUBindGroup`s. Scoped like F2.1: types + declarations + tests, no GPU objects.
+   `{ kind: 'kernel'; stage }` its real declared shape, with a **graph-level `KernelBindingTemplate`
+   kept independent of the compiler's `BindingDecl`** (separate types in separate packages, joined
+   later by a pure translation, not merged into one shape): shader name, binding index, resource
+   type, access, and stage visibility per declared binding, plus which built-in stage inputs a
+   kernel uses (`vertex_index`/`instance_index`/`position`/`global_invocation_id`, stage-restricted
+   — compute inputs illegal on a vertex kernel and vice versa, reusing `HostBinding.stages`'s
+   existing but currently-unenforced precedent). A pure `resolveKernelBindings` function specifies
+   exactly how a kernel's static, id-less binding templates map to per-pass
+   `ResourceBinding.resourceId` (a caller-supplied name→id table, mirroring how F2.1's own
+   `ResourceTemplate`→`ResourceInstance` split deferred document-walking to F2.2) — this is the
+   milestone's actual deliverable, not just a type declaration. Add `storage-read-write` to
+   `BindingDecl.kind` and its WGSL address-space table (`stageEntry.ts`'s `bindingVar`). This
+   milestone's binding-declaration codegen is `Pass.bindings`'s first consumer beyond usage
+   inference, but still does not build actual `GPUBindGroup`s. Scoped like F2.1: types + pure
+   resolution functions + tests, no GPU objects.
 2. **F3.2 — typed varyings (vertex → fragment).** The direct fix for the Mode A vertex-displacement
    gap. Extend `assembleStageEntry`'s vertex/fragment templates so a vertex kernel can declare named,
    typed varying outputs beyond `position`, emitted as a real `@location(n)`-tagged struct shared
@@ -115,14 +135,22 @@ gaps is independently verified above and independently necessary — none is opt
    resource-kind-aware sizing split. Compute bind groups assembled through F3.1's generic model,
    including the new `storage-read-write` kind — this is what makes a *future* rewrite of F2.5's
    hand-written fragment-shader storage-write workaround unnecessary (not required as part of this
-   milestone; F2.5's own sample stays as-is).
+   milestone; F2.5's own sample stays as-is). **Dispatch stays a plain runtime function call** —
+   analogous to `BufferFeedbackExecutor.execute`, not a new graph-representable command node.
+   `{ kind: 'command'; command: GpuCommandKind }` stays untouched by this milestone; no temporary or
+   placeholder command primitive is introduced to carry dispatch — that seam is Foundation 4's,
+   entered only once, not pre-built here and redone there.
 4. **F3.4 — generic kernel executor integration.** Wires F3.1–F3.3's real kernel compilation into
    actual frame execution, replacing `stage.vertex`'s `wgsl-function` hardcode and `stage.fragment`'s
    `legacy-structural` marker with real, graph-authored kernel primitives resolved through the same
-   executor F2.4 built. Same incremental discipline as F2.4 itself: today's ShaderToy fullscreen
-   case and both F2.5 proof samples must render identically throughout — they become the trivial
-   case of the general kernel executor (a kernel pair that only happens to use the fixed fullscreen
-   triangle and no bindings beyond channels/uniforms), not a separate path maintained alongside it.
+   executor F2.4 built. Same incremental discipline as F2.4 itself: today's ShaderToy fullscreen case
+   and F2.5's cross-pass texture-read sample must render identically throughout — they become the
+   trivial case of the general kernel executor (a kernel pair that only happens to use the fixed
+   fullscreen triangle and no bindings beyond channels/uniforms), not a separate path maintained
+   alongside it. **F2.5's buffer-feedback sample is a different case, not folded in**: it must stay
+   regression-green (same pixels, same behavior), but per this plan's own out-of-scope rule it keeps
+   running on its own dedicated `BufferFeedbackExecutor` — it is not migrated onto the generic kernel
+   executor by this milestone, or required to be, ever, as a consequence of F3.4 alone.
 5. **F3.5 — proof.** Per this project's standing instruction: bundled, pickable, hardcoded samples
    (not headless-only fixtures) proving real graph-authored vertex displacement (a kernel that
    actually computes a displaced position, not the fixed grid) and a real compute-dispatch sample
