@@ -27,17 +27,18 @@ is still open.
 
 ## Active
 
-- **F2.5-followup — dispose-cascade test** (tiny, scoped gap left by independent review of F2.5's
-  landing, `35a75fb`; see brief's "Post-landing follow-up" section)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md` (Post-landing
-  follow-up section)
-  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.test.ts` only — no production code changes
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.5-followup — dispose-cascade test** — `984bfcb` · Adds the one test gate item 10's dispose
+  half was missing: `BufferFeedbackExecutor.prototype.dispose` spied directly, asserted called once
+  by `GraphFrameExecutor.dispose()`. No production code touched (verified via diff — only
+  `graphFrameExecutor.test.ts` and this file changed). Independently re-verified: `check` clean for
+  `runtime-webgpu`/`graph`/`graph-editor`, full `runtime-webgpu` suite re-run (142 passed, 8 skipped,
+  no regressions), new test confirmed passing. **Foundation 2 (F2.1–F2.5) is now fully closed.**
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
 
 - **F2.5 — Foundation 2 proof** — `35a75fb` · **fifth and final Foundation 2 milestone, all fixes
   from three pre-implementation review rounds verified landed.** New `input.channel` host-input
