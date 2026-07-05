@@ -1,9 +1,10 @@
 # Foundation 2 — generic resources and frame execution: sequencing plan
 
-**Status:** F2.1–F2.4 all landed (`04f5319`, `397af7f`, `f355221`, `37f496a`) — the sequencing
-question F2.4 flagged is resolved: F2.5 (proof) absorbs one minimal, narrowly-scoped channel-read
-primitive rather than waiting for Foundation 3, and the buffer-feedback sample uses a hand-written
-fragment entry (WGSL's native storage-buffer write) rather than waiting for compute dispatch — see
+**Status:** F2.1–F2.5 all landed (`04f5319`, `397af7f`, `f355221`, `37f496a`, `35a75fb`) —
+independently re-verified against F2.5's revision-3 contract (full diff read, all 19 gate items
+checked, workspace `check`/`test`/`build` re-run clean, both real-device proof tests confirmed to
+execute). One tiny gap found — a missing dispose-cascade test, no production code change — routed
+as **F2.5-followup**; Foundation 2 is fully closed once that single test lands. See
 [F2.5-foundation-2-proof.md](./briefs/F2.5-foundation-2-proof.md) · **Parent:**
 [elemental-webgpu-architecture-review.md, Foundation 2](./elemental-webgpu-architecture-review.md#roadmap-realignment)
 · **Depends on:** Foundation 1, complete (F1.1 `b36f864`, F1.2 `3768ae2`, F1.5 `129d35e`, F1.3

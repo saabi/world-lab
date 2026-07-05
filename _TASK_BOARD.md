@@ -27,33 +27,38 @@ is still open.
 
 ## Active
 
-- **F2.5 — Foundation 2 proof** (final Foundation 2 milestone; revision 3 — see
-  `_docs/architecture/procedural-graph/foundation-2-generic-resources-plan.md` — buffer sample now
-  driven by its own fully independent `BufferFeedbackExecutor`, never sharing `GraphFrameExecutor`'s
-  `ResourceRealizer`; `previewFrameLoop.ts`/`previewBuffers.ts` wired so it actually dispatches and
-  is selectable; strict grid/viewport dimension match required; narrowly scoped, not Foundation 3's
-  generic kernel/binding model, see brief's Context)
-  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
-  Owns: `packages/graph/src/primitives/host/channel.ts` (new),
-  `packages/graph/src/primitives/host/index.ts`,
-  `packages/graph/src/primitives/pipeline/index.ts`, `packages/graph/src/index.ts`,
-  `packages/graph/src/bufferFeedbackTarget.ts` (new — `target.bufferFeedback` sink + derivation),
-  `packages/runtime-webgpu/src/graphReachability.ts` (new — shared channel index/reachability),
-  `packages/runtime-webgpu/src/emitGraphEval.ts`,
-  `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/bufferFeedback.ts` (new — `BufferFeedbackExecutor`),
-  `packages/runtime-webgpu/src/index.ts`,
-  `packages/runtime-webgpu/src/graphFrameExecutor.ts`, `packages/runtime-webgpu/src/graphFramePlan.ts`,
-  `packages/graph-editor/src/previewFrameLoop.ts`, `packages/graph-editor/src/previewBuffers.ts`,
-  `packages/graph-editor/src/EffectPreviewPanel.svelte`, `packages/graph-editor/src/GraphEditor.svelte`,
-  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`, and their
-  test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
+- **F2.5-followup — dispose-cascade test** (tiny, scoped gap left by independent review of F2.5's
+  landing, `35a75fb`; see brief's "Post-landing follow-up" section)
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md` (Post-landing
+  follow-up section)
+  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.test.ts` only — no production code changes
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F2.5 — Foundation 2 proof** — `35a75fb` · **fifth and final Foundation 2 milestone, all fixes
+  from three pre-implementation review rounds verified landed.** New `input.channel` host-input
+  primitive + `emitHostInput` branch (self-contained, depends only on `position`, no `uv`);
+  `resolveChannelDependencies`/`buildPassGraphWithChannelReads` resolve cross-pass reads via
+  `derivePipelinePresentations`'s `displayNodeId ↔ outputName` pairing (not string equality), with
+  same-channel/different-source conflicts rejected; `GraphFrameExecutor` respects `buildPassOrder`
+  for real cross-pass consequence, verified on a real device (pass B's output visibly incorporates
+  pass A's texture). Buffer-feedback sample driven by a fully independent, persistent
+  `BufferFeedbackExecutor` (own `ResourceRealizer`, presentation texture, seed state, fingerprint) —
+  confirmed it never shares or collides with `GraphFrameExecutor`'s own realizer; `target.bufferFeedback`
+  sink + `deriveBufferFeedbackTarget` wired through `previewFrameLoop.ts`, `GraphEditor.svelte`, and
+  `enumeratePreviewBuffers` so the buffer-only document actually dispatches and is selectable, not
+  just typechecks; strict `gridWidth === input.width` contract rejects mismatches clearly. Full
+  workspace `check`/`test`/`build` re-run clean from a fresh `dist` clear; both
+  `it.skipIf(!hasWebGPU)` proof tests confirmed to actually execute (not skip) on a real device.
+  **One gap found in independent review:** gate item 10's dispose half (`GraphFrameExecutor.dispose()`
+  cascading into `BufferFeedbackExecutor.dispose()`) is correct in code but untested — routed as
+  **F2.5-followup** below, a single test, no production code change. Foundation 2 is fully closed
+  once that lands.
+  Brief: `_docs/architecture/procedural-graph/briefs/F2.5-foundation-2-proof.md`
 
 - **F2.4 — generic frame executor** — `37f496a` · **final milestone landed in Foundation 2.**
   `GraphFrameExecutor` routes every frame through `buildPassOrder` + a persistent, device-keyed
