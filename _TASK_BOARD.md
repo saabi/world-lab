@@ -34,7 +34,7 @@ is still open.
   Owns: `packages/graph/src/implementation.ts`, `packages/graph/src/kernelBinding.ts` (new),
   `packages/graph/src/kernelBinding.test.ts` (new), `packages/graph/src/registry.ts`,
   `packages/graph/src/index.ts`, `packages/compiler/src/stageEntry.ts`, and their test files
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.

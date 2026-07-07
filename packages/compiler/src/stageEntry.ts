@@ -1,11 +1,12 @@
 import type { ConsumerShader } from './compileGraph.js';
+import type { KernelBindingTemplate } from '@world-lab/graph';
 
 /** A binding the stage entry exposes (host/runtime input, resource, instance buffer). */
 export interface BindingDecl {
 	group: number;
 	binding: number;
 	name: string;
-	kind: 'uniform' | 'storage-read' | 'texture' | 'sampler';
+	kind: 'uniform' | 'storage-read' | 'storage-read-write' | 'texture' | 'sampler';
 	/** WGSL type, e.g. 'ViewUniforms', 'array<Patch>', 'texture_2d<f32>', 'sampler'. */
 	wgslType: string;
 }
@@ -35,8 +36,34 @@ export interface StageModule {
 
 function bindingVar(b: BindingDecl): string {
 	const addr =
-		b.kind === 'uniform' ? '<uniform> ' : b.kind === 'storage-read' ? '<storage, read> ' : ' ';
+		b.kind === 'uniform'
+			? '<uniform> '
+			: b.kind === 'storage-read'
+				? '<storage, read> '
+				: b.kind === 'storage-read-write'
+					? '<storage, read_write> '
+					: ' ';
 	return `@group(${b.group}) @binding(${b.binding}) var${addr}${b.name}: ${b.wgslType};`;
+}
+
+export function bindingDeclKindForTemplate(
+	template: Pick<KernelBindingTemplate, 'resourceKind' | 'access'>
+): BindingDecl['kind'] {
+	if (template.resourceKind === 'sampler') {
+		if (template.access !== 'read') {
+			throw new Error(`sampler kernel bindings must declare access:'read'`);
+		}
+		return 'sampler';
+	}
+	if (template.resourceKind === 'texture') {
+		if (template.access !== 'read') {
+			throw new Error(
+				`texture kernel bindings must declare access:'read' (storage textures are deferred - see F2.3)`
+			);
+		}
+		return 'texture';
+	}
+	return template.access === 'read' ? 'storage-read' : 'storage-read-write';
 }
 
 /** Wrap a per-consumer function library (compileGraph output) into a pipeline-ready WGSL

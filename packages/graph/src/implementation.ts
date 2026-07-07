@@ -59,6 +59,23 @@ export interface ResourceBinding {
 	access: ResourceAccess;
 }
 
+export type KernelResourceKind = ResourceShape['kind'];
+
+export interface KernelBindingTemplate {
+	name: string;
+	binding: number;
+	resourceKind: KernelResourceKind;
+	access: ResourceAccess;
+	stages: readonly ShaderStage[];
+}
+
+export interface ResolvedKernelBinding extends ResourceBinding {
+	name: string;
+	binding: number;
+	resourceKind: KernelResourceKind;
+	stages: readonly ShaderStage[];
+}
+
 export type GpuCommandKind = string;
 
 export type PrimitiveImplementation =
@@ -68,7 +85,7 @@ export type PrimitiveImplementation =
 	| { kind: 'legacy-structural'; marker: string }
 	| { kind: 'sink'; sink: SinkDefinition }
 	| { kind: 'resource'; template: ResourceTemplate }
-	| { kind: 'kernel'; stage: ShaderStage }
+	| { kind: 'kernel'; stage: ShaderStage; bindings: readonly KernelBindingTemplate[] }
 	| { kind: 'command'; command: GpuCommandKind };
 
 export interface GroupResolver {

@@ -103,4 +103,59 @@ describe('@world-lab/graph replacePrimitive', () => {
 		});
 		expect(getPrimitive(primitive.id)?.inputs[0]?.semantics).toEqual(['a', 'z']);
 	});
+
+	it('validates kernel binding declarations at registration time', () => {
+		expect(() =>
+			registerPrimitive({
+				id: 'test.invalid-kernel-duplicate-binding',
+				category: 'test',
+				inputs: [],
+				outputs: [],
+				params: Type.Object({}),
+				implementation: {
+					kind: 'kernel',
+					stage: 'compute',
+					bindings: [
+						{
+							name: 'state',
+							binding: 0,
+							resourceKind: 'buffer',
+							access: 'read-write',
+							stages: ['compute']
+						},
+						{
+							name: 'next',
+							binding: 0,
+							resourceKind: 'buffer',
+							access: 'write',
+							stages: ['compute']
+						}
+					]
+				}
+			})
+		).toThrow('Duplicate kernel binding index');
+
+		expect(() =>
+			registerPrimitive({
+				id: 'test.invalid-kernel-stage-visibility',
+				category: 'test',
+				inputs: [],
+				outputs: [],
+				params: Type.Object({}),
+				implementation: {
+					kind: 'kernel',
+					stage: 'compute',
+					bindings: [
+						{
+							name: 'state',
+							binding: 0,
+							resourceKind: 'buffer',
+							access: 'read-write',
+							stages: ['fragment']
+						}
+					]
+				}
+			})
+		).toThrow('is not visible in its owning kernel');
+	});
 });

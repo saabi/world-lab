@@ -17,6 +17,7 @@ export * from './semantics.js';
 export * from './coercion.js';
 export * from './implementation.js';
 export * from './resources.js';
+export * from './kernelBinding.js';
 export * from './graphIds.js';
 export * from './pipelineGeometry.js';
 export * from './executionRoots.js';

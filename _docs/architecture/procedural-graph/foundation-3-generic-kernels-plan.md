@@ -112,10 +112,9 @@ necessary — none is optional polish.
    `{ kind: 'kernel'; stage }` its real declared shape, with a **graph-level `KernelBindingTemplate`
    kept independent of the compiler's `BindingDecl`** (separate types in separate packages, joined
    later by a pure translation, not merged into one shape): shader name, binding index, resource
-   type, access, and stage visibility per declared binding, plus which built-in stage inputs a
-   kernel uses (`vertex_index`/`instance_index`/`position`/`global_invocation_id`, stage-restricted
-   — compute inputs illegal on a vertex kernel and vice versa, reusing `HostBinding.stages`'s
-   existing but currently-unenforced precedent). A pure `resolveKernelBindings` function specifies
+   type, access, and stage visibility per declared binding. Built-in stage inputs stay on the
+   existing `HostBinding` path for this milestone; F3.1 only gives resource bindings their own
+   validated template/resolution model. A pure `resolveKernelBindings` function specifies
    exactly how a kernel's static, id-less binding templates map to per-pass
    `ResourceBinding.resourceId` (a caller-supplied name→id table, mirroring how F2.1's own
    `ResourceTemplate`→`ResourceInstance` split deferred document-walking to F2.2) — this is the

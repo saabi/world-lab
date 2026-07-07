@@ -1,6 +1,7 @@
 import type { NodePrimitive, NodePrimitiveInput, PortSpec, PortSpecInput } from './primitive.js';
 import { dataTypeToTypeRef, typeRefToDataType } from './dataType.js';
 import type { PrimitiveImplementation } from './implementation.js';
+import { validateKernelBindingTemplates } from './kernelBinding.js';
 import { dedupeCanonicalSemantics } from './semantics.js';
 
 const primitives = new Map<string, NodePrimitive>();
@@ -74,6 +75,9 @@ function normalizeImplementation(
 		(input.wgsl.moduleId !== derivedWgsl.moduleId || input.wgsl.entry !== derivedWgsl.entry)
 	) {
 		throw new Error(`Primitive implementation/wgsl mismatch: ${input.id}`);
+	}
+	if (implementation.kind === 'kernel') {
+		validateKernelBindingTemplates(implementation.bindings, implementation.stage);
 	}
 
 	return {

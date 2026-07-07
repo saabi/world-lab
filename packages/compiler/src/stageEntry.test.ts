@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ConsumerShader } from './compileGraph.js';
-import { assembleStageEntry, type BindingDecl } from './stageEntry.js';
+import { assembleStageEntry, bindingDeclKindForTemplate, type BindingDecl } from './stageEntry.js';
 
 function shader(stage: string, code: string, outputs = ['color']): ConsumerShader {
 	return { consumerId: stage + '-c', stage, outputs, code, moduleIds: [] };
@@ -25,6 +25,7 @@ describe('@world-lab/compiler assembleStageEntry', () => {
 			{ group: 0, binding: 0, name: 'view_u', kind: 'uniform', wgslType: 'ViewUniforms' },
 			{ group: 0, binding: 1, name: 'iChannel0', kind: 'texture', wgslType: 'texture_2d<f32>' },
 			{ group: 3, binding: 0, name: 'patches', kind: 'storage-read', wgslType: 'array<Patch>' },
+			{ group: 3, binding: 1, name: 'next', kind: 'storage-read-write', wgslType: 'array<f32>' },
 		];
 		const m = assembleStageEntry(shader('fragment', 'fn f() -> vec4f { return vec4f(0.0); }'), {
 			bindings,
@@ -33,8 +34,19 @@ describe('@world-lab/compiler assembleStageEntry', () => {
 		expect(m.code).toContain('@group(0) @binding(0) var<uniform> view_u: ViewUniforms;');
 		expect(m.code).toContain('@group(0) @binding(1) var iChannel0: texture_2d<f32>;');
 		expect(m.code).toContain('@group(3) @binding(0) var<storage, read> patches: array<Patch>;');
+		expect(m.code).toContain('@group(3) @binding(1) var<storage, read_write> next: array<f32>;');
 		// decls precede the library
 		expect(m.code.indexOf('view_u')).toBeLessThan(m.code.indexOf('fn f('));
+	});
+
+	it('maps kernel binding templates to compiler binding declaration kinds', () => {
+		expect(bindingDeclKindForTemplate({ resourceKind: 'buffer', access: 'read' })).toBe('storage-read');
+		expect(bindingDeclKindForTemplate({ resourceKind: 'buffer', access: 'read-write' })).toBe('storage-read-write');
+		expect(bindingDeclKindForTemplate({ resourceKind: 'buffer', access: 'write' })).toBe('storage-read-write');
+		expect(bindingDeclKindForTemplate({ resourceKind: 'texture', access: 'read' })).toBe('texture');
+		expect(bindingDeclKindForTemplate({ resourceKind: 'sampler', access: 'read' })).toBe('sampler');
+		expect(() => bindingDeclKindForTemplate({ resourceKind: 'texture', access: 'write' })).toThrow("texture kernel bindings must declare access:'read'");
+		expect(() => bindingDeclKindForTemplate({ resourceKind: 'sampler', access: 'write' })).toThrow("sampler kernel bindings must declare access:'read'");
 	});
 
 	it('wraps a compute consumer in @compute with a workgroup size', () => {
