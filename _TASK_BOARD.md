@@ -33,7 +33,7 @@ is still open.
   Brief: `_docs/architecture/procedural-graph/briefs/F3.2-typed-varyings.md`
   Owns: `packages/compiler/src/stageEntry.ts`, `packages/compiler/src/stageEntry.test.ts`,
   `packages/runtime-webgpu/src/kernelVaryingsDeviceCompile.test.ts` (new)
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
