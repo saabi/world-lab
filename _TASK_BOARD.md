@@ -27,18 +27,30 @@ is still open.
 
 ## Active
 
-- **F3.2 — typed varyings (vertex → fragment)** (second milestone of Foundation 3; compiler-only
-  codegen extension, no code dependency on F3.1, no real pipeline wiring, no bundled sample — see
-  brief's Context)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.2-typed-varyings.md`
-  Owns: `packages/compiler/src/stageEntry.ts`, `packages/compiler/src/stageEntry.test.ts`,
-  `packages/runtime-webgpu/src/kernelVaryingsDeviceCompile.test.ts` (new)
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.2 — typed varyings (vertex → fragment)** — `0c4b7d8` · Second milestone of Foundation 3,
+  compiler-internals only. `VaryingDecl`/`varyingsStructWgsl` give `assembleStageEntry`'s vertex/
+  fragment templates a shared, typed struct beyond `position`; `assertVaryingsMatch` is the single
+  clear rejection point for a mismatched pair (F2.5's strict-equality precedent). Two blocking
+  issues from a pre-routing review were folded in before routing: every varying name and struct
+  name is now WGSL-identifier/reserved-keyword validated on both the vertex-declaring and
+  fragment-referencing sides (mirroring F3.1's `kernelBinding.ts` discipline), and the new
+  `runtime-webgpu` device test proves the pair actually **links** as a `GPURenderPipeline`
+  (`createRenderPipelineAsync` with `vs_main`/`fs_main` paired), not just that each entry point
+  parses in isolation. Independently re-verified: diff matches every Fix step byte-for-byte; all 19
+  Gate items covered; `check`/`test`/`build` re-run clean after clearing `packages/*/dist`
+  (`compiler` 58/58, `runtime-webgpu` 143/8-skip — exactly one more pass than F3.1's baseline, the
+  new device test); that device test independently re-run scoped to its own package with
+  `--reporter=verbose` to confirm it actually executes (not silently skipped — the repo-root vitest
+  invocation lacks the package's WebGPU setup file and would show it skipped, an artifact of how
+  the check is run, not of the implementation). `fullscreenFragment.ts`, `pipelineVertex.ts`,
+  `packages/graph`, and the pre-existing `@workgroupSize` bug confirmed untouched, exactly as
+  scoped.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.2-typed-varyings.md`
 
 - **F3.1 — kernel & binding type algebra** — `4c28431` · First milestone of Foundation 3. Gives
   `{kind:'kernel', stage}` a real declared shape: `KernelBindingTemplate`/`ResolvedKernelBinding`
