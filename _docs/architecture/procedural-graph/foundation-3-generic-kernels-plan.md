@@ -43,9 +43,14 @@ shape of the work is "design something new," not "generalize an existing algorit
 - **`assembleStageEntry` (`packages/compiler/src/stageEntry.ts`) is already
   stage-aware but each template is a single fixed shape, not a generic contract** — verified by
   direct read (lines 56-68). The `fragment` template always returns one `@location(0) vec4f` from
-  one function call. The `compute` template already accepts a `workgroupSize` option and emits a
-  real `@compute @workgroup_size(...)` entry with `@builtin(global_invocation_id)` — genuinely
-  reusable — but nothing in the codebase calls the compute branch: **there is no
+  one function call. The `compute` template already accepts a `workgroupSize` option, but its
+  emitted attribute is wrong: `stageEntry.ts:63` produces `@compute @workgroupSize(...)` (no
+  underscore) — not valid WGSL, which requires `@workgroup_size`. `stageEntry.test.ts:45` asserts
+  that same wrong string, so the bug is enshrined in its own test, not just an unnoticed typo. Every
+  real compute shader in the codebase (`planeScalarPreview.ts`, `vegetationCandidates.ts`,
+  `meshGen.ts`, `compiledWgsl.ts`) is hand-written with the correct `@workgroup_size` and bypasses
+  this template entirely — which is exactly why the bug has stayed live. And regardless of that
+  attribute-name bug, nothing in the codebase calls the compute branch at all: **there is no
   `GPUComputePipeline` creation, no dispatch call, anywhere in `runtime-webgpu`** (confirmed by
   grep — zero matches for compute pipeline creation outside this dead template branch). The
   `vertex` template's `VSOut` struct declares only `@builtin(position)` — no varyings field exists
@@ -96,9 +101,10 @@ one `{ kind: 'kernel'; stage }` shape**, not three independent one-off mechanism
 `BindingDecl` needs the missing `storage-read-write` kind before any compute kernel or read-write
 buffer kernel can be expressed at all; `assembleStageEntry`'s vertex/fragment templates need a real
 varyings struct (not just `position`) before graph-authored vertex displacement can produce
-anything a fragment kernel can consume; and the compute template's already-correct shape needs an
-actual runtime consumer (pipeline creation + dispatch) before it does anything. Each of these three
-gaps is independently verified above and independently necessary — none is optional polish.
+anything a fragment kernel can consume; and the compute template needs both its `@workgroupSize`
+attribute-name bug fixed and an actual runtime consumer (pipeline creation + dispatch) before it
+does anything. Each of these three gaps is independently verified above and independently
+necessary — none is optional polish.
 
 ## Sequence
 
@@ -128,7 +134,12 @@ gaps is independently verified above and independently necessary — none is opt
    (`emitGraphVec4Eval`'s family), not a new codegen path. Primarily compiler-side; the existing fixed
    grid path must keep working throughout (same incremental discipline as every prior milestone).
 3. **F3.3 — compute kernels and dispatch domains.** The first real `GPUComputePipeline` creation and
-   `dispatchWorkgroups` call in `runtime-webgpu` — today there are zero, verified above.
+   `dispatchWorkgroups` call in `runtime-webgpu` — today there are zero, verified above. Also fixes
+   `assembleStageEntry`'s compute template so it emits `@workgroup_size` (WGSL-valid) instead of its
+   current `@workgroupSize` (verified above — not fixed in F3.1, since F3.1 touches only `graph`'s
+   binding types and `stageEntry.ts`'s `storage-read-write` binding kind, not its compute-entry
+   template; this is dead code with zero callers until F3.3 gives it its first one, so fixing it
+   here rather than as an isolated drive-by keeps the fix next to its first real test coverage).
    `StageEntryOptions.workgroupSize` (declared, unused) becomes real. A dispatch-domain derivation
    function computes `[x, y, z]` workgroup counts from a bound resource's element count or texture
    dimensions (or an explicit param), mirroring F2.2's `resolveBufferSizes`/`resolveTargetSizes`
