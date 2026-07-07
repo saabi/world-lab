@@ -27,6 +27,14 @@ is still open.
 
 ## Active
 
+- **F3.2 — typed varyings (vertex → fragment)** (second milestone of Foundation 3; compiler-only
+  codegen extension, no code dependency on F3.1, no real pipeline wiring, no bundled sample — see
+  brief's Context)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.2-typed-varyings.md`
+  Owns: `packages/compiler/src/stageEntry.ts`, `packages/compiler/src/stageEntry.test.ts`,
+  `packages/runtime-webgpu/src/kernelVaryingsDeviceCompile.test.ts` (new)
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
