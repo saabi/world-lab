@@ -27,19 +27,27 @@ is still open.
 
 ## Active
 
-- **F3.1 — kernel & binding type algebra** (first milestone of Foundation 3; pure types + pure
-  resolution functions, no GPU allocation, no runtime dispatch — see brief's Context for the
-  pre-routing review it already incorporates)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.1-kernel-binding-type-algebra.md`
-  Owns: `packages/graph/src/implementation.ts`, `packages/graph/src/kernelBinding.ts` (new),
-  `packages/graph/src/kernelBinding.test.ts` (new), `packages/graph/src/registry.ts`,
-  `packages/graph/src/index.ts`, `packages/compiler/src/stageEntry.ts`, and their test files
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.1 — kernel & binding type algebra** — `4c28431` · First milestone of Foundation 3. Gives
+  `{kind:'kernel', stage}` a real declared shape: `KernelBindingTemplate`/`ResolvedKernelBinding`
+  (`implementation.ts`), `validateKernelBindingTemplates`/`isBindingVisibleInStage`/
+  `resolveKernelBindings` (new `kernelBinding.ts`), registration-time enforcement (`registry.ts`),
+  and `BindingDecl.kind`'s new `storage-read-write` variant + `bindingDeclKindForTemplate`
+  (`stageEntry.ts`). Two blocking issues from a second pre-routing review round were folded into
+  the contract before routing: `resolveKernelBindings` returns identity-preserving
+  `ResolvedKernelBinding[]` (not bare `ResourceBinding[]`), and every binding's declared stage
+  visibility is checked against its owning kernel's own `stage`. Independently re-verified:
+  diff matches the contract's Fix steps exactly (plus one implementer-documented addition, a WGSL
+  reserved-keyword rejection, folded into the brief in the same commit); all 17 Gate items covered
+  by tests; `check`/`test`/`build` re-run clean across the full workspace after clearing
+  `packages/*/dist` (`graph` 209/209, `compiler` 48/48, `runtime-webgpu` 142/8-skip — same baseline
+  as F2.5-followup, no regressions). The `@workgroupSize`/`@workgroup_size` WGSL bug found during
+  review was correctly left untouched, deferred to F3.3 per the contract.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.1-kernel-binding-type-algebra.md`
 
 - **F2.5-followup — dispose-cascade test** — `984bfcb` · Adds the one test gate item 10's dispose
   half was missing: `BufferFeedbackExecutor.prototype.dispose` spied directly, asserted called once
