@@ -115,6 +115,7 @@ describe('graph-editor samples registry', () => {
 				'stage.fragmentKernel',
 				'procedural.metricPosition',
 				'noise.perlin3d',
+				'math.abs',
 				'procedural.uv',
 				'target.display'
 			])
