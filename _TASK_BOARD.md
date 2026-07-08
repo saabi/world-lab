@@ -27,23 +27,43 @@ is still open.
 
 ## Active
 
-- **F3.6.4 — vertex kernel invocation model** (fourth milestone of F3.6; spans both packages, no
-  manual/visual gate — see brief's Context, including a real coercion-gap finding surfaced during
-  contract drafting, honestly scoped out rather than silently designed around)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.4-vertex-kernel-invocation-model.md`
-  Owns: `packages/graph/src/primitives/host/vertexIndex.ts` (new),
-  `packages/graph/src/primitives/host/instanceIndex.ts` (new),
-  `packages/graph/src/primitives/host/index.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.test.ts`,
-  `packages/runtime-webgpu/src/vertexKernelPosition.ts` (new),
-  `packages/runtime-webgpu/src/vertexKernelPosition.test.ts` (new),
-  `packages/runtime-webgpu/src/index.ts`
-  Claimed by: Codex · Status: DONE · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.4 — vertex kernel invocation model** — `3fcc253` · Fourth milestone of F3.6. Registers
+  `host.vertexIndex`/`host.instanceIndex` (`type: {kind:'scalar', scalar:'u32'}`, no `dataType` —
+  confirmed correct by a dedicated registration test) and two new `emitHostInput` branches, plus
+  `assembleVertexKernelPositionModuleAsync` (new file `vertexKernelPosition.ts`) proving a graph
+  wired to `procedural.metricPosition` with a `plane_grid_position`-shaped `positionExpr` assembles
+  into real, compiling, pipeline-linkable vertex WGSL. Diff matches the contract closely, including
+  a workspace-wide guard (`packages/graph/src/dataType.test.ts`'s "every primitive port dataType is
+  canonical" check) that would have failed for a `dataType`-less port and needed a small, correctly
+  narrow fix (`if (port.dataType === undefined) continue;`) — a real consequence of registering this
+  codebase's first `type`-only port, exactly as the contract's own Gate item 1 anticipated needing
+  verification, not something either side missed.
+  **One real finding from independent review, not blocking, flagged for F3.6.5:** the contract's own
+  Fix step 3 sketch only accounted for resolving `geometry.plane`'s WGSL module, missing that a
+  graph-authored position expression can also depend on *other* primitives' own callable WGSL
+  modules (e.g. `transform.translate`, exercised by the landed second test) — a gap in the contract,
+  not the implementation. The implementer correctly caught this and added `graphModuleSources`, a
+  home-grown upstream-module walker mirroring `packages/compiler/src/codegen.ts`'s `generateWgsl`
+  dependency-resolution algorithm closely — same recursive-visit/dedup shape — but missing
+  `generateWgsl`'s `visiting: Set<string>` cycle-detection guard, so a circular module dependency
+  would infinite-loop/stack-overflow here where the original doesn't. Both landed tests pass and
+  don't hit this path (no circular dependency exists among the modules exercised). Recommend F3.6.5
+  either replaces this with a direct `compileGraph` call (matching `kernelFragment.ts`'s/
+  `fullscreenFragment.ts`'s own established pattern — the more consistent fix) or adds the missing
+  guard if the standalone walker is kept for some other reason. Not a regression in anything
+  existing, not currently reachable by any real graph, and not blocking this milestone's own closure
+  — a real, moderate-severity, honestly-flagged risk for whoever builds on this function next.
+  Independently re-verified: `check`/`test`/`build` re-run clean after clearing every
+  `packages/*/dist` (`runtime-webgpu` 182/8-skip, up from F3.6.3's 178/8-skip; `graph` clean; full
+  workspace `check` clean across all 12 packages + both apps); both new real-device compile/link
+  tests independently re-run scoped to their own package with `--reporter=verbose`, confirmed to
+  execute (231ms/15ms, real adapter/device warnings logged) not skip.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.4-vertex-kernel-invocation-model.md`
 
 - **F3.6.3 — fragment-kernel primitive with document-derived bindings** — `a26d8fb` · Third
   milestone of F3.6, spanning both packages. Registers a real, additive `stage.fragmentKernel`
