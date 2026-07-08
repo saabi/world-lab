@@ -195,8 +195,12 @@ necessary — none is optional polish.
    marker. This is a distinct design problem from F3.1's static-binding-template model, not a
    direct extension of it; it needs its own from-scratch design pass (mirroring this document's own
    "why this is a from-scratch design effort" framing for Foundation 3 as a whole) before a
-   contract can be written for it. Not scoped further here — deliberately left as a named,
-   not-yet-designed follow-on rather than guessed at.
+   contract can be written for it. **Design discussion drafted:**
+   [f3.6-pipeline-kernels-design.md](./f3.6-pipeline-kernels-design.md) — investigates all four
+   sub-problems against the current codebase, recommends deriving binding sets from graph structure
+   rather than authoring them, recommends staying additive (new primitives alongside
+   `stage.vertex`/`stage.fragment`, not replacing them in place), and sketches a tentative F3.6.1-4
+   sequencing. Not a contract — no milestone below has one yet.
 
 Each milestone above gets its own full contract (file list, exact signatures, gate-as-failing-tests)
 written immediately before it's routed — this document only fixes the sequence and the verified
