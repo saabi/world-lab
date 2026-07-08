@@ -196,11 +196,15 @@ necessary — none is optional polish.
    direct extension of it; it needs its own from-scratch design pass (mirroring this document's own
    "why this is a from-scratch design effort" framing for Foundation 3 as a whole) before a
    contract can be written for it. **Design discussion drafted:**
-   [f3.6-pipeline-kernels-design.md](./f3.6-pipeline-kernels-design.md) — investigates all four
-   sub-problems against the current codebase, recommends deriving binding sets from graph structure
-   rather than authoring them, recommends staying additive (new primitives alongside
-   `stage.vertex`/`stage.fragment`, not replacing them in place), and sketches a tentative F3.6.1-4
-   sequencing. Not a contract — no milestone below has one yet.
+   [f3.6-pipeline-kernels-design.md](./f3.6-pipeline-kernels-design.md) — investigates six
+   sub-problems (A)-(F) against the current codebase, recommends deriving binding sets from graph
+   structure rather than authoring them, recommends staying additive (new primitives alongside
+   `stage.vertex`/`stage.fragment`, not replacing them in place), and sketches a tentative F3.6.1-6
+   sequencing. A seventh sub-problem, (F)'s vertex kernel invocation model, got its own follow-on
+   design discussion once F3.6.1-3 narrowed the remaining scope:
+   [f3.6.4-vertex-kernel-invocation-design.md](./f3.6.4-vertex-kernel-invocation-design.md).
+   **Status: F3.6.1 landed `29a3208`, F3.6.2 landed `9183107`, F3.6.3 has a routed contract and is
+   in flight, F3.6.4 has a design discussion but no contract yet, F3.6.5/F3.6.6 unscoped.**
 
 Each milestone above gets its own full contract (file list, exact signatures, gate-as-failing-tests)
 written immediately before it's routed — this document only fixes the sequence and the verified
