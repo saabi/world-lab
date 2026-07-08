@@ -203,8 +203,8 @@ necessary — none is optional polish.
    sequencing. A seventh sub-problem, (F)'s vertex kernel invocation model, got its own follow-on
    design discussion once F3.6.1-3 narrowed the remaining scope:
    [f3.6.4-vertex-kernel-invocation-design.md](./f3.6.4-vertex-kernel-invocation-design.md).
-   **Status: F3.6.1 landed `29a3208`, F3.6.2 landed `9183107`, F3.6.3 has a routed contract and is
-   in flight, F3.6.4 has a design discussion but no contract yet, F3.6.5/F3.6.6 unscoped.**
+   **Status: F3.6.1 landed `29a3208`, F3.6.2 landed `9183107`, F3.6.3 landed `a26d8fb`, F3.6.4 has
+   a design discussion but no contract yet, F3.6.5/F3.6.6 unscoped.**
 
 Each milestone above gets its own full contract (file list, exact signatures, gate-as-failing-tests)
 written immediately before it's routed — this document only fixes the sequence and the verified

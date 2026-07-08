@@ -27,23 +27,38 @@ is still open.
 
 ## Active
 
-- **F3.6.3 — fragment-kernel primitive with document-derived bindings** (third milestone of F3.6;
-  spans both packages, no manual/visual gate — see brief's Context)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.3-fragment-kernel-derived-bindings.md`
-  Owns: `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/graph/src/primitives/pipeline/index.ts`,
-  `packages/graph/src/primitives/pipeline/pipeline.test.ts` or `packages/graph/src/pipeline.test.ts`
-  (registration-check test, implementer's choice of location).
-  `packages/runtime-webgpu/src/consumers/fullscreenFragment.test.ts` must pass unmodified — not
-  owned/edited, only re-run.
-  Claimed by: Codex · Status: DONE · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.3 — fragment-kernel primitive with document-derived bindings** — `a26d8fb` · Third
+  milestone of F3.6, spanning both packages. Registers a real, additive `stage.fragmentKernel`
+  primitive (`bindings: []`) and generalizes `assembleFullscreenFragmentModuleAsync`'s existing
+  by-hand `usesShaderToyHost`/`usedChannels`/`hasGraphParams` derivation into `deriveChannelBindingDecls`/
+  `buildChannelBindGroupEntries`, shared by both the ShaderToy and kernel-fragment paths. Diff
+  matches the contract and all three of its pre-routing-review fixes exactly:
+  `buildKernelGraphEvalFn`'s `tint[0]` multiply is gone (`return ${resultExpr};`, confirmed via the
+  landed test's own `expect(assembly.code).not.toContain('tint[0]')`); `PipelineGraphExecutor.execute`'s
+  guard now only requires `kernelFragmentBindings` when `fragmentImpl.bindings.length > 0`,
+  synthesizing empty maps otherwise; Gate item 7's binding-order proof is assembly-only (calls
+  `assembleKernelFragmentModuleAsync` directly, no device, no real render of an unused declared
+  binding) exactly as corrected, asserting the full four-way order (tint@0, u@1, params@2,
+  channel@3-4) in one test. The real-device proof samples a live channel texture with a known solid
+  color through `stage.fragmentKernel` (zero kernel-declared bindings) via `device.queue.writeTexture`,
+  confirming the derived binding actually affects rendered output. A `'shares channel binding
+  derivation with the fullscreen fragment path'` test directly compares
+  `kernelAssembly.channelBindings`/`fullscreenAssembly.channelBindings` for identical input —
+  proving the extraction is genuinely shared, not independently drifting. `stage.vertex`/
+  `stage.fragment` confirmed byte-identical (own registration test). Independently re-verified, not
+  diff-only: `check`/`test`/`build` re-run clean after clearing every `packages/*/dist`
+  (`runtime-webgpu` 178/8-skip, up from F3.6.2's 174/8-skip; `graph` clean; full workspace `check`
+  clean across all 12 packages + both apps, `build --workspaces` then app build both clean); the two
+  new/changed real-device tests (`samples a live channel texture through stage.fragmentKernel`,
+  `throws when a referenced channel target is missing`) independently re-run scoped to their own
+  package with `--reporter=verbose`, confirmed to execute (88ms/8ms, real adapter/device warnings
+  logged) not skip.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.3-fragment-kernel-derived-bindings.md`
 
 - **F3.6.2 — pipeline-stage-aware assembly and execution wiring** — `9183107` (task board's own
   stage commit wrote `Status: DONE` with no hash — filled in here) · Second milestone of F3.6,
