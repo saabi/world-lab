@@ -9,7 +9,7 @@ import {
 } from '@world-lab/graph';
 import { evaluateMeshGenCpu } from '@world-lab/runtime-webgpu';
 
-import { defaultPreviewGraph } from './graphBuilders.js';
+import { computeBufferDoublingGraph, defaultPreviewGraph } from './graphBuilders.js';
 import { inferPreviewBackend, resolvePreviewRenderer } from './previewBackend.js';
 import { enumeratePreviewBuffers, inferDefaultPreviewBuffer, resolveMeshPreviewRequest } from './previewBuffers.js';
 import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js';
@@ -68,6 +68,32 @@ describe('graph-editor samples registry', () => {
 		expect(validateGraph(graph).ok).toBe(true);
 		expect(graph.nodes.some((node) => node.primitive === 'noise.worley2d')).toBe(true);
 		expect(graph.edges.some((edge) => edge.id === 'e_worley_v4_2x')).toBe(true);
+	});
+
+	it('builds a valid compute-buffer proof sample', () => {
+		const sample = getGraphSample('foundation-compute-buffer');
+		expect(sample).toBeDefined();
+		const graph = sample!.build();
+		expect(graph).toEqual(computeBufferDoublingGraph());
+		expect(validateGraphFull(graph).ok).toBe(true);
+		expect(graph.nodes).toEqual([
+			expect.objectContaining({
+				id: 'n_compute_buffer',
+				primitive: 'target.computeBuffer',
+				params: { elementCount: 20 }
+			})
+		]);
+
+		const buffers = enumeratePreviewBuffers(graph);
+		expect(buffers).toHaveLength(1);
+		expect(buffers[0]).toMatchObject({
+			id: 'n_compute_buffer',
+			family: 'buffer',
+			dataType: 'storageBuffer',
+			inferred: true
+		});
+		expect(inferDefaultPreviewBuffer(graph)?.id).toBe('n_compute_buffer');
+		expect(resolvePreviewRenderer(buffers[0]!)).toBe('buffer');
 	});
 
 	it('builds a displaced-sphere mesh sample wired to target.mesh', () => {

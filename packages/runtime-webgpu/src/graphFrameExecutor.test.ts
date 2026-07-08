@@ -117,6 +117,10 @@ function withComputeBuffer(graph: GraphDocument, elementCount = 20): GraphDocume
 	};
 }
 
+function computeOnlyGraph(elementCount = 20): GraphDocument {
+	return withComputeBuffer({ version: '2', nodes: [], edges: [], outputs: [] }, elementCount);
+}
+
 describe('GraphFrameExecutor', () => {
 	let pipelineSpy: ReturnType<typeof vi.spyOn>;
 
@@ -424,4 +428,45 @@ describe('GraphFrameExecutor', () => {
 		executor.dispose();
 		device.destroy();
 	});
+
+	it.skipIf(!hasWebGPU)(
+		'routes a compute-only graph through GraphFrameExecutor on a device',
+		async () => {
+			pipelineSpy.mockRestore();
+			const { requestGpuDevice } = await import('./device.js');
+			const { device } = await requestGpuDevice();
+			const executor = new GraphFrameExecutor();
+			try {
+				const graph = computeOnlyGraph(20);
+				const first = await executor.execute({
+					device,
+					graph,
+					width: 4,
+					height: 4,
+					host: { iTime: 0, iFrame: 0, pointers: {} }
+				});
+				const second = await executor.execute({
+					device,
+					graph,
+					width: 4,
+					height: 4,
+					host: { iTime: 0, iFrame: 1, pointers: {} }
+				});
+
+				expect(first.targets).toEqual({});
+				expect([...first.computeBuffers!.n_compute_buffer!]).toEqual([
+					2, 4, 6, 8, 10, 12, 14, 16, 18, 20,
+					22, 24, 26, 28, 30, 32, 34, 36, 38, 40
+				]);
+				expect([...second.computeBuffers!.n_compute_buffer!]).toEqual([
+					4, 8, 12, 16, 20, 24, 28, 32, 36, 40,
+					44, 48, 52, 56, 60, 64, 68, 72, 76, 80
+				]);
+				expect(pipelineSpy).not.toHaveBeenCalled();
+			} finally {
+				executor.dispose();
+				device.destroy();
+			}
+		}
+	);
 });

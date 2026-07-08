@@ -27,26 +27,19 @@ is still open.
 
 ## Active
 
-- **F3.4 — first real graph-authored compute kernel, wired into `GraphFrameExecutor`** (fourth
-  milestone of Foundation 3, rescoped after pre-drafting research, then revised again after a
-  pre-routing review found the editor preview-loop/UI wiring was missing — see brief's Context;
-  purely additive to `stage.vertex`/`stage.fragment`/any existing sample; needs a manual visual
-  check per its own gate item 22)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.4-compute-buffer-target.md`
-  Owns: `packages/graph/src/computeBufferTarget.ts` (new),
-  `packages/graph/src/computeBufferTarget.test.ts` (new),
-  `packages/graph/src/primitives/pipeline/index.ts`, `packages/graph/src/index.ts`,
-  `packages/runtime-webgpu/src/consumers/computeBufferTarget.ts` (new),
-  `packages/runtime-webgpu/src/consumers/computeBufferTarget.test.ts` (new),
-  `packages/runtime-webgpu/src/graphFrameExecutor.ts`,
-  `packages/runtime-webgpu/src/graphFrameExecutor.test.ts`, `packages/runtime-webgpu/src/index.ts`,
+- **F3.5 — generic compute-kernel proof closure** (fifth milestone of Foundation 3; hardens
+  F3.4's static compute-kernel path with a top-level real-device `GraphFrameExecutor` proof,
+  sample/preview persistence checks, and a manual visual gate; no F3.6 pipeline-kernel design)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.5-generic-kernel-proof.md`
+  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.test.ts`,
+  `packages/runtime-webgpu/src/consumers/computeBufferTarget.test.ts`,
   `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`,
-  `packages/graph-editor/src/previewFrameLoop.ts`, `packages/graph-editor/src/previewFrameLoop.test.ts`,
-  `packages/graph-editor/src/previewBuffers.ts`, `packages/graph-editor/src/previewBuffers.test.ts`,
-  `packages/graph-editor/src/previewBackend.ts`, `packages/graph-editor/src/previewBackend.test.ts`,
-  `packages/graph-editor/src/layoutStorage.ts`, `packages/graph-editor/src/layoutStorage.test.ts`,
-  `packages/graph-editor/src/DataBufferPreviewPanel.svelte` (new), its test file,
-  `packages/graph-editor/src/PreviewZone.svelte`
+  `packages/graph-editor/src/samples.test.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
+  `packages/graph-editor/src/previewFrameLoop.test.ts`, `packages/graph-editor/src/previewBuffers.ts`,
+  `packages/graph-editor/src/previewBuffers.test.ts`, `packages/graph-editor/src/previewBackend.ts`,
+  `packages/graph-editor/src/previewBackend.test.ts`, `packages/graph-editor/src/layoutStorage.ts`,
+  `packages/graph-editor/src/layoutStorage.test.ts`, `packages/graph-editor/src/DataBufferPreviewPanel.svelte`,
+  `packages/graph-editor/src/DataBufferPreviewPanel.test.ts`, `packages/graph-editor/src/PreviewZone.svelte`
   Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,

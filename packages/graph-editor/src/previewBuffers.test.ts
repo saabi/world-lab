@@ -127,6 +127,7 @@ describe('enumeratePreviewBuffers', () => {
 			family: 'buffer',
 			inferred: true
 		});
+		expect(inferDefaultPreviewBuffer(computeBufferDoublingGraph())).toEqual(buffer);
 	});
 
 	it('lists the scalar field output as data', () => {

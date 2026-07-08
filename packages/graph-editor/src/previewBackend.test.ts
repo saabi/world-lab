@@ -23,6 +23,14 @@ describe('previewBackend routing', () => {
 		expect(resolvePreviewRenderer(buffer, { familyOverride: null })).toBe('cpu');
 	});
 
+	it('preserves an explicit buffer renderer override', () => {
+		const buffer = {
+			family: 'data' as const,
+			inferred: false
+		};
+		expect(resolvePreviewRenderer(buffer, { rendererOverride: 'buffer' })).toBe('buffer');
+	});
+
 	it('defaults to effect for pipeline image buffers', () => {
 		const buffers = enumeratePreviewBuffers(defaultPreviewGraph());
 		expect(inferPreviewBackend(defaultPreviewGraph())).toBe('cpu');
