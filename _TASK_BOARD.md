@@ -32,7 +32,14 @@ Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-
 
 ## Done (recent)
 
-- **F3.6.6 — bundled proof sample: graph-authored vertex displacement** — `0ba8d54` · Sixth and
+- **F3.6.6 — bundled proof sample: graph-authored vertex displacement** — `0ba8d54`+`e0243c9`+`6d2652c`
+  (the latter two are small, direct follow-up fixes made in the same worktree after the first landed
+  — `e0243c9` clamps the noise displacement through `math.abs` so it stays within visible clip depth
+  instead of sometimes pushing the surface out of view; `6d2652c` re-sources the `uv` varying's `y`
+  component from the same abs-noise value driving the displacement, so the fragment color actually
+  reveals where the surface was displaced instead of just the flat, undisplaced grid coordinate —
+  both surfaced by the user's own manual visual-gate check, both re-verified alongside the main
+  diff, neither reintroduces a param-bearing node or output-name collision) · Sixth and
   **final** milestone of F3.6 — the whole sequence is closed. Wires `PipelineGraphExecutor.execute`'s
   vertex-side branch (mirroring the fragment-side branch F3.6.2 built) and registers a bundled,
   pickable sample, `'foundation-vertex-kernel-displacement'`, rendering real graph-authored,

@@ -2,7 +2,7 @@
 
 **Status:** ✅ complete — F3.1 `4c28431`, F3.2 `0c4b7d8`, F3.3 `2dc6009`, F3.4 `0b397003`, F3.5
 `899e56f`+`ebf6cd9`, F3.6.1 `29a3208`, F3.6.2 `9183107`, F3.6.3 `a26d8fb`, F3.6.4 `3fcc253`, F3.6.5
-`78c55b3`, F3.6.6 `0ba8d54` — every milestone landed and independently re-verified, including
+`78c55b3`, F3.6.6 `0ba8d54`+`e0243c9`+`6d2652c` — every milestone landed and independently re-verified, including
 F3.6.6's real-browser visual confirmation. F3.4 was rescoped after pre-drafting research (see its
 sequence entry below), which is what led to F3.6 being added; F3.6 itself grew from a design
 discussion into six milestones (F3.6.1-6) closing every sub-problem (A)-(F) it opened. Foundation 3
@@ -208,7 +208,9 @@ necessary — none is optional polish.
    design discussion once F3.6.1-3 narrowed the remaining scope:
    [f3.6.4-vertex-kernel-invocation-design.md](./f3.6.4-vertex-kernel-invocation-design.md).
    **Status: F3.6.1-6 all landed and independently re-verified — F3.6.1 `29a3208`, F3.6.2
-   `9183107`, F3.6.3 `a26d8fb`, F3.6.4 `3fcc253`, F3.6.5 `78c55b3`, F3.6.6 `0ba8d54`. F3.6.6's
+   `9183107`, F3.6.3 `a26d8fb`, F3.6.4 `3fcc253`, F3.6.5 `78c55b3`, F3.6.6
+   `0ba8d54`+`e0243c9`+`6d2652c` (the latter two small, direct visual-quality follow-ups to the
+   bundled sample found during its own manual visual-gate check). F3.6.6's
    bundled sample (`'foundation-vertex-kernel-displacement'`) is visually confirmed rendering
    correctly in a real browser. F3.6 — and Foundation 3 in full — is closed.**
 
