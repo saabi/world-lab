@@ -27,6 +27,20 @@ is still open.
 
 ## Active
 
+- **F3.6.5 — vertex-kernel primitive with real varying output** (fifth milestone of F3.6, the
+  largest one yet — see brief's own header note on splitting if too large; spans both packages, no
+  manual/visual gate, no `PipelineGraphExecutor` wiring — that's F3.6.6's job)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.5-vertex-kernel-real-varyings.md`
+  Owns: `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/runtime-webgpu/src/emitGraphEval.test.ts`,
+  `packages/runtime-webgpu/src/vertexKernelPosition.ts`,
+  `packages/runtime-webgpu/src/vertexKernelPosition.test.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
+  `packages/graph/src/primitives/pipeline/index.ts`,
+  `packages/graph/src/primitives/pipeline/pipeline.test.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
