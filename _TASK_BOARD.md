@@ -27,20 +27,31 @@ is still open.
 
 ## Active
 
-- **F3.6.1 — role-based pipeline-stage discovery** (first milestone of F3.6; discovery-mechanism
-  swap only, no new real primitive, no rendering change to any existing sample, no manual/visual
-  gate — see brief's Context)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.1-pipeline-stage-discovery.md`
-  Owns: `packages/graph/src/primitive.ts`, `packages/graph/src/pipeline.ts`,
-  `packages/graph/src/pipeline.test.ts`, `packages/graph/src/primitives/pipeline/index.ts`,
-  `packages/graph/src/primitives/pipeline/pipeline.test.ts`, `packages/graph/src/index.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineGraph.test.ts`
-  Claimed by: Codex · Status: DONE 4af9c7d · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.1 — role-based pipeline-stage discovery** — `29a3208` (task board's own stage commit wrote
+  the wrong hash, `4af9c7d`, which doesn't match any commit in the log — corrected here to the real
+  one) · First milestone of F3.6. Adds `PrimitiveMetadata.pipelineStageKind`/`isPipelineStage`;
+  three stage-discovery call sites (`fieldOutputForDisplay`, `resolveVertexForFragment`,
+  `planPipelineGraph`'s fragment check) move off hardcoded `stage.vertex`/`stage.fragment` id
+  checks, `resolvePipelineTarget`'s legacy fallback moves to the already-correct
+  `isPipelineTarget`. `role: 'pipelineStage'` and `swapFamily()` grouping untouched. Diff matches
+  the contract byte-for-byte, including Gate item 7's deliberately narrow strategy (a disconnected
+  alt-id target-role document distinguishing old-vs-new behavior by which specific error message
+  is thrown — the contract's own pre-routing review had found the originally-drafted version of
+  this gate item unbuildable, and the landed test follows the corrected version exactly: same
+  fixture shape, same disconnected-document construction, same two-error-message assertion). All
+  fixture primitives use the specified idempotent-registration/unique-id discipline
+  (`test.f361*`-prefixed, a `testPrimitive` helper matching the existing
+  `typeRefDeviceCompile.test.ts` pattern). Verification for this entry is based on the diff read
+  plus the implementer's own reported passing `check`/`test` commands (both workspaces + full
+  workspace) — not independently re-run this time, per explicit instruction to skip redundant
+  re-verification when the diff read alone gives high confidence. No manual/visual gate applied
+  (none required — nothing rendered changes).
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.1-pipeline-stage-discovery.md`
 
 - **F3.4 — first real graph-authored compute kernel, wired into `GraphFrameExecutor`** — `0b397003`
   · Fourth milestone of Foundation 3, rescoped after pre-drafting research, then revised again after
