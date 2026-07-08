@@ -10,7 +10,7 @@ import {
 } from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
-import { emitGraphScalarEval, emitGraphVec3Eval, emitGraphVec4Eval } from './emitGraphEval.js';
+import { emitGraphScalarEval, emitGraphVec2Eval, emitGraphVec3Eval, emitGraphVec4Eval } from './emitGraphEval.js';
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
@@ -154,6 +154,35 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 			expect(emitted.body).toContain(expected);
 			expect(emitted.body).toContain('let v_n_probe_value: f32 = f364VertexIndexProbe(v_n_index_index);');
 		}
+	});
+
+	it('emits vec2 outputs and supports uvExpr override for procedural.uv', () => {
+		const graph: GraphDocument = {
+			version: '2',
+			nodes: [snapshotNode('n_uv', 'procedural.uv')],
+			edges: [],
+			outputs: [{ name: 'uv', from: { node: 'n_uv', port: 'uv' } }]
+		};
+
+		const fallback = emitGraphVec2Eval(graph, { node: 'n_uv', port: 'uv' });
+		expect(fallback.body).toEqual(['let v_n_uv_uv = vec2<f32>(u, v);']);
+		expect(fallback.resultExpr).toBe('v_n_uv_uv');
+
+		const overridden = emitGraphVec2Eval(graph, { node: 'n_uv', port: 'uv' }, { uvExpr: 'input.uv' });
+		expect(overridden.body).toEqual(['let v_n_uv_uv = input.uv;']);
+	});
+
+	it('rejects non-vec2 outputs in emitGraphVec2Eval', () => {
+		const graph: GraphDocument = {
+			version: '2',
+			nodes: [snapshotNode('n_time', 'host.iTime')],
+			edges: [],
+			outputs: [{ name: 'time', from: { node: 'n_time', port: 'time' } }]
+		};
+
+		expect(() => emitGraphVec2Eval(graph, { node: 'n_time', port: 'time' })).toThrow(
+			'emitGraphVec2Eval requires vec2f output; got f32'
+		);
 	});
 
 	it('emits evaluate body for uv → perlin → remap', () => {

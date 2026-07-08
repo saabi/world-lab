@@ -2,6 +2,7 @@ import {
 	assembleStageEntry,
 	compileGraph,
 	type BindingDecl,
+	type VaryingDecl,
 	type WgslModuleResolver
 } from '@world-lab/compiler';
 import {
@@ -68,6 +69,7 @@ export interface KernelFragmentAssemblyInput {
 	bindings: readonly KernelBindingTemplate[];
 	wgslTypes: ReadonlyMap<string, string>;
 	resolver?: WgslModuleResolver;
+	varyings?: readonly VaryingDecl[];
 }
 
 export interface KernelFragmentAssembly {
@@ -91,10 +93,16 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 	return match.name;
 }
 
-function buildKernelGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
-	return `fn graph_eval_${outputName}(position: vec4f) -> vec4f {
-${body.map((line) => `\t${line}`).join('\n')}
-\treturn ${resultExpr};
+function buildKernelGraphEvalFn(
+	outputName: string,
+	body: string[],
+	resultExpr: string,
+	varyings: readonly VaryingDecl[] = []
+): string {
+	const params = ['position: vec4f', ...varyings.map((varying) => `${varying.name}: ${varying.wgslType}`)];
+	return `fn graph_eval_${outputName}(${params.join(', ')}) -> vec4f {
+	${body.map((line) => `\t${line}`).join('\n')}
+	\treturn ${resultExpr};
 }`;
 }
 
@@ -124,6 +132,7 @@ export async function assembleKernelFragmentModuleAsync(
 	input: KernelFragmentAssemblyInput
 ): Promise<KernelFragmentAssembly> {
 	const { graph, output, bindings, wgslTypes } = input;
+	const varyings = input.varyings ?? [];
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
 	const outputName = findOutputName(graph, output);
@@ -137,8 +146,11 @@ export async function assembleKernelFragmentModuleAsync(
 		throw new Error('compileGraph produced no shaders');
 	}
 
-	const emitted = emitGraphVec4Eval(graph, output, { shaderToy: false });
-	const evalFn = buildKernelGraphEvalFn(outputName, emitted.body, emitted.resultExpr);
+	const emitted = emitGraphVec4Eval(graph, output, {
+		shaderToy: false,
+		...(varyings.some((varying) => varying.name === 'uv') ? { uvExpr: 'uv' } : {})
+	});
+	const evalFn = buildKernelGraphEvalFn(outputName, emitted.body, emitted.resultExpr, varyings);
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
 	const kernelBindingDecls = buildKernelBindingDecls(bindings, wgslTypes);
 	const usesShaderToyHost = wgslReferencesShaderToyUniform(libraryWithEval);
@@ -176,21 +188,26 @@ export async function assembleKernelFragmentModuleAsync(
 		{
 			bindings: allBindings,
 			outputFns: { [outputName]: `graph_eval_${outputName}` },
-			callArgs: ['position']
+			callArgs:
+				varyings.length > 0
+					? ['input.position', ...varyings.map((varying) => `input.${varying.name}`)]
+					: ['position'],
+			varyings: [...varyings]
 		}
 	);
 
 	const paramsStruct = hasGraphParams ? buildParamsStructWgsl(emitted.params) : '';
-	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
+	const vertexAssembly =
+		varyings.length > 0 ? undefined : await resolveVertexAssembly(graph, resolver);
 	const codeParts = usesShaderToyHost
-		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code]
-		: [paramsStruct, vertexWgsl, stage.code];
+		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexAssembly?.vertexWgsl, stage.code]
+		: [paramsStruct, vertexAssembly?.vertexWgsl, stage.code];
 	const code = codeParts.filter(Boolean).join('\n\n');
 
 	return {
 		code,
 		outputName,
-		vertexCount,
+		vertexCount: vertexAssembly?.vertexCount ?? 0,
 		params: emitted.params,
 		bindings: allBindings,
 		paramsBindingIndex,

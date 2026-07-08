@@ -43,6 +43,7 @@ export interface EmittedGraphEval {
 }
 
 export interface EmitGraphEvalOptions {
+	uvExpr?: string;
 	positionExpr?: string;
 	/** When true, host.* primitives read ShaderToy uniforms instead of procedural UV. */
 	shaderToy?: boolean;
@@ -88,7 +89,7 @@ function emitHostInput(
 	const variable = portVar(node.id, outPort.id);
 
 	if (binding.context === 'invocation' && binding.key === 'uv') {
-		return `let ${variable} = vec2<f32>(u, v);`;
+		return `let ${variable} = ${opts?.uvExpr ?? 'vec2<f32>(u, v)'};`;
 	}
 	if (binding.context === 'invocation' && binding.key === 'metricPosition') {
 		const expr = opts?.positionExpr ?? 'vec3<f32>(u, v, 0.0)';
@@ -211,6 +212,14 @@ export function emitGraphVec4Eval(
 	opts?: EmitGraphEvalOptions
 ): EmittedGraphEval {
 	return emitGraphEval(doc, output, 'vec4f', 'emitGraphVec4Eval requires vec4f output', opts);
+}
+
+export function emitGraphVec2Eval(
+	doc: GraphDocument,
+	output: PortRef,
+	opts?: EmitGraphEvalOptions
+): EmittedGraphEval {
+	return emitGraphEval(doc, output, 'vec2f', 'emitGraphVec2Eval requires vec2f output', opts);
 }
 
 export function emitGraphVec3Eval(

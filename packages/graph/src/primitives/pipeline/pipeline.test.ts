@@ -9,6 +9,7 @@ import { planeGridPosition } from './planeGrid.js';
 describe('pipeline geometry primitives', () => {
 	it('registers the additive fragment kernel stage without changing legacy stages', () => {
 		const vertex = getPrimitive('stage.vertex')!;
+		const vertexKernel = getPrimitive('stage.vertexKernel')!;
 		const fragment = getPrimitive('stage.fragment')!;
 		const fragmentKernel = getPrimitive('stage.fragmentKernel')!;
 
@@ -19,6 +20,15 @@ describe('pipeline geometry primitives', () => {
 		});
 		expect(vertex.metadata?.role).toBe('pipelineStage');
 		expect(vertex.metadata?.pipelineStageKind).toBe('vertex');
+		expect(vertexKernel.implementation).toEqual({
+			kind: 'kernel',
+			stage: 'vertex',
+			bindings: []
+		});
+		expect(vertexKernel.metadata?.role).toBe('pipelineStage');
+		expect(vertexKernel.metadata?.pipelineStageKind).toBe('vertex');
+		expect(vertexKernel.inputs.map((port) => port.name)).toEqual(['mesh', 'position', 'uv']);
+		expect(vertexKernel.outputs.map((port) => port.name)).toEqual(['varyings']);
 		expect(fragment.implementation).toEqual({
 			kind: 'legacy-structural',
 			marker: 'stage.fragment'

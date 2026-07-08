@@ -41,6 +41,25 @@ const primitives: NodePrimitiveInput[] = [
 		}
 	},
 	{
+		id: 'stage.vertexKernel',
+		category: 'stage',
+		inputs: [
+			{ name: 'mesh', dataType: 'geometry', metadata: { semantic: 'geometry-resource' } },
+			{ name: 'position', dataType: 'vec3f', metadata: { semantic: 'vertex-position' } },
+			{ name: 'uv', dataType: 'vec2f', metadata: { semantic: 'vertex-uv-varying' } }
+		],
+		outputs: [{ name: 'varyings', dataType: 'varyings', metadata: { semantic: 'fragment-varyings' } }],
+		params: noParams,
+		implementation: { kind: 'kernel', stage: 'vertex', bindings: [] },
+		metadata: {
+			description: 'Graph-driven vertex kernel stage with a graph-authored position and uv varying.',
+			pure: true,
+			deterministic: true,
+			role: 'pipelineStage',
+			pipelineStageKind: 'vertex'
+		}
+	},
+	{
 		id: 'stage.fragment',
 		category: 'stage',
 		inputs: [
