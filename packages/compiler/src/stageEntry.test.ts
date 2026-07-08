@@ -102,7 +102,7 @@ describe('@world-lab/compiler assembleStageEntry', () => {
 			workgroupSize: [8, 8, 1],
 			outputFns: { state: 'step' },
 		});
-		expect(m.code).toContain('@compute @workgroupSize(8, 8, 1)');
+		expect(m.code).toContain('@compute @workgroup_size(8, 8, 1)');
 		expect(m.code).toContain('fn cs_main(@builtin(global_invocation_id) gid: vec3u)');
 		expect(m.code).toContain('step();');
 	});

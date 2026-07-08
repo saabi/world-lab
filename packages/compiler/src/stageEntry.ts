@@ -214,7 +214,7 @@ export function assembleStageEntry(shader: ConsumerShader, opts: StageEntryOptio
 		}
 	} else if (shader.stage === 'compute') {
 		const [x, y, z] = opts.workgroupSize ?? [64, 1, 1];
-		entry = `@compute @workgroupSize(${x}, ${y}, ${z})\nfn cs_main(@builtin(global_invocation_id) gid: vec3u) {\n\t${fn}(${args});\n}`;
+		entry = `@compute @workgroup_size(${x}, ${y}, ${z})\nfn cs_main(@builtin(global_invocation_id) gid: vec3u) {\n\t${fn}(${args});\n}`;
 	} else if (shader.stage === 'vertex') {
 		const varyings = opts.varyings ?? [];
 		const structName = opts.varyingsStructName ?? 'VSOut';

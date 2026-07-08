@@ -38,7 +38,7 @@ is still open.
   `packages/runtime-webgpu/src/computeKernel.test.ts` (new),
   `packages/runtime-webgpu/src/computeKernelDeviceCompile.test.ts` (new),
   `packages/runtime-webgpu/src/index.ts`
-  Claimed by: · Status: · Recommended executor: Cursor or Codex
+  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
 
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
