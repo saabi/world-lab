@@ -608,6 +608,14 @@ particles and mesh generation.
 
 The current instanced-draw extraction is a useful internal precursor.
 
+**Sequencing plan drafted (2026-07-08):**
+[foundation-4-command-graph-plan.md](./foundation-4-command-graph-plan.md) — reorders these
+bullets so the execution-model fix (caches, canvas presentation, edit-time compilation) lands
+*first* on the existing vocabulary, then depth/camera/stage-complete uniforms, then the command
+vocabulary itself (F4.1-F4.6); rationale in
+[repo-and-roadmap-review-2026-07-08.md](./repo-and-roadmap-review-2026-07-08.md) §1.1/§2.2. Not a
+contract — no milestone has one yet.
+
 ### Standard-library reconstruction
 
 Rebuild specialized capabilities as groups and samples:
