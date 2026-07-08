@@ -370,7 +370,7 @@ export function vertexKernelDisplacementGraph(): GraphDocument {
 			edge('e_z_position', 'n_displaced_z', 'math.add', 'n_displaced_position', 'vector.vec3f', 0, 2),
 			edge('e_position_vertex', 'n_displaced_position', 'vector.vec3f', 'n_vertex', 'stage.vertexKernel', 0, 1),
 			edge('e_x_uv', 'n_x', 'vector.vec3f.x', 'n_vertex_uv', 'vector.vec2f', 0, 0),
-			edge('e_y_uv', 'n_y', 'vector.vec3f.y', 'n_vertex_uv', 'vector.vec2f', 0, 1),
+			edge('e_height_uv', 'n_abs_noise', 'math.abs', 'n_vertex_uv', 'vector.vec2f', 0, 1),
 			edge('e_uv_vertex', 'n_vertex_uv', 'vector.vec2f', 'n_vertex', 'stage.vertexKernel', 0, 2),
 			edge('e_fragment_uv_color', 'n_fragment_uv', 'procedural.uv', 'n_color', 'vector.combine.vec2f_f32_f32', 0, 0),
 			edge('e_color_fragment', 'n_color', 'vector.combine.vec2f_f32_f32', 'n_fragment', 'stage.fragmentKernel', 0, 1)

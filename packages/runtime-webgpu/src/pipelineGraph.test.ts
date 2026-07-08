@@ -362,7 +362,7 @@ function vertexKernelPipelineGraph(options: {
 						}
 					]),
 			{ id: 'e_x_uv', from: { node: 'n_x', port: 'x' }, to: { node: 'n_vertex_uv', port: 'x' } },
-			{ id: 'e_y_uv', from: { node: 'n_y', port: 'y' }, to: { node: 'n_vertex_uv', port: 'y' } },
+			{ id: 'e_height_uv', from: { node: 'n_abs_noise', port: 'value' }, to: { node: 'n_vertex_uv', port: 'y' } },
 			{ id: 'e_uv_vertex', from: { node: 'n_vertex_uv', port: 'value' }, to: { node: 'n_vertex', port: 'uv' } },
 			{ id: 'e_fragment_uv_color', from: { node: 'n_fragment_uv', port: 'uv' }, to: { node: 'n_color', port: 'xy' } },
 			{ id: 'e_color_fragment', from: { node: 'n_color', port: 'value' }, to: { node: 'n_fragment', port: 'color' } }
