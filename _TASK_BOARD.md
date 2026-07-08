@@ -27,6 +27,19 @@ is still open.
 
 ## Active
 
+- **F3.3 — compute kernels and dispatch domains** (third milestone of Foundation 3; fixes
+  `assembleStageEntry`'s compute-template `@workgroupSize` bug and gives F3.1's
+  `KernelBindingTemplate`/`resolveKernelBindings`/`bindingDeclKindForTemplate` their first real GPU
+  consumer — see brief's Context; not the first compute pipeline in the package, see the plan-doc
+  correction)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.3-compute-kernels-dispatch.md`
+  Owns: `packages/compiler/src/stageEntry.ts`, `packages/compiler/src/stageEntry.test.ts`,
+  `packages/runtime-webgpu/src/computeKernel.ts` (new),
+  `packages/runtime-webgpu/src/computeKernel.test.ts` (new),
+  `packages/runtime-webgpu/src/computeKernelDeviceCompile.test.ts` (new),
+  `packages/runtime-webgpu/src/index.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 

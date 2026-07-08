@@ -49,10 +49,18 @@ shape of the work is "design something new," not "generalize an existing algorit
   that same wrong string, so the bug is enshrined in its own test, not just an unnoticed typo. Every
   real compute shader in the codebase (`planeScalarPreview.ts`, `vegetationCandidates.ts`,
   `meshGen.ts`, `compiledWgsl.ts`) is hand-written with the correct `@workgroup_size` and bypasses
-  this template entirely — which is exactly why the bug has stayed live. And regardless of that
-  attribute-name bug, nothing in the codebase calls the compute branch at all: **there is no
-  `GPUComputePipeline` creation, no dispatch call, anywhere in `runtime-webgpu`** (confirmed by
-  grep — zero matches for compute pipeline creation outside this dead template branch). The
+  this template entirely — which is exactly why the bug has stayed live. **Correction (found
+  re-verifying for F3.3): `GPUComputePipeline`/`dispatchWorkgroups` calls do already exist in
+  `runtime-webgpu`** — `planeScalarPreview.ts`, `meshGen.ts`, and `vegetationCandidates.ts` each
+  hand-roll their own `createComputePipeline`/`dispatchWorkgroups` call, confirmed by grep
+  (`createComputePipeline` appears at `planeScalarPreview.ts:81`, `meshGen.ts:447`,
+  `vegetationCandidates.ts:396`). What is genuinely still zero is any compute pipeline built
+  through the *generic* model this plan is about: none of the three goes through
+  `assembleStageEntry`'s compute branch, none uses `KernelBindingTemplate`/`resolveKernelBindings`
+  for its bind group, and every one hand-assembles its own `GPUBindGroupLayoutEntry`s and manual
+  buffer allocation with no shared abstraction between them. F3.3's "first real compute pipeline"
+  framing (below) is corrected to mean the first one built through this generic model, not the
+  first compute pipeline in the package. The
   `vertex` template's `VSOut` struct declares only `@builtin(position)` — no varyings field exists
   or could be added without changing the template, confirming there is no typed-varyings mechanism
   today, generic or otherwise.
@@ -132,8 +140,12 @@ necessary — none is optional polish.
    the same graph-slicing/emission machinery already proven for fragment kernels
    (`emitGraphVec4Eval`'s family), not a new codegen path. Primarily compiler-side; the existing fixed
    grid path must keep working throughout (same incremental discipline as every prior milestone).
-3. **F3.3 — compute kernels and dispatch domains.** The first real `GPUComputePipeline` creation and
-   `dispatchWorkgroups` call in `runtime-webgpu` — today there are zero, verified above. Also fixes
+3. **F3.3 — compute kernels and dispatch domains.** The first `GPUComputePipeline` creation and
+   `dispatchWorkgroups` call built through the *generic* kernel/binding model — not the first
+   compute pipeline in `runtime-webgpu` at all (three hand-rolled ones already exist,
+   `planeScalarPreview.ts`/`meshGen.ts`/`vegetationCandidates.ts`, none going through
+   `assembleStageEntry`'s compute branch or `KernelBindingTemplate`, see the correction above). Also
+   fixes
    `assembleStageEntry`'s compute template so it emits `@workgroup_size` (WGSL-valid) instead of its
    current `@workgroupSize` (verified above — not fixed in F3.1, since F3.1 touches only `graph`'s
    binding types and `stageEntry.ts`'s `storage-read-write` binding kind, not its compute-entry
