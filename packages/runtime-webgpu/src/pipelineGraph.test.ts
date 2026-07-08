@@ -22,6 +22,7 @@ import {
 const F361_VERTEX_ID = 'test.f361PipelineGraphVertexStage';
 const F361_FRAGMENT_ID = 'test.f361PipelineGraphFragmentStage';
 const F361_TARGET_ID = 'test.f361PipelineGraphDisplayTarget';
+const F362_FRAGMENT_ID = 'test.f362PipelineGraphKernelFragmentStage';
 
 function testPrimitive(input: NodePrimitiveInput): NodePrimitive {
 	const existing = getPrimitive(input.id);
@@ -84,6 +85,37 @@ function testDisplayTargetPrimitive(): NodePrimitive {
 		metadata: {
 			description: 'F3.6.1 test-only display target fixture.',
 			role: 'pipelineTarget'
+		}
+	});
+}
+
+function testKernelFragmentStagePrimitive(): NodePrimitive {
+	return testPrimitive({
+		id: F362_FRAGMENT_ID,
+		category: 'test/stage',
+		inputs: [
+			{ name: 'varyings', dataType: 'varyings' },
+			{ name: 'color', dataType: 'vec4f' }
+		],
+		outputs: [{ name: 'texture', dataType: 'texture' }],
+		params: Type.Object({}),
+		implementation: {
+			kind: 'kernel',
+			stage: 'fragment',
+			bindings: [
+				{
+					name: 'tint',
+					binding: 0,
+					resourceKind: 'buffer',
+					access: 'read',
+					stages: ['fragment']
+				}
+			]
+		},
+		metadata: {
+			description: 'F3.6.2 test-only kernel fragment fixture.',
+			role: 'pipelineStage',
+			pipelineStageKind: 'fragment'
 		}
 	});
 }
@@ -362,5 +394,32 @@ describe('@world-lab/runtime-webgpu pipeline graph', () => {
 		expect(geometryCacheFingerprint(base, basePlan)).not.toBe(
 			geometryCacheFingerprint(changed, changedPlan)
 		);
+	});
+
+	it('routes kernel fragment stages before fragment assembly', async () => {
+		const executor = new PipelineGraphExecutor();
+		await expect(
+			executor.execute({
+				device: {} as GPUDevice,
+				graph: pipelineGraph(),
+				width: 0,
+				height: 1,
+				host: { iTime: 0 },
+				target: {} as GPUTexture
+			})
+		).rejects.toThrow('width and height must be positive');
+
+		testKernelFragmentStagePrimitive();
+		const graph = replacePipelinePrimitive(pipelineGraph(), 'n_fragment', F362_FRAGMENT_ID);
+		await expect(
+			executor.execute({
+				device: {} as GPUDevice,
+				graph,
+				width: 0,
+				height: 1,
+				host: { iTime: 0 },
+				target: {} as GPUTexture
+			})
+		).rejects.toThrow('kernelFragmentBindings were supplied');
 	});
 });

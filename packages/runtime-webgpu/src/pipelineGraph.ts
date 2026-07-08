@@ -14,6 +14,10 @@ import {
 	type FullscreenFragmentResult,
 	type ShaderToyHostInputs
 } from './consumers/fullscreenFragment.js';
+import {
+	executeKernelFragment,
+	type KernelFragmentBindingInput
+} from './consumers/kernelFragment.js';
 
 const PIPELINE_GEOMETRY_SOURCE_ROLE = 'pipelineGeometrySource';
 
@@ -45,6 +49,8 @@ export interface PipelineGraphInput {
 	host: ShaderToyHostInputs;
 	target: GPUTexture;
 	channelTargets?: ReadonlyMap<number, GPUTexture>;
+	/** Required only when the discovered fragment stage is a {kind:'kernel'} primitive. */
+	kernelFragmentBindings?: KernelFragmentBindingInput;
 }
 
 /** Stable cache identity for geometry realized through `buffer.persist`. */
@@ -261,6 +267,31 @@ export class PipelineGraphExecutor {
 			input.output ? { output: input.output } : {}
 		);
 		this.cache.realizeGeometry(geometryCacheFingerprint(input.graph, plan));
+
+		const fragmentNode = input.graph.nodes.find((node) => node.id === plan.fragmentStageNode);
+		const fragmentImpl = fragmentNode
+			? getPrimitive(fragmentNode.primitive)?.implementation
+			: undefined;
+		if (fragmentImpl?.kind === 'kernel' && fragmentImpl.stage === 'fragment') {
+			if (!input.kernelFragmentBindings) {
+				throw new Error(
+					`Pipeline fragment stage ${plan.fragmentStageNode} is a kernel-based primitive but no ` +
+						'kernelFragmentBindings were supplied'
+				);
+			}
+			return executeKernelFragment({
+				device: input.device,
+				graph: input.graph,
+				output: plan.fieldOutput,
+				bindings: fragmentImpl.bindings,
+				resolver: input.resolver,
+				width: input.width,
+				height: input.height,
+				target: input.target,
+				kernelBindings: input.kernelFragmentBindings
+			});
+		}
+
 		return executeFullscreenFragment({
 			device: input.device,
 			graph: input.graph,

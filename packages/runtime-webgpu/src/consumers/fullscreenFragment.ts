@@ -59,7 +59,7 @@ export interface FullscreenFragmentAssembly {
 	>;
 }
 
-function packGraphParams(
+export function packGraphParams(
 	width: number,
 	height: number,
 	fields: GraphParamField[],
@@ -79,7 +79,7 @@ function packGraphParams(
 	return new Float32Array(values);
 }
 
-async function resolveVertexAssembly(
+export async function resolveVertexAssembly(
 	graph: GraphDocument,
 	resolver: WgslModuleResolver
 ): Promise<{ vertexWgsl: string; vertexCount: number }> {
