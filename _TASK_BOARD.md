@@ -27,6 +27,19 @@ is still open.
 
 ## Active
 
+- **F3.6.3 — fragment-kernel primitive with document-derived bindings** (third milestone of F3.6;
+  spans both packages, no manual/visual gate — see brief's Context)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.3-fragment-kernel-derived-bindings.md`
+  Owns: `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/graph/src/primitives/pipeline/index.ts`,
+  `packages/graph/src/primitives/pipeline/pipeline.test.ts` or `packages/graph/src/pipeline.test.ts`
+  (registration-check test, implementer's choice of location).
+  `packages/runtime-webgpu/src/consumers/fullscreenFragment.test.ts` must pass unmodified — not
+  owned/edited, only re-run.
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
