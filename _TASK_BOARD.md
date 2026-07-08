@@ -27,21 +27,38 @@ is still open.
 
 ## Active
 
-- **F3.6.2 — pipeline-stage-aware assembly and execution wiring** (second milestone of F3.6;
-  fragment side only — see brief's Context for why vertex is deferred to F3.6.4/F3.6.5; no
-  manual/visual gate)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.2-kernel-fragment-assembly-execution.md`
-  Owns: `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.ts` (new),
-  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts` (new),
-  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineGraph.test.ts`,
-  `packages/runtime-webgpu/src/index.ts`
-  Claimed by: Codex · Status: DONE · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.2 — pipeline-stage-aware assembly and execution wiring** — `9183107` (task board's own
+  stage commit wrote `Status: DONE` with no hash — filled in here) · Second milestone of F3.6,
+  fragment side only. Adds `executeKernelFragment`/`assembleKernelFragmentModuleAsync` (new file
+  `consumers/kernelFragment.ts`) and a real branch point in `PipelineGraphExecutor.execute` — a
+  `{kind:'kernel', stage:'fragment'}` fragment stage routes into the new path, reusing F3.1/F3.3's
+  `resolveKernelBindings`/`buildKernelBindingDecls`/`buildComputeBindGroupEntries` chain end to
+  end. Diff matches the contract and all three of its pre-routing-review fixes exactly:
+  `assertSupportedKernelFragmentShape` rejects any binding shape other than the one-`tint`-buffer
+  scaffold before any WGSL assembly; `nextFreeBindingIndex` (not `.length`) correctly places graph
+  params after the highest declared kernel binding index, proven with `tint@binding:1` (the one
+  offset that actually collides under the old buggy calculation, not just lands wrong); and
+  `host.fragCoord` is confirmed and positively tested as supported (it resolves through the
+  `position` parameter, not a ShaderToy uniform), with the rejection wording narrowed to
+  `host.iTime`/`host.iResolution`/`host.iMouse` only. The implementer's own split of assembly
+  (`assembleKernelFragmentModuleAsync`) from execution (`executeKernelFragment`) is a real
+  improvement over the contract's inline sketch — most Gate items (scaffold-shape rejection,
+  host-input handling, binding-index placement) are tested without a GPU device at all, only the
+  live-tint-buffer proof needs one. Independently re-verified, not diff-only this time (no
+  skip-reverification instruction was given): `check`/`test` re-run clean after clearing every
+  `packages/*/dist` (`runtime-webgpu` 174/8-skip, full workspace `check` clean across all 12
+  packages + both apps); the real-device test (`uses a live tint buffer to affect rendered pixels`)
+  independently re-run scoped to its own package with `--reporter=verbose`, confirmed to execute
+  (132ms, real adapter/device warnings logged) not skip. `apps/scene-editor`'s `build` failed on
+  first attempt after `rm -rf packages/*/dist` — traced to a process gap (app build attempted
+  before package `dist`s were rebuilt, so `@world-lab/editor-ui`'s CSS export didn't exist yet),
+  not a real regression; `npm run build --workspaces` then the app build both succeeded clean.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.2-kernel-fragment-assembly-execution.md`
 
 - **F3.6.1 — role-based pipeline-stage discovery** — `29a3208` (task board's own stage commit wrote
   the wrong hash, `4af9c7d`, which doesn't match any commit in the log — corrected here to the real
