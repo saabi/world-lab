@@ -1,7 +1,8 @@
 # Foundation 3 — generic kernels: sequencing plan
 
-**Status:** draft, not yet routed — no milestone has a full contract yet (those get written
-per-milestone, immediately before routing, exactly as F2.1–F2.5 did it) · **Parent:**
+**Status:** in progress — F3.1 `4c28431`, F3.2 `0c4b7d8`, F3.3 `2dc6009` landed and independently
+verified; F3.4 rescoped after pre-drafting research (see its sequence entry below) and F3.6 added
+as a result · **Parent:**
 [elemental-webgpu-architecture-review.md, Foundation 3](./elemental-webgpu-architecture-review.md#foundation-3-generic-kernels)
 · **Depends on:** Foundation 2, complete (F2.1 `04f5319`, F2.2 `397af7f`, F2.3 `f355221`, F2.4
 `37f496a`, F2.5 `35a75fb`+`984bfcb`) · **Blocks:** Foundation 4 (generic command graph), correct
@@ -162,21 +163,40 @@ necessary — none is optional polish.
    `{ kind: 'command'; command: GpuCommandKind }` stays untouched by this milestone; no temporary or
    placeholder command primitive is introduced to carry dispatch — that seam is Foundation 4's,
    entered only once, not pre-built here and redone there.
-4. **F3.4 — generic kernel executor integration.** Wires F3.1–F3.3's real kernel compilation into
-   actual frame execution, replacing `stage.vertex`'s `wgsl-function` hardcode and `stage.fragment`'s
-   `legacy-structural` marker with real, graph-authored kernel primitives resolved through the same
-   executor F2.4 built. Same incremental discipline as F2.4 itself: today's ShaderToy fullscreen case
-   and F2.5's cross-pass texture-read sample must render identically throughout — they become the
-   trivial case of the general kernel executor (a kernel pair that only happens to use the fixed
-   fullscreen triangle and no bindings beyond channels/uniforms), not a separate path maintained
-   alongside it. **F2.5's buffer-feedback sample is a different case, not folded in**: it must stay
-   regression-green (same pixels, same behavior), but per this plan's own out-of-scope rule it keeps
-   running on its own dedicated `BufferFeedbackExecutor` — it is not migrated onto the generic kernel
-   executor by this milestone, or required to be, ever, as a consequence of F3.4 alone.
-5. **F3.5 — proof.** Per this project's standing instruction: bundled, pickable, hardcoded samples
-   (not headless-only fixtures) proving real graph-authored vertex displacement (a kernel that
-   actually computes a displaced position, not the fixed grid) and a real compute-dispatch sample
-   — mirroring F2.5's own proof-milestone shape and its own visual-gate convention.
+4. **F3.4 — first real graph-authored compute kernel, wired into `GraphFrameExecutor`.** **Revised
+   from the original "replace `stage.vertex`/`stage.fragment`'s hardcodes" framing** — pre-drafting
+   research (see the F3.4 brief's own Context/Verified current state) found that framing doesn't fit
+   F3.1's design: `stage.vertex`/`stage.fragment` are generic, reused-by-every-pipeline primitives
+   whose actual binding set (host uniforms, channels, params) is discovered dynamically per document,
+   while `KernelBindingTemplate[]` is validated *statically*, once, at primitive registration —
+   a fixed signature, not a per-document-varying one. Converting `stage.fragment` itself into a
+   `{kind:'kernel'}` primitive doesn't work structurally. F3.4 is scoped down to what actually fits
+   the static model today: register one new, real, purpose-built compute-kernel primitive with a
+   fixed binding set, a new sink to expose it, a document-walking function correlating the kernel's
+   declared bindings to real upstream/downstream resource nodes by port name, and `ResourceRealizer`
+   integration so `GraphFrameExecutor` can actually call F3.3's `executeComputeKernel` with real,
+   frame-managed GPU resources instead of a caller-supplied map. **Purely additive** — does not touch
+   `stage.vertex`, `stage.fragment`, `pipelineVertex.ts`, `fullscreenFragment.ts`, or any existing
+   sample; zero regression risk to the ShaderToy fullscreen case, F2.5's cross-pass-texture sample, or
+   F2.5's buffer-feedback sample (all three stay on their exact current code paths, untouched). The
+   harder "true pipeline kernels" problem — dynamic host/resource bindings, typed varyings actually
+   producing displaced vertex output, presentation-target compatibility, and what (if anything)
+   should eventually replace `stage.vertex`/`stage.fragment`'s hardcodes — is deferred to F3.6.
+5. **F3.5 — proof.** Per this project's standing instruction: a bundled, pickable, hardcoded sample
+   (not a headless-only fixture) proving a real compute-dispatch kernel through F3.4's wiring —
+   mirroring F2.5's own proof-milestone shape and its own visual-gate convention. (Real
+   graph-authored vertex displacement is no longer this milestone's proof target — see F3.6.)
+6. **F3.6 — pipeline kernels (new, added after F3.4's scoping review).** The deferred, harder
+   problem F3.4 explicitly did not attempt: dynamic host/resource bindings (a kernel whose binding
+   *set* varies per document, not fixed at registration), typed varyings actually flowing real
+   graph-computed data from a vertex kernel to a fragment kernel, presentation-target compatibility
+   (`target.display`'s existing `stage.fragment`-shaped contract), and what — if anything — should
+   replace `stage.vertex`'s `wgsl-function` hardcode and `stage.fragment`'s `legacy-structural`
+   marker. This is a distinct design problem from F3.1's static-binding-template model, not a
+   direct extension of it; it needs its own from-scratch design pass (mirroring this document's own
+   "why this is a from-scratch design effort" framing for Foundation 3 as a whole) before a
+   contract can be written for it. Not scoped further here — deliberately left as a named,
+   not-yet-designed follow-on rather than guessed at.
 
 Each milestone above gets its own full contract (file list, exact signatures, gate-as-failing-tests)
 written immediately before it's routed — this document only fixes the sequence and the verified

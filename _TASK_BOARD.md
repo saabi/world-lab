@@ -27,6 +27,21 @@ is still open.
 
 ## Active
 
+- **F3.4 — first real graph-authored compute kernel, wired into `GraphFrameExecutor`** (fourth
+  milestone of Foundation 3, rescoped after pre-drafting research — see brief's Context; purely
+  additive, does not touch `stage.vertex`/`stage.fragment`/any existing sample; needs a manual
+  visual check per its own gate item 16)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.4-compute-buffer-target.md`
+  Owns: `packages/graph/src/computeBufferTarget.ts` (new),
+  `packages/graph/src/computeBufferTarget.test.ts` (new),
+  `packages/graph/src/primitives/pipeline/index.ts`, `packages/graph/src/index.ts`,
+  `packages/runtime-webgpu/src/consumers/computeBufferTarget.ts` (new),
+  `packages/runtime-webgpu/src/consumers/computeBufferTarget.test.ts` (new),
+  `packages/runtime-webgpu/src/graphFrameExecutor.ts`,
+  `packages/runtime-webgpu/src/graphFrameExecutor.test.ts`, `packages/runtime-webgpu/src/index.ts`,
+  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
