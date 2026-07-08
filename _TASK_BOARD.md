@@ -27,10 +27,37 @@ is still open.
 
 ## Active
 
+- **F3.6.1 — role-based pipeline-stage discovery** (first milestone of F3.6; discovery-mechanism
+  swap only, no new real primitive, no rendering change to any existing sample, no manual/visual
+  gate — see brief's Context)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.1-pipeline-stage-discovery.md`
+  Owns: `packages/graph/src/primitive.ts`, `packages/graph/src/pipeline.ts`,
+  `packages/graph/src/pipeline.test.ts`, `packages/graph/src/primitives/pipeline/index.ts`,
+  `packages/graph/src/primitives/pipeline/pipeline.test.ts`, `packages/graph/src/index.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineGraph.test.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.4 — first real graph-authored compute kernel, wired into `GraphFrameExecutor`** — `0b397003`
+  · Fourth milestone of Foundation 3, rescoped after pre-drafting research, then revised again after
+  a pre-routing review found the editor preview-loop/UI wiring was missing (see the brief's own two
+  review rounds). Registers `target.computeBuffer` (one fixed buffer binding), role-based structural
+  discovery mirroring `target.bufferFeedback`'s exact pattern, and a `ComputeBufferExecutor`
+  (mirrors `BufferFeedbackExecutor`'s shape) wiring the full F3.1→F3.3 chain through a real
+  `ResourceRealizer`-managed buffer into `GraphFrameExecutor.execute`, plus the `previewFrameLoop.ts`
+  guard/snapshot-field fix, `enumeratePreviewBuffers` block, `'buffer'` preview family/renderer, and
+  `DataBufferPreviewPanel` needed to make the result actually dispatch and become visible in the
+  editor. Purely additive — zero changes to `stage.vertex`/`stage.fragment`/`pipelineVertex.ts`/
+  `fullscreenFragment.ts`/any existing sample graph. Independently re-verified as part of closing
+  F3.5 immediately below (diff/gate re-check covered both landings together, since F3.5 confirmed
+  F3.4's landing already satisfied every one of its own "confirm or restore" Fix steps) rather than
+  as its own separate review pass — noted here for the record, since this entry was missing until
+  F3.6.1 was drafted.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.4-compute-buffer-target.md`
 
 - **F3.5 — generic compute-kernel proof closure** — `899e56f` (+ `ebf6cd9` for an SSR fix and a
   second, previously-missed preview-loop guard) · Fifth milestone of Foundation 3, briefed and
