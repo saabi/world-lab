@@ -36,7 +36,8 @@ const primitives: NodePrimitiveInput[] = [
 			description: 'Vertex stage node for pipeline graph execution.',
 			pure: true,
 			deterministic: true,
-			role: 'pipelineStage'
+			role: 'pipelineStage',
+			pipelineStageKind: 'vertex'
 		}
 	},
 	{
@@ -53,7 +54,8 @@ const primitives: NodePrimitiveInput[] = [
 			description: 'Fragment stage node that writes a field color into a texture resource.',
 			pure: false,
 			deterministic: false,
-			role: 'pipelineStage'
+			role: 'pipelineStage',
+			pipelineStageKind: 'fragment'
 		}
 	},
 	{

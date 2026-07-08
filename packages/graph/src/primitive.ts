@@ -4,6 +4,8 @@ import type { DataType, SemanticTag, SpaceId, TypeRef } from './types.js';
 import type { PortDefaultValue } from './dataType.js';
 import type { PrimitiveImplementation } from './implementation.js';
 
+export type PipelineStageKind = 'vertex' | 'fragment';
+
 export interface PrimitiveMetadata {
 	description?: string;
 	pure?: boolean;
@@ -21,6 +23,11 @@ export interface PrimitiveMetadata {
 	help?: string;
 	/** Extended usage/example text shown in inspector panels. */
 	usage?: string;
+	/**
+	 * Pipeline stage kind recognized by structural pipeline discovery. Independent
+	 * of `role`, which is used by swapFamily() for editor grouping.
+	 */
+	pipelineStageKind?: PipelineStageKind;
 }
 
 export interface PortMetadata {

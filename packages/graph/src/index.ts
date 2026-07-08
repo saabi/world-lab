@@ -39,6 +39,7 @@ export {
 	effectiveConsumers,
 	effectiveGraphDocument,
 	effectiveOutputs,
+	isPipelineStage,
 	isPipelineTarget,
 	outputSinkNodeIds,
 	pipelineFieldOutput,

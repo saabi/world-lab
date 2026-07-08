@@ -1,6 +1,7 @@
 import { getPrimitive } from './registry.js';
 import { discoverExecutionRoots } from './executionRoots.js';
 import type { SinkDefinition } from './implementation.js';
+import type { PipelineStageKind } from './primitive.js';
 import type {
 	GraphDocument,
 	GraphOutput,
@@ -31,7 +32,7 @@ function fieldOutputForDisplay(doc: GraphDocument, displayNode: Node): PortRef |
 	if (!toDisplay) return null;
 
 	const fragmentNode = doc.nodes.find((node) => node.id === toDisplay.from.node);
-	if (!fragmentNode || fragmentNode.primitive !== 'stage.fragment') return null;
+	if (!fragmentNode || !isPipelineStage(fragmentNode, 'fragment')) return null;
 	if (toDisplay.from.port !== 'texture') return null;
 
 	const fieldEdge = incomingEdge(doc, fragmentNode.id, 'color');
@@ -189,6 +190,12 @@ export function effectiveGraphDocument(doc: GraphDocument): GraphDocument {
 export function isPipelineTarget(node: Node): boolean {
 	const primitive = getPrimitive(node.primitive);
 	return primitive?.metadata?.role === PIPELINE_TARGET_ROLE;
+}
+
+/** Whether `node` fills the requested pipeline stage kind. */
+export function isPipelineStage(node: Node, kind: PipelineStageKind): boolean {
+	const primitive = getPrimitive(node.primitive);
+	return primitive?.metadata?.pipelineStageKind === kind;
 }
 
 /** Node ids that terminate the graph — declared value outputs ∪ pipeline render targets. */

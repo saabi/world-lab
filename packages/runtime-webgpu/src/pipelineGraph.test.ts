@@ -1,12 +1,92 @@
 import '@world-lab/graph';
 import { describe, expect, it } from 'vitest';
-import { getPrimitive, type GraphDocument, type Node, type Port, type PortRef, type PortSpec } from '@world-lab/graph';
+import {
+	getPrimitive,
+	registerPrimitive,
+	type GraphDocument,
+	type Node,
+	type NodePrimitive,
+	type NodePrimitiveInput,
+	type Port,
+	type PortRef,
+	type PortSpec
+} from '@world-lab/graph';
+import { Type } from '@world-lab/schema';
 
 import {
 	geometryCacheFingerprint,
 	PipelineGraphExecutor,
 	planPipelineGraph
 } from './pipelineGraph.js';
+
+const F361_VERTEX_ID = 'test.f361PipelineGraphVertexStage';
+const F361_FRAGMENT_ID = 'test.f361PipelineGraphFragmentStage';
+const F361_TARGET_ID = 'test.f361PipelineGraphDisplayTarget';
+
+function testPrimitive(input: NodePrimitiveInput): NodePrimitive {
+	const existing = getPrimitive(input.id);
+	if (existing) return existing;
+	registerPrimitive(input);
+	return getPrimitive(input.id)!;
+}
+
+function testVertexStagePrimitive(): NodePrimitive {
+	return testPrimitive({
+		id: F361_VERTEX_ID,
+		category: 'test/stage',
+		inputs: [{ name: 'mesh', dataType: 'geometry' }],
+		outputs: [{ name: 'varyings', dataType: 'varyings' }],
+		params: Type.Object({}),
+		implementation: { kind: 'legacy-structural', marker: F361_VERTEX_ID },
+		metadata: {
+			description: 'F3.6.1 test-only vertex stage fixture.',
+			role: 'pipelineStage',
+			pipelineStageKind: 'vertex'
+		}
+	});
+}
+
+function testFragmentStagePrimitive(): NodePrimitive {
+	return testPrimitive({
+		id: F361_FRAGMENT_ID,
+		category: 'test/stage',
+		inputs: [
+			{ name: 'varyings', dataType: 'varyings' },
+			{ name: 'color', dataType: 'vec4f' }
+		],
+		outputs: [{ name: 'texture', dataType: 'texture' }],
+		params: Type.Object({}),
+		implementation: { kind: 'legacy-structural', marker: F361_FRAGMENT_ID },
+		metadata: {
+			description: 'F3.6.1 test-only fragment stage fixture.',
+			role: 'pipelineStage',
+			pipelineStageKind: 'fragment'
+		}
+	});
+}
+
+function testDisplayTargetPrimitive(): NodePrimitive {
+	return testPrimitive({
+		id: F361_TARGET_ID,
+		category: 'test/target',
+		inputs: [{ name: 'color', dataType: 'texture' }],
+		outputs: [],
+		params: Type.Object({}),
+		implementation: {
+			kind: 'sink',
+			sink: {
+				kind: 'test.f361Display',
+				deriveInvocation() {
+					return null;
+				}
+			}
+		},
+		metadata: {
+			description: 'F3.6.1 test-only display target fixture.',
+			role: 'pipelineTarget'
+		}
+	});
+}
 
 function dualTargetPipelineGraph(): GraphDocument {
 	const fieldA = portRef('n_field_a', 'vector.vec4f', 'out', 0);
@@ -167,6 +247,29 @@ function pipelineGraph(params?: Record<string, unknown>): GraphDocument {
 	};
 }
 
+function replacePipelinePrimitive(
+	graph: GraphDocument,
+	nodeId: string,
+	primitiveId: string
+): GraphDocument {
+	return {
+		...graph,
+		nodes: graph.nodes.map((node) =>
+			node.id === nodeId ? snapshotNode(nodeId, primitiveId, node.params) : node
+		)
+	};
+}
+
+function disconnectedAltDisplayGraph(): GraphDocument {
+	testDisplayTargetPrimitive();
+	return {
+		version: '2',
+		nodes: [snapshotNode('n_alt_display', F361_TARGET_ID)],
+		edges: [],
+		outputs: []
+	};
+}
+
 describe('@world-lab/runtime-webgpu pipeline graph', () => {
 	it('plans the S0 pipeline via the generic geometry source role', () => {
 		expect(planPipelineGraph(pipelineGraph())).toEqual({
@@ -178,6 +281,35 @@ describe('@world-lab/runtime-webgpu pipeline graph', () => {
 			displayTargetNode: 'n_display',
 			fieldOutput: { node: 'n_effect', port: 'color' }
 		});
+	});
+
+	it('plans a pipeline with a nonstandard vertex-stage primitive id', () => {
+		testVertexStagePrimitive();
+		const graph = replacePipelinePrimitive(pipelineGraph(), 'n_vertex', F361_VERTEX_ID);
+		expect(planPipelineGraph(graph)).toMatchObject({
+			vertexStageNode: 'n_vertex',
+			fragmentStageNode: 'n_fragment',
+			fieldOutput: { node: 'n_effect', port: 'color' }
+		});
+	});
+
+	it('plans a pipeline with a nonstandard fragment-stage primitive id', () => {
+		testFragmentStagePrimitive();
+		const graph = replacePipelinePrimitive(pipelineGraph(), 'n_fragment', F361_FRAGMENT_ID);
+		expect(planPipelineGraph(graph)).toMatchObject({
+			vertexStageNode: 'n_vertex',
+			fragmentStageNode: 'n_fragment',
+			fieldOutput: { node: 'n_effect', port: 'color' }
+		});
+	});
+
+	it('finds a target-role fallback under a nonstandard target primitive id', () => {
+		expect(() => planPipelineGraph(disconnectedAltDisplayGraph())).toThrow(
+			'Pipeline display is missing its fragment texture input'
+		);
+		expect(() => planPipelineGraph(disconnectedAltDisplayGraph())).not.toThrow(
+			'Pipeline graph is missing target.display execution root'
+		);
 	});
 
 	it('plans the first display target by default on a multi-target graph', () => {

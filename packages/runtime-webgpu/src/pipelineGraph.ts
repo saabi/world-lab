@@ -3,6 +3,8 @@ import {
 	derivePipelinePresentations,
 	discoverExecutionRoots,
 	getPrimitive,
+	isPipelineStage,
+	isPipelineTarget,
 	validateGraph
 } from '@world-lab/graph';
 import type { WgslModuleResolver } from '@world-lab/compiler';
@@ -118,8 +120,8 @@ function resolveVertexForFragment(doc: GraphDocument, fragmentStageNode: string)
 		throw new Error(`Pipeline fragment ${fragmentStageNode} is missing its varyings input`);
 	}
 	const vertex = doc.nodes.find((candidate) => candidate.id === varyingsEdge.from.node);
-	if (!vertex || vertex.primitive !== 'stage.vertex') {
-		throw new Error(`Pipeline graph is missing stage.vertex for fragment ${fragmentStageNode}`);
+	if (!vertex || !isPipelineStage(vertex, 'vertex')) {
+		throw new Error(`Pipeline graph is missing a vertex stage for fragment ${fragmentStageNode}`);
 	}
 	return vertex;
 }
@@ -185,9 +187,7 @@ function resolvePipelineTarget(
 		};
 	}
 
-	const display = discoverExecutionRoots(doc).find(
-		(node) => node.primitive === 'target.display'
-	);
+	const display = discoverExecutionRoots(doc).find(isPipelineTarget);
 	if (!display) {
 		throw new Error('Pipeline graph is missing target.display execution root');
 	}
@@ -227,8 +227,8 @@ export function planPipelineGraph(
 	}
 	const geometry = findPipelineGeometrySource(doc, persist);
 	const fragment = doc.nodes.find((candidate) => candidate.id === target.fragmentStageNode);
-	if (!fragment || fragment.primitive !== 'stage.fragment') {
-		throw new Error(`Pipeline graph is missing stage.fragment for display ${target.displayTargetNode}`);
+	if (!fragment || !isPipelineStage(fragment, 'fragment')) {
+		throw new Error(`Pipeline graph is missing a fragment stage for display ${target.displayTargetNode}`);
 	}
 
 	requireEdge(doc, { node: geometry.id, port: 'mesh' }, { node: persist.id, port: 'in' });

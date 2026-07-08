@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { Type } from '@world-lab/schema';
 
-import { getPrimitive } from './registry.js';
+import { getPrimitive, registerPrimitive } from './registry.js';
 import type { GraphDocument, Node, Port, PortRef } from './types.js';
-import type { PortSpec } from './primitive.js';
+import type { NodePrimitive, NodePrimitiveInput, PortSpec, PrimitiveMetadata } from './primitive.js';
 import {
 	derivePipelineConsumers,
 	effectiveConsumers,
 	effectiveGraphDocument,
 	effectiveOutputs,
+	isPipelineStage,
 	isPipelineTarget,
 	outputSinkNodeIds,
 	pipelineFieldOutput,
@@ -17,6 +19,34 @@ import {
 import { validateGraphFull } from './validate.js';
 
 import './primitives/index.js';
+
+const F361_FRAGMENT_ID = 'test.f361PipelineFragmentStage';
+
+function testPrimitive(input: NodePrimitiveInput): NodePrimitive {
+	const existing = getPrimitive(input.id);
+	if (existing) return existing;
+	registerPrimitive(input);
+	return getPrimitive(input.id)!;
+}
+
+function testFragmentStagePrimitive(): NodePrimitive {
+	return testPrimitive({
+		id: F361_FRAGMENT_ID,
+		category: 'test/stage',
+		inputs: [
+			{ name: 'varyings', dataType: 'varyings' },
+			{ name: 'color', dataType: 'vec4f' }
+		],
+		outputs: [{ name: 'texture', dataType: 'texture' }],
+		params: Type.Object({}),
+		implementation: { kind: 'legacy-structural', marker: F361_FRAGMENT_ID },
+		metadata: {
+			description: 'F3.6.1 test-only fragment stage fixture.',
+			role: 'pipelineStage',
+			pipelineStageKind: 'fragment'
+		}
+	});
+}
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
 	return specs.map((spec) => ({
@@ -115,6 +145,22 @@ function s0PipelineGraph(): GraphDocument {
 	};
 }
 
+function graphWithFragmentStage(primitiveId: string): GraphDocument {
+	testFragmentStagePrimitive();
+	return {
+		...s0PipelineGraph(),
+		nodes: s0PipelineGraph().nodes.map((node) =>
+			node.id === 'n_fragment' ? snapshotNode('n_fragment', primitiveId) : node
+		)
+	};
+}
+
+const validStageMetadata: PrimitiveMetadata = { pipelineStageKind: 'vertex' };
+void validStageMetadata;
+// @ts-expect-error pipelineStageKind accepts only vertex or fragment.
+const invalidStageMetadata: PrimitiveMetadata = { pipelineStageKind: 'compute' };
+void invalidStageMetadata;
+
 describe('@world-lab/graph pipeline output reconciliation', () => {
 	it('treats target.display as a pipeline render target', () => {
 		const display = s0PipelineGraph().nodes.find((node) => node.primitive === 'target.display');
@@ -153,6 +199,54 @@ describe('@world-lab/graph pipeline output reconciliation', () => {
 			port: 'color'
 		});
 		expect(result.issues.some((issue) => issue.kind === 'dangling-node')).toBe(false);
+	});
+});
+
+describe('@world-lab/graph pipeline stage discovery', () => {
+	it('classifies built-in pipeline stages without changing their swap role', () => {
+		const vertex = getPrimitive('stage.vertex')!;
+		const fragment = getPrimitive('stage.fragment')!;
+
+		expect(vertex.metadata?.pipelineStageKind).toBe('vertex');
+		expect(fragment.metadata?.pipelineStageKind).toBe('fragment');
+		expect(vertex.metadata?.role).toBe('pipelineStage');
+		expect(fragment.metadata?.role).toBe('pipelineStage');
+	});
+
+	it('matches only the requested pipeline stage kind', () => {
+		const graph = s0PipelineGraph();
+		const vertex = graph.nodes.find((node) => node.id === 'n_vertex')!;
+		const fragment = graph.nodes.find((node) => node.id === 'n_fragment')!;
+		const persist = graph.nodes.find((node) => node.id === 'n_persist')!;
+		const unregistered: Node = {
+			...vertex,
+			id: 'n_missing',
+			primitive: 'test.f361MissingPrimitive'
+		};
+
+		expect(isPipelineStage(vertex, 'vertex')).toBe(true);
+		expect(isPipelineStage(vertex, 'fragment')).toBe(false);
+		expect(isPipelineStage(fragment, 'fragment')).toBe(true);
+		expect(isPipelineStage(fragment, 'vertex')).toBe(false);
+		expect(isPipelineStage(persist, 'vertex')).toBe(false);
+		expect(isPipelineStage(unregistered, 'vertex')).toBe(false);
+	});
+
+	it('derives presentations through a nonstandard fragment-stage primitive id', () => {
+		const graph = graphWithFragmentStage(F361_FRAGMENT_ID);
+		const presentation = tryPipelinePresentation(graph);
+
+		expect(presentation).toMatchObject({
+			displayNodeId: 'n_display',
+			fieldOutput: portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+		});
+		expect(derivePipelineConsumers(graph)).toEqual([presentation!.consumer]);
+		expect(effectiveOutputs({ ...graph, outputs: [] })).toEqual([
+			{
+				name: PIPELINE_IMAGE_OUTPUT_NAME,
+				from: portRef('n_effect', 'effect.cosinePalette', 'out', 0)
+			}
+		]);
 	});
 });
 
