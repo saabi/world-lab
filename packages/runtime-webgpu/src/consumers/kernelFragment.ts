@@ -25,10 +25,18 @@ import {
 import { createStandardLibraryResolver } from '../moduleResolver.js';
 import {
 	packGraphParams,
+	buildChannelBindGroupEntries,
+	deriveChannelBindingDecls,
 	resolveVertexAssembly,
 	wgslReferencesShaderToyUniform,
-	type FullscreenFragmentResult
+	type FullscreenFragmentResult,
+	type ShaderToyHostInputs
 } from './fullscreenFragment.js';
+import {
+	packShaderToyUniforms,
+	SHADERTOY_UNIFORM_BYTE_LENGTH,
+	SHADERTOY_UNIFORM_STRUCT_WGSL
+} from './shadertoyUniforms.js';
 
 export interface KernelFragmentBindingInput {
 	/** Binding name -> concrete WGSL type string. */
@@ -48,8 +56,10 @@ export interface KernelFragmentInput {
 	resolver?: WgslModuleResolver;
 	width: number;
 	height: number;
+	host: ShaderToyHostInputs;
 	target: GPUTexture;
 	kernelBindings: KernelFragmentBindingInput;
+	channelTargets?: ReadonlyMap<number, GPUTexture>;
 }
 
 export interface KernelFragmentAssemblyInput {
@@ -67,6 +77,8 @@ export interface KernelFragmentAssembly {
 	params: GraphParamField[];
 	bindings: BindingDecl[];
 	paramsBindingIndex: number;
+	usesShaderToyHost: boolean;
+	channelBindings: ReadonlyMap<number, { textureBinding: number; samplerBinding: number }>;
 }
 
 function findOutputName(doc: GraphDocument, output: PortRef): string {
@@ -82,24 +94,8 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 function buildKernelGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
 	return `fn graph_eval_${outputName}(position: vec4f) -> vec4f {
 ${body.map((line) => `\t${line}`).join('\n')}
-\treturn ${resultExpr} * tint[0];
+\treturn ${resultExpr};
 }`;
-}
-
-function assertSupportedKernelFragmentShape(bindings: readonly KernelBindingTemplate[]): void {
-	const tint = bindings.length === 1 ? bindings[0] : undefined;
-	const matches =
-		tint !== undefined &&
-		tint.name === 'tint' &&
-		tint.resourceKind === 'buffer' &&
-		tint.access === 'read' &&
-		tint.stages.includes('fragment');
-	if (!matches) {
-		throw new Error(
-			'executeKernelFragment only supports the F3.6.2 scaffold binding shape (exactly one ' +
-				'read-only buffer binding named "tint")'
-		);
-	}
 }
 
 function nextFreeBindingIndex(bindings: readonly KernelBindingTemplate[]): number {
@@ -128,7 +124,6 @@ export async function assembleKernelFragmentModuleAsync(
 	input: KernelFragmentAssemblyInput
 ): Promise<KernelFragmentAssembly> {
 	const { graph, output, bindings, wgslTypes } = input;
-	assertSupportedKernelFragmentShape(bindings);
 
 	const resolver = input.resolver ?? createStandardLibraryResolver();
 	const outputName = findOutputName(graph, output);
@@ -145,31 +140,36 @@ export async function assembleKernelFragmentModuleAsync(
 	const emitted = emitGraphVec4Eval(graph, output, { shaderToy: false });
 	const evalFn = buildKernelGraphEvalFn(outputName, emitted.body, emitted.resultExpr);
 	const libraryWithEval = `${consumerShader.code}\n\n${evalFn}`;
-	if (wgslReferencesShaderToyUniform(libraryWithEval)) {
-		throw new Error(
-			'Kernel-based fragment stages do not yet support ShaderToy host uniform inputs ' +
-				'(host.iResolution/host.iTime/host.iMouse)'
-		);
-	}
-	if (emitted.usedChannels.length > 0) {
-		throw new Error(
-			'Kernel-based fragment stages do not yet support channel textures (input.channel)'
-		);
-	}
-
 	const kernelBindingDecls = buildKernelBindingDecls(bindings, wgslTypes);
+	const usesShaderToyHost = wgslReferencesShaderToyUniform(libraryWithEval);
 	const hasGraphParams = emitted.params.length > 0;
-	const paramsBindingIndex = nextFreeBindingIndex(bindings);
-	const allBindings: BindingDecl[] = [...kernelBindingDecls];
+	let nextBinding = nextFreeBindingIndex(bindings);
+	const derivedBindings: BindingDecl[] = [];
+	if (usesShaderToyHost) {
+		derivedBindings.push({
+			group: 0,
+			binding: nextBinding,
+			name: 'u',
+			kind: 'uniform',
+			wgslType: 'ShaderToyUniforms'
+		});
+		nextBinding += 1;
+	}
+	const paramsBindingIndex = nextBinding;
 	if (hasGraphParams) {
-		allBindings.push({
+		derivedBindings.push({
 			group: 0,
 			binding: paramsBindingIndex,
 			name: 'params',
 			kind: 'uniform',
 			wgslType: 'GraphParams'
 		});
+		nextBinding += 1;
 	}
+	const channelAssembly = deriveChannelBindingDecls(emitted.usedChannels, nextBinding);
+	derivedBindings.push(...channelAssembly.bindings);
+
+	const allBindings: BindingDecl[] = [...kernelBindingDecls, ...derivedBindings];
 
 	const stage = assembleStageEntry(
 		{ ...consumerShader, code: libraryWithEval },
@@ -182,7 +182,10 @@ export async function assembleKernelFragmentModuleAsync(
 
 	const paramsStruct = hasGraphParams ? buildParamsStructWgsl(emitted.params) : '';
 	const { vertexWgsl, vertexCount } = await resolveVertexAssembly(graph, resolver);
-	const code = [paramsStruct, vertexWgsl, stage.code].filter(Boolean).join('\n\n');
+	const codeParts = usesShaderToyHost
+		? [SHADERTOY_UNIFORM_STRUCT_WGSL, paramsStruct, vertexWgsl, stage.code]
+		: [paramsStruct, vertexWgsl, stage.code];
+	const code = codeParts.filter(Boolean).join('\n\n');
 
 	return {
 		code,
@@ -190,14 +193,16 @@ export async function assembleKernelFragmentModuleAsync(
 		vertexCount,
 		params: emitted.params,
 		bindings: allBindings,
-		paramsBindingIndex
+		paramsBindingIndex,
+		usesShaderToyHost,
+		channelBindings: channelAssembly.channelBindings
 	};
 }
 
 export async function executeKernelFragment(
 	input: KernelFragmentInput
 ): Promise<FullscreenFragmentResult> {
-	const { device, graph, output, bindings, width, height, kernelBindings } = input;
+	const { device, graph, output, bindings, width, height, host, kernelBindings } = input;
 	if (width <= 0 || height <= 0) {
 		throw new RangeError('width and height must be positive');
 	}
@@ -209,10 +214,37 @@ export async function executeKernelFragment(
 		wgslTypes: kernelBindings.wgslTypes,
 		resolver: input.resolver
 	});
+	for (const channel of assembly.channelBindings.keys()) {
+		if (!input.channelTargets?.has(channel)) {
+			throw new Error(`Missing channel target for channel ${channel}`);
+		}
+	}
 
 	const pipeline = await createKernelFragmentPipeline(device, assembly.code);
 	const resolved = resolveKernelBindings(bindings, 'fragment', kernelBindings.resourceIds);
 	const bindGroupEntries = buildComputeBindGroupEntries(resolved, kernelBindings.resources);
+
+	let uniformBuffer: GPUBuffer | null = null;
+	if (assembly.usesShaderToyHost) {
+		const uBinding = assembly.bindings.find((binding) => binding.name === 'u');
+		if (!uBinding) {
+			throw new Error('assembly reports usesShaderToyHost but declared no u binding');
+		}
+		const uniformData = packShaderToyUniforms({
+			width,
+			height,
+			iTime: host.iTime,
+			iMouse: host.iMouse,
+			iFrame: host.iFrame
+		});
+		uniformBuffer = device.createBuffer({
+			label: 'kernel-fragment-shadertoy-uniforms',
+			size: alignTo(SHADERTOY_UNIFORM_BYTE_LENGTH, 16),
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+		device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+		bindGroupEntries.push({ binding: uBinding.binding, resource: { buffer: uniformBuffer } });
+	}
 
 	let graphParamsBuffer: GPUBuffer | null = null;
 	if (assembly.params.length > 0) {
@@ -233,6 +265,15 @@ export async function executeKernelFragment(
 			binding: assembly.paramsBindingIndex,
 			resource: { buffer: graphParamsBuffer }
 		});
+	}
+	if (assembly.channelBindings.size > 0) {
+		bindGroupEntries.push(
+			...buildChannelBindGroupEntries(
+				device,
+				assembly.channelBindings,
+				input.channelTargets ?? new Map()
+			)
+		);
 	}
 
 	const bindGroup = device.createBindGroup({
@@ -281,6 +322,7 @@ export async function executeKernelFragment(
 	}
 	readbackBuffer.unmap();
 
+	uniformBuffer?.destroy();
 	graphParamsBuffer?.destroy();
 	readbackBuffer.destroy();
 

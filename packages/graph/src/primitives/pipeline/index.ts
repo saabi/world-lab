@@ -59,6 +59,24 @@ const primitives: NodePrimitiveInput[] = [
 		}
 	},
 	{
+		id: 'stage.fragmentKernel',
+		category: 'stage',
+		inputs: [
+			{ name: 'varyings', dataType: 'varyings', metadata: { semantic: 'fragment-varyings' } },
+			{ name: 'color', dataType: 'vec4f', metadata: { semantic: 'rgba-field' } }
+		],
+		outputs: [{ name: 'texture', dataType: 'texture', metadata: { semantic: 'rgba-texture' } }],
+		params: noParams,
+		implementation: { kind: 'kernel', stage: 'fragment', bindings: [] },
+		metadata: {
+			description: 'Graph-driven fragment kernel stage with document-derived channel/uniform bindings.',
+			pure: false,
+			deterministic: false,
+			role: 'pipelineStage',
+			pipelineStageKind: 'fragment'
+		}
+	},
+	{
 		id: 'target.display',
 		category: 'target/sink',
 		inputs: [{ name: 'color', dataType: 'texture', metadata: { semantic: 'presentable-color-texture' } }],

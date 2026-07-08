@@ -14,6 +14,7 @@ import {
 } from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 
+import { assembleFullscreenFragmentModuleAsync } from './fullscreenFragment.js';
 import {
 	assembleKernelFragmentModuleAsync,
 	executeKernelFragment,
@@ -28,7 +29,7 @@ const hasWebGPU =
 
 const F362_FRAGMENT_ID = 'test.f362KernelFragmentStage';
 const F362_OFFSET_FRAGMENT_ID = 'test.f362KernelFragmentStageOffsetBinding';
-const F362_WRONG_FRAGMENT_ID = 'test.f362KernelFragmentStageWrongShape';
+const F362_SCALE_FRAGMENT_ID = 'test.f362KernelFragmentStageScaleBinding';
 
 function testPrimitive(input: NodePrimitiveInput): NodePrimitive {
 	const existing = getPrimitive(input.id);
@@ -49,7 +50,7 @@ function kernelFragmentPrimitive(id: string, bindings: KernelBindingTemplate[]):
 		params: Type.Object({}),
 		implementation: { kind: 'kernel', stage: 'fragment', bindings },
 		metadata: {
-			description: 'F3.6.2 test-only kernel-based fragment stage fixture.',
+			description: 'F3.6 test-only kernel-based fragment stage fixture.',
 			role: 'pipelineStage',
 			pipelineStageKind: 'fragment'
 		}
@@ -66,18 +67,20 @@ function tintBinding(binding = 0): KernelBindingTemplate {
 	};
 }
 
+function scaleBinding(): KernelBindingTemplate {
+	return {
+		name: 'scale',
+		binding: 0,
+		resourceKind: 'buffer',
+		access: 'read',
+		stages: ['fragment']
+	};
+}
+
 function registerKernelFragmentFixtures(): void {
 	kernelFragmentPrimitive(F362_FRAGMENT_ID, [tintBinding()]);
 	kernelFragmentPrimitive(F362_OFFSET_FRAGMENT_ID, [tintBinding(1)]);
-	kernelFragmentPrimitive(F362_WRONG_FRAGMENT_ID, [
-		{
-			name: 'scale',
-			binding: 0,
-			resourceKind: 'buffer',
-			access: 'read',
-			stages: ['fragment']
-		}
-	]);
+	kernelFragmentPrimitive(F362_SCALE_FRAGMENT_ID, [scaleBinding()]);
 }
 
 function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): Port[] {
@@ -197,7 +200,9 @@ function fragCoordVec4Field(): GraphDocument {
 				to: portRef('n_vec4', 'vector.combine.vec2f_f32_f32', 'in', 0)
 			}
 		],
-		outputs: [{ name: 'image', from: portRef('n_vec4', 'vector.combine.vec2f_f32_f32', 'out', 0) }]
+		outputs: [
+			{ name: 'image', from: portRef('n_vec4', 'vector.combine.vec2f_f32_f32', 'out', 0) }
+		]
 	};
 }
 
@@ -228,46 +233,53 @@ function channelVec4Field(): GraphDocument {
 	};
 }
 
+function timeParamChannelField(): GraphDocument {
+	const constOut = portRef('n_const', 'constant.f32', 'out', 0);
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode('n_time', 'host.iTime'),
+			snapshotNode('n_const', 'constant.f32', { value: 0.25 }),
+			snapshotNode('n_vec4', 'vector.vec4f'),
+			snapshotNode('n_channel', 'input.channel', { channel: 0 }),
+			snapshotNode('n_add', 'vector.add.vec4f')
+		],
+		edges: [
+			{
+				id: 'e_time_vec4',
+				from: portRef('n_time', 'host.iTime', 'out', 0),
+				to: portRef('n_vec4', 'vector.vec4f', 'in', 0)
+			},
+			{ id: 'e_const_y', from: constOut, to: portRef('n_vec4', 'vector.vec4f', 'in', 1) },
+			{ id: 'e_const_z', from: constOut, to: portRef('n_vec4', 'vector.vec4f', 'in', 2) },
+			{ id: 'e_const_w', from: constOut, to: portRef('n_vec4', 'vector.vec4f', 'in', 3) },
+			{
+				id: 'e_channel_add',
+				from: portRef('n_channel', 'input.channel', 'out', 0),
+				to: portRef('n_add', 'vector.add.vec4f', 'in', 0)
+			},
+			{
+				id: 'e_vec4_add',
+				from: portRef('n_vec4', 'vector.vec4f', 'out', 0),
+				to: portRef('n_add', 'vector.add.vec4f', 'in', 1)
+			}
+		],
+		outputs: [{ name: 'image', from: portRef('n_add', 'vector.add.vec4f', 'out', 0) }]
+	};
+}
+
 function kernelBindings(buffer?: GPUBuffer, bindingName = 'tint'): KernelFragmentBindingInput {
 	return {
 		wgslTypes: new Map([[bindingName, 'array<f32>']]),
-		resourceIds: new Map([[bindingName, 'tint-resource']]),
+		resourceIds: new Map([[bindingName, `${bindingName}-resource`]]),
 		resources: buffer
-			? new Map([['tint-resource', { kind: 'buffer', buffer }]])
+			? new Map([[`${bindingName}-resource`, { kind: 'buffer', buffer }]])
 			: new Map()
 	};
 }
 
-async function executeTinted(device: GPUDevice, tint: number): Promise<Uint8Array> {
-	const width = 16;
-	const height = 16;
-	const target = device.createTexture({
-		size: { width, height },
-		format: 'rgba8unorm',
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
-	});
-	const tintBuffer = device.createBuffer({
-		label: 'kernel-fragment-test-tint',
-		size: 4,
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-	});
-	try {
-		device.queue.writeBuffer(tintBuffer, 0, new Float32Array([tint]));
-		const result = await executeKernelFragment({
-			device,
-			graph: pipelineGraph(F362_FRAGMENT_ID, constantVec4Field()),
-			output: { node: 'n_vec4', port: 'value' },
-			bindings: [tintBinding()],
-			width,
-			height,
-			target,
-			kernelBindings: kernelBindings(tintBuffer)
-		});
-		return result.pixels;
-	} finally {
-		tintBuffer.destroy();
-		target.destroy();
-	}
+function emptyKernelBindings(): KernelFragmentBindingInput {
+	return { wgslTypes: new Map(), resourceIds: new Map(), resources: new Map() };
 }
 
 describe('@world-lab/runtime-webgpu kernel fragment assembly', () => {
@@ -282,33 +294,11 @@ describe('@world-lab/runtime-webgpu kernel fragment assembly', () => {
 				bindings: [tintBinding()],
 				width: 0,
 				height: 1,
+				host: { iTime: 0 },
 				target: {} as GPUTexture,
 				kernelBindings: kernelBindings()
 			})
 		).rejects.toThrow('width and height must be positive');
-	});
-
-	it('rejects ShaderToy uniform host inputs and channel textures distinctly', async () => {
-		const resolver = createStandardLibraryResolver();
-		await expect(
-			assembleKernelFragmentModuleAsync({
-				graph: pipelineGraph(F362_FRAGMENT_ID, timeVec4Field()),
-				output: { node: 'n_vec4', port: 'value' },
-				bindings: [tintBinding()],
-				wgslTypes: new Map([['tint', 'array<f32>']]),
-				resolver
-			})
-		).rejects.toThrow('ShaderToy host uniform inputs');
-
-		await expect(
-			assembleKernelFragmentModuleAsync({
-				graph: pipelineGraph(F362_FRAGMENT_ID, channelVec4Field()),
-				output: { node: 'n_channel', port: 'color' },
-				bindings: [tintBinding()],
-				wgslTypes: new Map([['tint', 'array<f32>']]),
-				resolver
-			})
-		).rejects.toThrow('channel textures');
 	});
 
 	it('allows host.fragCoord because it resolves through the position parameter', async () => {
@@ -354,42 +344,219 @@ describe('@world-lab/runtime-webgpu kernel fragment assembly', () => {
 		expect(assembly.code).toContain('@group(0) @binding(2) var<uniform> params');
 	});
 
-	it('rejects kernel fragment bindings outside the F3.6.2 scaffold shape', async () => {
+	it('accepts non-tint kernel-declared bindings after removing the F3.6.2 scaffold gate', async () => {
+		const assembly = await assembleKernelFragmentModuleAsync({
+			graph: pipelineGraph(F362_SCALE_FRAGMENT_ID, constantVec4Field()),
+			output: { node: 'n_vec4', port: 'value' },
+			bindings: [scaleBinding()],
+			wgslTypes: new Map([['scale', 'array<f32>']]),
+			resolver: createStandardLibraryResolver()
+		});
+
+		expect(assembly.bindings).toContainEqual({
+			group: 0,
+			binding: 0,
+			name: 'scale',
+			kind: 'storage-read',
+			wgslType: 'array<f32>'
+		});
+		expect(assembly.code).toContain('@group(0) @binding(0) var<storage, read> scale');
+		expect(assembly.code).not.toContain('tint[0]');
+	});
+
+	it('still rejects malformed kernel-declared bindings', async () => {
 		await expect(
 			assembleKernelFragmentModuleAsync({
-				graph: pipelineGraph(F362_WRONG_FRAGMENT_ID, constantVec4Field()),
+				graph: pipelineGraph(F362_FRAGMENT_ID, constantVec4Field()),
 				output: { node: 'n_vec4', port: 'value' },
 				bindings: [
 					{
-						name: 'scale',
+						name: 'badTexture',
 						binding: 0,
-						resourceKind: 'buffer',
-						access: 'read',
+						resourceKind: 'texture',
+						access: 'write',
 						stages: ['fragment']
 					}
 				],
-				wgslTypes: new Map([['scale', 'array<f32>']]),
+				wgslTypes: new Map([['badTexture', 'texture_2d<f32>']]),
 				resolver: createStandardLibraryResolver()
 			})
-		).rejects.toThrow('only supports the F3.6.2 scaffold binding shape');
+		).rejects.toThrow("texture kernel bindings must declare access:'read'");
+	});
+
+	it('derives ShaderToy host uniform bindings for host.iTime', async () => {
+		const assembly = await assembleKernelFragmentModuleAsync({
+			graph: pipelineGraph('stage.fragmentKernel', timeVec4Field()),
+			output: { node: 'n_vec4', port: 'value' },
+			bindings: [],
+			wgslTypes: new Map(),
+			resolver: createStandardLibraryResolver()
+		});
+
+		expect(assembly.usesShaderToyHost).toBe(true);
+		expect(assembly.bindings).toContainEqual({
+			group: 0,
+			binding: 0,
+			name: 'u',
+			kind: 'uniform',
+			wgslType: 'ShaderToyUniforms'
+		});
+		expect(assembly.code).toContain('struct ShaderToyUniforms');
+		expect(assembly.code).toContain('u.iTime');
+	});
+
+	it('shares channel binding derivation with the fullscreen fragment path', async () => {
+		const graph = pipelineGraph('stage.fragmentKernel', channelVec4Field());
+		const kernelAssembly = await assembleKernelFragmentModuleAsync({
+			graph,
+			output: { node: 'n_channel', port: 'color' },
+			bindings: [],
+			wgslTypes: new Map(),
+			resolver: createStandardLibraryResolver()
+		});
+		const fullscreenAssembly = await assembleFullscreenFragmentModuleAsync(
+			graph,
+			{ node: 'n_channel', port: 'color' },
+			createStandardLibraryResolver()
+		);
+
+		expect([...kernelAssembly.channelBindings]).toEqual([...fullscreenAssembly.channelBindings]);
+		const channelBindings = [...kernelAssembly.channelBindings.values()][0]!;
+		expect(kernelAssembly.bindings).toContainEqual({
+			group: 0,
+			binding: channelBindings.textureBinding,
+			name: 'channel0',
+			kind: 'texture',
+			wgslType: 'texture_2d<f32>'
+		});
+		expect(kernelAssembly.bindings).toContainEqual({
+			group: 0,
+			binding: channelBindings.samplerBinding,
+			name: 'channel0Sampler',
+			kind: 'sampler',
+			wgslType: 'sampler'
+		});
+	});
+
+	it('orders kernel-declared, uniform, params, and channel bindings without collisions', async () => {
+		const assembly = await assembleKernelFragmentModuleAsync({
+			graph: pipelineGraph(F362_FRAGMENT_ID, timeParamChannelField()),
+			output: { node: 'n_add', port: 'value' },
+			bindings: [tintBinding()],
+			wgslTypes: new Map([['tint', 'array<f32>']]),
+			resolver: createStandardLibraryResolver()
+		});
+
+		expect(assembly.paramsBindingIndex).toBe(2);
+		expect([...assembly.channelBindings]).toEqual([
+			[0, { textureBinding: 3, samplerBinding: 4 }]
+		]);
+		for (const [name, binding, kind] of [
+			['tint', 0, 'storage-read'],
+			['u', 1, 'uniform'],
+			['params', 2, 'uniform'],
+			['channel0', 3, 'texture'],
+			['channel0Sampler', 4, 'sampler']
+		] as const) {
+			expect(assembly.bindings).toContainEqual(
+				expect.objectContaining({ name, binding, kind })
+			);
+			expect(assembly.code).toContain(`@group(0) @binding(${binding})`);
+		}
 	});
 });
 
 describe('@world-lab/runtime-webgpu executeKernelFragment', () => {
 	registerKernelFragmentFixtures();
 
-	it.skipIf(!hasWebGPU)('uses a live tint buffer to affect rendered pixels', async () => {
+	it.skipIf(!hasWebGPU)('samples a live channel texture through stage.fragmentKernel', async () => {
 		const adapter = await navigator.gpu.requestAdapter();
 		expect(adapter).toBeTruthy();
 		const device = await adapter!.requestDevice();
+		const width = 16;
+		const height = 16;
+		const target = device.createTexture({
+			size: { width, height },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
+		const channel = device.createTexture({
+			size: { width, height },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+		});
+		const expected = [51, 128, 204, 255];
 		try {
-			const fullTint = await executeTinted(device, 1);
-			const halfTint = await executeTinted(device, 0.5);
+			const row = new Uint8Array(width * 4);
+			for (let x = 0; x < width; x++) {
+				row.set(expected, x * 4);
+			}
+			const data = new Uint8Array(width * height * 4);
+			for (let y = 0; y < height; y++) {
+				data.set(row, y * row.length);
+			}
+			device.queue.writeTexture(
+				{ texture: channel },
+				data,
+				{ bytesPerRow: width * 4, rowsPerImage: height },
+				{ width, height }
+			);
 
-			expect(fullTint[0]).toBeGreaterThan(0);
-			expect(halfTint[0]).toBeGreaterThanOrEqual(Math.floor(fullTint[0]! / 2) - 2);
-			expect(halfTint[0]).toBeLessThanOrEqual(Math.ceil(fullTint[0]! / 2) + 2);
+			const result = await executeKernelFragment({
+				device,
+				graph: pipelineGraph('stage.fragmentKernel', channelVec4Field()),
+				output: { node: 'n_channel', port: 'color' },
+				bindings: [],
+				width,
+				height,
+				host: { iTime: 0 },
+				target,
+				kernelBindings: emptyKernelBindings(),
+				channelTargets: new Map([[0, channel]])
+			});
+
+			const actual = [
+				result.pixels[0]!,
+				result.pixels[1]!,
+				result.pixels[2]!,
+				result.pixels[3]!
+			];
+			for (let i = 0; i < expected.length; i++) {
+				expect(actual[i]).toBeGreaterThanOrEqual(expected[i]! - 3);
+				expect(actual[i]).toBeLessThanOrEqual(expected[i]! + 3);
+			}
 		} finally {
+			target.destroy();
+			channel.destroy();
+			device.destroy();
+		}
+	});
+
+	it.skipIf(!hasWebGPU)('throws when a referenced channel target is missing', async () => {
+		const adapter = await navigator.gpu.requestAdapter();
+		expect(adapter).toBeTruthy();
+		const device = await adapter!.requestDevice();
+		const target = device.createTexture({
+			size: { width: 4, height: 4 },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
+		try {
+			await expect(
+				executeKernelFragment({
+					device,
+					graph: pipelineGraph('stage.fragmentKernel', channelVec4Field()),
+					output: { node: 'n_channel', port: 'color' },
+					bindings: [],
+					width: 4,
+					height: 4,
+					host: { iTime: 0 },
+					target,
+					kernelBindings: emptyKernelBindings()
+				})
+			).rejects.toThrow('Missing channel target for channel 0');
+		} finally {
+			target.destroy();
 			device.destroy();
 		}
 	});

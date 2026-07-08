@@ -273,9 +273,9 @@ export class PipelineGraphExecutor {
 			? getPrimitive(fragmentNode.primitive)?.implementation
 			: undefined;
 		if (fragmentImpl?.kind === 'kernel' && fragmentImpl.stage === 'fragment') {
-			if (!input.kernelFragmentBindings) {
+			if (fragmentImpl.bindings.length > 0 && !input.kernelFragmentBindings) {
 				throw new Error(
-					`Pipeline fragment stage ${plan.fragmentStageNode} is a kernel-based primitive but no ` +
+					`Pipeline fragment stage ${plan.fragmentStageNode} declares kernel bindings but no ` +
 						'kernelFragmentBindings were supplied'
 				);
 			}
@@ -287,8 +287,14 @@ export class PipelineGraphExecutor {
 				resolver: input.resolver,
 				width: input.width,
 				height: input.height,
+				host: input.host,
 				target: input.target,
-				kernelBindings: input.kernelFragmentBindings
+				kernelBindings: input.kernelFragmentBindings ?? {
+					wgslTypes: new Map(),
+					resourceIds: new Map(),
+					resources: new Map()
+				},
+				channelTargets: input.channelTargets
 			});
 		}
 

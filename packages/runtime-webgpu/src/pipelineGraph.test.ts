@@ -409,6 +409,22 @@ describe('@world-lab/runtime-webgpu pipeline graph', () => {
 			})
 		).rejects.toThrow('width and height must be positive');
 
+		const noStaticBindingsGraph = replacePipelinePrimitive(
+			pipelineGraph(),
+			'n_fragment',
+			'stage.fragmentKernel'
+		);
+		await expect(
+			executor.execute({
+				device: {} as GPUDevice,
+				graph: noStaticBindingsGraph,
+				width: 0,
+				height: 1,
+				host: { iTime: 0 },
+				target: {} as GPUTexture
+			})
+		).rejects.toThrow('width and height must be positive');
+
 		testKernelFragmentStagePrimitive();
 		const graph = replacePipelinePrimitive(pipelineGraph(), 'n_fragment', F362_FRAGMENT_ID);
 		await expect(
@@ -420,6 +436,6 @@ describe('@world-lab/runtime-webgpu pipeline graph', () => {
 				host: { iTime: 0 },
 				target: {} as GPUTexture
 			})
-		).rejects.toThrow('kernelFragmentBindings were supplied');
+		).rejects.toThrow('declares kernel bindings but no kernelFragmentBindings were supplied');
 	});
 });

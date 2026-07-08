@@ -59,6 +59,16 @@ export interface FullscreenFragmentAssembly {
 	>;
 }
 
+export interface ChannelBindingAssembly {
+	bindings: BindingDecl[];
+	channelBindings: ReadonlyMap<
+		number,
+		{ textureBinding: number; samplerBinding: number }
+	>;
+	/** Lowest binding index not used by any channel binding. */
+	nextBindingIndex: number;
+}
+
 export function packGraphParams(
 	width: number,
 	height: number,
@@ -110,6 +120,67 @@ function findOutputName(doc: GraphDocument, output: PortRef): string {
 /** True when emitted WGSL reads ShaderToy host uniforms (not merely when host nodes exist on the canvas). */
 export function wgslReferencesShaderToyUniform(wgsl: string): boolean {
 	return /\bu\.(?:iResolution|iTime|iFrame|iMouse)\b/.test(wgsl);
+}
+
+export function deriveChannelBindingDecls(
+	usedChannels: readonly number[],
+	startBinding: number
+): ChannelBindingAssembly {
+	const bindings: BindingDecl[] = [];
+	const channelBindings = new Map<
+		number,
+		{ textureBinding: number; samplerBinding: number }
+	>();
+	let nextBinding = startBinding;
+	for (const channel of usedChannels) {
+		const textureBinding = nextBinding++;
+		const samplerBinding = nextBinding++;
+		channelBindings.set(channel, { textureBinding, samplerBinding });
+		bindings.push(
+			{
+				group: 0,
+				binding: textureBinding,
+				name: `channel${channel}`,
+				kind: 'texture',
+				wgslType: 'texture_2d<f32>'
+			},
+			{
+				group: 0,
+				binding: samplerBinding,
+				name: `channel${channel}Sampler`,
+				kind: 'sampler',
+				wgslType: 'sampler'
+			}
+		);
+	}
+	return { bindings, channelBindings, nextBindingIndex: nextBinding };
+}
+
+export function buildChannelBindGroupEntries(
+	device: GPUDevice,
+	channelBindings: ReadonlyMap<number, { textureBinding: number; samplerBinding: number }>,
+	channelTargets: ReadonlyMap<number, GPUTexture>
+): GPUBindGroupEntry[] {
+	const entries: GPUBindGroupEntry[] = [];
+	for (const [channel, bindings] of channelBindings) {
+		const target = channelTargets.get(channel);
+		if (!target) {
+			throw new Error(`Missing channel target for channel ${channel}`);
+		}
+		entries.push(
+			{ binding: bindings.textureBinding, resource: target.createView() },
+			{
+				binding: bindings.samplerBinding,
+				resource: device.createSampler({
+					magFilter: 'linear',
+					minFilter: 'linear',
+					addressModeU: 'clamp-to-edge',
+					addressModeV: 'clamp-to-edge'
+				})
+			}
+		);
+	}
+	return entries;
 }
 
 function buildGraphEvalFn(outputName: string, body: string[], resultExpr: string): string {
@@ -165,31 +236,10 @@ export async function assembleFullscreenFragmentModuleAsync(
 			wgslType: 'GraphParams'
 		});
 	}
-	const channelBindings = new Map<
-		number,
-		{ textureBinding: number; samplerBinding: number }
-	>();
-	for (const channel of emitted.usedChannels) {
-		const textureBinding = nextBinding++;
-		const samplerBinding = nextBinding++;
-		channelBindings.set(channel, { textureBinding, samplerBinding });
-		bindings.push(
-			{
-				group: 0,
-				binding: textureBinding,
-				name: `channel${channel}`,
-				kind: 'texture',
-				wgslType: 'texture_2d<f32>'
-			},
-			{
-				group: 0,
-				binding: samplerBinding,
-				name: `channel${channel}Sampler`,
-				kind: 'sampler',
-				wgslType: 'sampler'
-			}
-		);
-	}
+	const channelAssembly = deriveChannelBindingDecls(emitted.usedChannels, nextBinding);
+	bindings.push(...channelAssembly.bindings);
+	nextBinding = channelAssembly.nextBindingIndex;
+	void nextBinding;
 
 	const stage = assembleStageEntry(
 		{ ...consumerShader, code: libraryWithEval },
@@ -213,7 +263,7 @@ export async function assembleFullscreenFragmentModuleAsync(
 		vertexCount,
 		params: emitted.params,
 		usesShaderToyHost,
-		channelBindings
+		channelBindings: channelAssembly.channelBindings
 	};
 }
 
@@ -292,21 +342,9 @@ export async function executeFullscreenFragment(
 		});
 	}
 
-	for (const [channel, bindings] of channelBindings) {
-		const target = input.channelTargets!.get(channel)!;
-		bindGroupEntries.push(
-			{ binding: bindings.textureBinding, resource: target.createView() },
-			{
-				binding: bindings.samplerBinding,
-				resource: device.createSampler({
-					magFilter: 'linear',
-					minFilter: 'linear',
-					addressModeU: 'clamp-to-edge',
-					addressModeV: 'clamp-to-edge'
-				})
-			}
-		);
-	}
+	bindGroupEntries.push(
+		...buildChannelBindGroupEntries(device, channelBindings, input.channelTargets ?? new Map())
+	);
 
 	const bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,

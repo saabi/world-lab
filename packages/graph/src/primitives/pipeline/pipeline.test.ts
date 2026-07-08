@@ -7,6 +7,35 @@ import './index.js';
 import { planeGridPosition } from './planeGrid.js';
 
 describe('pipeline geometry primitives', () => {
+	it('registers the additive fragment kernel stage without changing legacy stages', () => {
+		const vertex = getPrimitive('stage.vertex')!;
+		const fragment = getPrimitive('stage.fragment')!;
+		const fragmentKernel = getPrimitive('stage.fragmentKernel')!;
+
+		expect(vertex.implementation).toEqual({
+			kind: 'wgsl-function',
+			moduleId: 'stage.vertex',
+			entry: 'vertexStage'
+		});
+		expect(vertex.metadata?.role).toBe('pipelineStage');
+		expect(vertex.metadata?.pipelineStageKind).toBe('vertex');
+		expect(fragment.implementation).toEqual({
+			kind: 'legacy-structural',
+			marker: 'stage.fragment'
+		});
+		expect(fragment.metadata?.role).toBe('pipelineStage');
+		expect(fragment.metadata?.pipelineStageKind).toBe('fragment');
+		expect(fragmentKernel.implementation).toEqual({
+			kind: 'kernel',
+			stage: 'fragment',
+			bindings: []
+		});
+		expect(fragmentKernel.metadata?.role).toBe('pipelineStage');
+		expect(fragmentKernel.metadata?.pipelineStageKind).toBe('fragment');
+		expect(fragmentKernel.inputs.map((port) => port.name)).toEqual(['varyings', 'color']);
+		expect(fragmentKernel.outputs.map((port) => port.name)).toEqual(['texture']);
+	});
+
 	it('geometry.plane params default and coerce resU/resV', () => {
 		const plane = getPrimitive('geometry.plane')!;
 		expect(plane.wgsl).toEqual({ moduleId: 'geometry.plane', entry: 'planeGrid' });
