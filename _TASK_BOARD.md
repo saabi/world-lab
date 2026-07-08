@@ -27,6 +27,18 @@ is still open.
 
 ## Active
 
+- **F3.6.6 — bundled proof sample: graph-authored vertex displacement** (sixth and final milestone
+  of F3.6; spans `runtime-webgpu` + `graph-editor`; **has a manual/visual gate** — see brief's Gate
+  item 6, needs a real-browser screenshot of the bundled sample rendering correctly)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.6-pipeline-kernels-proof-sample.md`
+  Owns: `packages/runtime-webgpu/src/pipelineGraph.ts`,
+  `packages/runtime-webgpu/src/pipelineGraph.test.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
+  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`,
+  `packages/graph-editor/src/samples.test.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
