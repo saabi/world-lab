@@ -12,6 +12,7 @@ import * as order from './frameGraph/order.js';
 import { ResourceRealizer } from './frameGraph/realize.js';
 import { PipelineGraphExecutor } from './pipelineGraph.js';
 import { BufferFeedbackExecutor } from './consumers/bufferFeedback.js';
+import { ComputeBufferExecutor } from './consumers/computeBufferTarget.js';
 import { cosinePalettePipelineGraph } from '../test/sampleGraphs.js';
 
 const hasWebGPU =
@@ -99,6 +100,23 @@ function withBufferFeedback(graph: GraphDocument, width = 4, height = 4): GraphD
 	};
 }
 
+function withComputeBuffer(graph: GraphDocument, elementCount = 20): GraphDocument {
+	const primitive = getPrimitive('target.computeBuffer')!;
+	return {
+		...graph,
+		nodes: [
+			...graph.nodes,
+			{
+				id: 'n_compute_buffer',
+				primitive: primitive.id,
+				params: { elementCount },
+				inputs: [],
+				outputs: []
+			}
+		]
+	};
+}
+
 describe('GraphFrameExecutor', () => {
 	let pipelineSpy: ReturnType<typeof vi.spyOn>;
 
@@ -174,6 +192,14 @@ describe('GraphFrameExecutor', () => {
 
 	it('cascades disposal to the buffer-feedback executor', () => {
 		const disposeSpy = vi.spyOn(BufferFeedbackExecutor.prototype, 'dispose');
+
+		new GraphFrameExecutor().dispose();
+
+		expect(disposeSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it('cascades disposal to the compute-buffer executor', () => {
+		const disposeSpy = vi.spyOn(ComputeBufferExecutor.prototype, 'dispose');
 
 		new GraphFrameExecutor().dispose();
 
@@ -286,6 +312,56 @@ describe('GraphFrameExecutor', () => {
 		expect(bufferExecute).toHaveBeenCalledTimes(2);
 		expect(first.targets.n_buffer_feedback).toBe(pixels);
 		expect(mock.createTexture).toHaveBeenCalledTimes(1);
+	});
+
+	it('returns compute buffers separately from display targets', async () => {
+		const values = new Float32Array([2, 4, 6, 8]);
+		const computeExecute = vi
+			.spyOn(ComputeBufferExecutor.prototype, 'execute')
+			.mockResolvedValue({ values });
+		const graph = withComputeBuffer(effectiveGraphDocument(cosinePalettePipelineGraph()), 4);
+		const mock = mockDevice();
+
+		const result = await new GraphFrameExecutor().execute({
+			device: mock.device,
+			graph,
+			width: 4,
+			height: 4,
+			host: { iTime: 0, iFrame: 0, pointers: {} }
+		});
+
+		expect(computeExecute).toHaveBeenCalledTimes(1);
+		expect(result.computeBuffers).toEqual({ n_compute_buffer: values });
+		expect(result.targets.n_compute_buffer).toBeUndefined();
+	});
+
+	it('omits computeBuffers when no compute target is present', async () => {
+		const result = await new GraphFrameExecutor().execute({
+			device: mockDevice().device,
+			graph: effectiveGraphDocument(cosinePalettePipelineGraph()),
+			width: 4,
+			height: 4,
+			host: { iTime: 0, iFrame: 0, pointers: {} }
+		});
+
+		expect(result.computeBuffers).toBeUndefined();
+	});
+
+	it('can return both display pixels and compute-buffer values', async () => {
+		const values = new Float32Array([2, 4, 6, 8]);
+		vi.spyOn(ComputeBufferExecutor.prototype, 'execute').mockResolvedValue({ values });
+		const graph = withComputeBuffer(effectiveGraphDocument(cosinePalettePipelineGraph()), 4);
+
+		const result = await new GraphFrameExecutor().execute({
+			device: mockDevice().device,
+			graph,
+			width: 4,
+			height: 4,
+			host: { iTime: 0, iFrame: 0, pointers: {} }
+		});
+
+		expect(Object.keys(result.targets)).toEqual(['image']);
+		expect(result.computeBuffers).toEqual({ n_compute_buffer: values });
 	});
 
 	it('rejects a buffer-feedback grid that differs from the frame viewport', async () => {

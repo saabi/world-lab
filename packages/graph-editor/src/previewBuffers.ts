@@ -1,6 +1,7 @@
 import {
 	deriveMeshTargets,
 	deriveBufferFeedbackTarget,
+	deriveComputeBufferTarget,
 	derivePipelinePresentations,
 	effectiveOutputs,
 	isPipelineTarget,
@@ -12,7 +13,7 @@ import {
 
 import { outputPortDataType } from './graphBuilders.js';
 
-export type PreviewFamily = 'geometry' | 'image' | 'data' | 'audio';
+export type PreviewFamily = 'geometry' | 'image' | 'data' | 'audio' | 'buffer';
 
 export type { MeshTargetDescriptor };
 
@@ -84,6 +85,17 @@ function bufferFromMeshSink(doc: GraphDocument, meshNodeId: string): PreviewBuff
 		source: { sinkNode: meshNodeId },
 		dataType: 'mesh',
 		family: 'geometry',
+		inferred: true
+	};
+}
+
+function bufferFromComputeBufferSink(doc: GraphDocument, nodeId: string): PreviewBuffer {
+	return {
+		id: nodeId,
+		label: labelForNode(doc, nodeId),
+		source: { sinkNode: nodeId },
+		dataType: 'storageBuffer',
+		family: 'buffer',
 		inferred: true
 	};
 }
@@ -240,6 +252,10 @@ export function enumeratePreviewBuffers(doc: GraphDocument): PreviewBuffer[] {
 			family: 'image',
 			inferred: true
 		});
+	}
+	const computeBufferTarget = deriveComputeBufferTarget(doc);
+	if (computeBufferTarget) {
+		buffers.push(bufferFromComputeBufferSink(doc, computeBufferTarget.nodeId));
 	}
 
 	return buffers;

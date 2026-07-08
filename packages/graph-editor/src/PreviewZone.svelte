@@ -3,6 +3,7 @@
 
 	import AudioPreviewPanel from './AudioPreviewPanel.svelte';
 	import CpuPreviewPanel from './CpuPreviewPanel.svelte';
+	import DataBufferPreviewPanel from './DataBufferPreviewPanel.svelte';
 	import EffectPreviewPanel from './EffectPreviewPanel.svelte';
 	import GpuPreviewPanel from './GpuPreviewPanel.svelte';
 	import MeshPreviewPanel from './MeshPreviewPanel.svelte';
@@ -120,6 +121,7 @@
 				<option value="image">image</option>
 				<option value="geometry">geometry</option>
 				<option value="audio">audio</option>
+				<option value="buffer">buffer</option>
 			</select>
 		</label>
 	{/if}
@@ -157,6 +159,13 @@
 			output={previewOutput}
 			refreshEpoch={refreshEpoch}
 			{compileSignature}
+		/>
+	{:else if previewRenderer === 'buffer'}
+		<DataBufferPreviewPanel
+			{graph}
+			output={previewOutput}
+			targetId={selectedBufferId}
+			{frameLoop}
 		/>
 	{:else}
 		<VegetationPreviewPanel {graph} refreshEpoch={refreshEpoch} {compileSignature} />
@@ -237,6 +246,10 @@
 
 	.family-badge[data-family='audio'] {
 		background: rgba(220, 140, 255, 0.25);
+	}
+
+	.family-badge[data-family='buffer'] {
+		background: rgba(135, 206, 235, 0.22);
 	}
 
 	.buffer-label {

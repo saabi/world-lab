@@ -9,7 +9,13 @@ import {
 
 /** Preview renderers mapped from buffer families (reuse existing panels). */
 export type ScalarPreviewBackend = 'cpu' | 'gpu';
-export type PreviewBackend = ScalarPreviewBackend | 'effect' | 'mesh' | 'vegetation' | 'audio';
+export type PreviewBackend =
+	| ScalarPreviewBackend
+	| 'effect'
+	| 'mesh'
+	| 'vegetation'
+	| 'audio'
+	| 'buffer';
 
 export type PreviewRenderer = PreviewBackend;
 
@@ -27,6 +33,8 @@ export function rendererForPreviewFamily(
 			return opts.preferGpu ? 'gpu' : 'cpu';
 		case 'audio':
 			return 'audio';
+		case 'buffer':
+			return 'buffer';
 		default: {
 			const _exhaustive: never = family;
 			return _exhaustive;

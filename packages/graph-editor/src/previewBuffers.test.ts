@@ -4,6 +4,7 @@ import { getPrimitive, type GraphDocument, type Node, type PortRef } from '@worl
 
 import {
 	bufferFeedbackGraph,
+	computeBufferDoublingGraph,
 	cosinePaletteEffectGraph,
 	defaultPreviewGraph
 } from './graphBuilders.js';
@@ -113,6 +114,17 @@ describe('enumeratePreviewBuffers', () => {
 			source: { sinkNode: 'n_buffer_feedback' },
 			dataType: 'storageBuffer',
 			family: 'image',
+			inferred: true
+		});
+	});
+
+	it('lists a compute-buffer sink as a buffer keyed by the sink id', () => {
+		const buffer = enumeratePreviewBuffers(computeBufferDoublingGraph())[0];
+		expect(buffer).toMatchObject({
+			id: 'n_compute_buffer',
+			source: { sinkNode: 'n_compute_buffer' },
+			dataType: 'storageBuffer',
+			family: 'buffer',
 			inferred: true
 		});
 	});

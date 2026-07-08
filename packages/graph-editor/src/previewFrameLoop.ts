@@ -1,4 +1,8 @@
-import { deriveBufferFeedbackTarget, type GraphDocument } from '@world-lab/graph';
+import {
+	deriveBufferFeedbackTarget,
+	deriveComputeBufferTarget,
+	type GraphDocument
+} from '@world-lab/graph';
 import {
 	GraphFrameExecutor,
 	planIndependentGraphFramePasses,
@@ -14,6 +18,7 @@ export interface PreviewFrameSnapshot {
 	width: number;
 	height: number;
 	targets: Readonly<Record<string, Uint8Array>>;
+	computeBuffers?: Readonly<Record<string, Float32Array>>;
 	error: string | null;
 }
 
@@ -64,7 +69,8 @@ export function createPreviewFrameLoop(options: PreviewFrameLoopOptions): Previe
 
 		const passes = planIndependentGraphFramePasses(options.graph);
 		const bufferFeedbackTarget = deriveBufferFeedbackTarget(options.graph);
-		if (passes.length === 0 && !bufferFeedbackTarget) {
+		const computeBufferTarget = deriveComputeBufferTarget(options.graph);
+		if (passes.length === 0 && !bufferFeedbackTarget && !computeBufferTarget) {
 			emit({
 				iTime: 0,
 				iFrame: 0,
@@ -109,6 +115,7 @@ export function createPreviewFrameLoop(options: PreviewFrameLoopOptions): Previe
 				width: result.width,
 				height: result.height,
 				targets: result.targets,
+				...(result.computeBuffers ? { computeBuffers: result.computeBuffers } : {}),
 				error: null
 			});
 		} catch (error) {

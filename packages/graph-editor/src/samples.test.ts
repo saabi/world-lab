@@ -16,7 +16,7 @@ import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js
 
 describe('graph-editor samples registry', () => {
 	it('contains the pipeline, Foundation 2, and mesh samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(9);
+		expect(GRAPH_SAMPLES.length).toBe(10);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
@@ -25,6 +25,7 @@ describe('graph-editor samples registry', () => {
 		expect(getGraphSample('migration-fullscreen-fragment')).toBeDefined();
 		expect(getGraphSample('foundation-cross-pass-texture')).toBeDefined();
 		expect(getGraphSample('foundation-buffer-feedback')).toBeDefined();
+		expect(getGraphSample('foundation-compute-buffer')).toBeDefined();
 	});
 
 	it('builds a valid fragment-image graph for the ShaderToy sample', () => {

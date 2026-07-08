@@ -10,6 +10,7 @@ describe('previewBackend routing', () => {
 		expect(rendererForPreviewFamily('geometry')).toBe('mesh');
 		expect(rendererForPreviewFamily('data')).toBe('cpu');
 		expect(rendererForPreviewFamily('audio')).toBe('audio');
+		expect(rendererForPreviewFamily('buffer')).toBe('buffer');
 		expect(rendererForPreviewFamily('data', { preferGpu: true })).toBe('gpu');
 	});
 

@@ -50,6 +50,28 @@ describe('@world-lab/graph-editor layoutStorage', () => {
 		expect(loadedPaletteCol?.type === 'group' && loadedPaletteCol.size).toBe(0.22);
 	});
 
+	it('round-trips buffer preview family and renderer selections', () => {
+		saveEditorChrome({
+			version: 1,
+			layout: defaultGraphEditorLayout(),
+			previewBuffersByPane: {
+				'pane-buffer': {
+					bufferId: 'n_compute_buffer',
+					familyOverride: 'buffer',
+					rendererOverride: 'buffer'
+				}
+			}
+		});
+
+		expect(loadEditorChrome()?.previewBuffersByPane).toEqual({
+			'pane-buffer': {
+				bufferId: 'n_compute_buffer',
+				familyOverride: 'buffer',
+				rendererOverride: 'buffer'
+			}
+		});
+	});
+
 	it('migrates legacy selectedPreviewBufferId into previewBuffersByPane', () => {
 		localStorage.setItem(
 			GRAPH_EDITOR_LAYOUT_KEY,

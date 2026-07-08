@@ -34,14 +34,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const PREVIEW_FAMILIES: readonly PreviewFamily[] = ['geometry', 'image', 'data', 'audio'];
+const PREVIEW_FAMILIES: readonly PreviewFamily[] = [
+	'geometry',
+	'image',
+	'data',
+	'audio',
+	'buffer'
+];
 const PREVIEW_RENDERERS: readonly PreviewRenderer[] = [
 	'cpu',
 	'gpu',
 	'mesh',
 	'effect',
 	'vegetation',
-	'audio'
+	'audio',
+	'buffer'
 ];
 
 function parsePreviewFamily(value: unknown): PreviewFamily | null {

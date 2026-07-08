@@ -52,6 +52,12 @@ export {
 	type BufferFeedbackTargetDescriptor
 } from './bufferFeedbackTarget.js';
 export {
+	computeBufferTargetForNode,
+	deriveComputeBufferTarget,
+	isComputeBufferTarget,
+	type ComputeBufferTargetDescriptor
+} from './computeBufferTarget.js';
+export {
 	HASH12_PARITY,
 	HASH22_PARITY,
 	HASH32_PARITY,

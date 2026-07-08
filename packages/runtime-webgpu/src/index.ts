@@ -20,6 +20,7 @@ export * from './consumers/vegetationCandidates.js';
 export * from './consumers/vegetationPreview.js';
 export * from './consumers/fullscreenFragment.js';
 export * from './consumers/bufferFeedback.js';
+export * from './consumers/computeBufferTarget.js';
 export * from './consumers/shadertoyUniforms.js';
 export * from './computeKernel.js';
 export * from './pipelineGraph.js';

@@ -314,6 +314,23 @@ export function bufferFeedbackGraph(): GraphDocument {
 	};
 }
 
+/** Foundation 3 proof: graph-authored compute kernel doubles one persistent f32 buffer. */
+export function computeBufferDoublingGraph(): GraphDocument {
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode(
+				'n_compute_buffer',
+				'target.computeBuffer',
+				{ x: 320, y: 180 },
+				{ elementCount: 20 }
+			)
+		],
+		edges: [],
+		outputs: []
+	};
+}
+
 /**
  * Mesh preview sample: UV → cube face → spherify → Perlin height → normal displace → target.mesh.
  * Load from the document picker; select the mesh buffer tab in preview to see the bumpy sphere.

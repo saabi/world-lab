@@ -1,11 +1,13 @@
 import {
 	deriveBufferFeedbackTarget,
+	deriveComputeBufferTarget,
 	type GraphDocument
 } from '@world-lab/graph';
 import type { WgslModuleResolver } from '@world-lab/compiler';
 
 import type { ShaderToyHostInputs } from './consumers/fullscreenFragment.js';
 import { BufferFeedbackExecutor } from './consumers/bufferFeedback.js';
+import { ComputeBufferExecutor } from './consumers/computeBufferTarget.js';
 import { buildPassOrder } from './frameGraph/order.js';
 import { ResourceRealizer } from './frameGraph/realize.js';
 import {
@@ -37,12 +39,14 @@ export interface GraphFrameExecuteResult {
 	width: number;
 	height: number;
 	targets: Record<string, Uint8Array>;
+	computeBuffers?: Record<string, Float32Array>;
 }
 
 /** Runs all independent pipeline targets in one frame with shared ShaderToy host uniforms. */
 export class GraphFrameExecutor {
 	private readonly pipeline = new PipelineGraphExecutor();
 	private readonly bufferFeedback = new BufferFeedbackExecutor();
+	private readonly computeBuffer = new ComputeBufferExecutor();
 	private realizer: ResourceRealizer | undefined;
 	private realizerDevice: GPUDevice | undefined;
 
@@ -58,12 +62,14 @@ export class GraphFrameExecutor {
 	dispose(): void {
 		this.realizer?.dispose();
 		this.bufferFeedback.dispose();
+		this.computeBuffer.dispose();
 		this.realizer = undefined;
 		this.realizerDevice = undefined;
 	}
 
 	async execute(input: GraphFrameExecuteInput): Promise<GraphFrameExecuteResult> {
 		const bufferTarget = deriveBufferFeedbackTarget(input.graph);
+		const computeTarget = deriveComputeBufferTarget(input.graph);
 		if (
 			bufferTarget &&
 			(bufferTarget.gridWidth !== input.width || bufferTarget.gridHeight !== input.height)
@@ -136,6 +142,16 @@ export class GraphFrameExecutor {
 			);
 			targets[bufferTarget.sinkNodeId] = result.pixels;
 		}
-		return { width: input.width, height: input.height, targets };
+		let computeBuffers: Record<string, Float32Array> | undefined;
+		if (computeTarget) {
+			const result = await this.computeBuffer.execute(input.device, computeTarget);
+			computeBuffers = { [computeTarget.nodeId]: result.values };
+		}
+		return {
+			width: input.width,
+			height: input.height,
+			targets,
+			...(computeBuffers ? { computeBuffers } : {})
+		};
 	}
 }

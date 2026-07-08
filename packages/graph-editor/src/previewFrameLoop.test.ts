@@ -3,7 +3,8 @@ import { effectiveGraphDocument } from '@world-lab/graph';
 
 import {
 	animatedWorleyPipelineGraph,
-	bufferFeedbackGraph
+	bufferFeedbackGraph,
+	computeBufferDoublingGraph
 } from './graphBuilders.js';
 
 const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: number } }) => ({
@@ -12,6 +13,9 @@ const executeMock = vi.fn(async (_input: { host?: { iFrame: number; iTime: numbe
 	targets: {
 		n_display: new Uint8Array(64),
 		n_target_display_1: new Uint8Array(64)
+	},
+	computeBuffers: {
+		n_compute_buffer: new Float32Array([2, 4, 6, 8])
 	}
 }));
 const disposeMock = vi.fn();
@@ -67,6 +71,7 @@ describe('createPreviewFrameLoop', () => {
 			width: number;
 			height: number;
 			targets: Readonly<Record<string, Uint8Array>>;
+			computeBuffers?: Readonly<Record<string, Float32Array>>;
 			error: string | null;
 		}
 
@@ -110,5 +115,27 @@ describe('createPreviewFrameLoop', () => {
 		loop.destroy();
 
 		expect(executeMock).toHaveBeenCalled();
+	});
+
+	it('dispatches a compute-buffer-only graph and copies compute buffers into snapshots', async () => {
+		const { createPreviewFrameLoop } = await import('./previewFrameLoop.js');
+		const seen: Array<Readonly<Record<string, Float32Array>> | undefined> = [];
+		const loop = createPreviewFrameLoop({
+			graph: computeBufferDoublingGraph(),
+			compileSignature: 'compute-buffer',
+			width: 256,
+			now: () => 1000
+		});
+		const unsubscribe = loop.subscribe((snapshot) => {
+			seen.push(snapshot.computeBuffers);
+		});
+
+		await new Promise<void>((resolve) => queueMicrotask(resolve));
+		await new Promise<void>((resolve) => queueMicrotask(resolve));
+		unsubscribe();
+		loop.destroy();
+
+		expect(executeMock).toHaveBeenCalled();
+		expect(seen.some((entry) => entry?.n_compute_buffer?.[0] === 2)).toBe(true);
 	});
 });

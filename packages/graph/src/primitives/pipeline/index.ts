@@ -108,6 +108,34 @@ const primitives: NodePrimitiveInput[] = [
 			deterministic: true,
 			role: 'bufferFeedbackTarget'
 		}
+	},
+	{
+		id: 'target.computeBuffer',
+		category: 'target/sink',
+		inputs: [],
+		outputs: [],
+		params: Type.Object({
+			elementCount: Type.Integer({ minimum: 1, default: 64 })
+		}),
+		implementation: {
+			kind: 'kernel',
+			stage: 'compute',
+			bindings: [
+				{
+					name: 'values',
+					binding: 0,
+					resourceKind: 'buffer',
+					access: 'read-write',
+					stages: ['compute']
+				}
+			]
+		},
+		metadata: {
+			description: 'Runs the bundled graph-authored compute-buffer proof.',
+			pure: false,
+			deterministic: true,
+			role: 'computeBufferTarget'
+		}
 	}
 ];
 

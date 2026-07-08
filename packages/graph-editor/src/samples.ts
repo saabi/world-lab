@@ -3,6 +3,7 @@ import type { GraphDocument } from '@world-lab/graph';
 import {
 	animatedWorleyPipelineGraph,
 	bufferFeedbackGraph,
+	computeBufferDoublingGraph,
 	cosinePaletteEffectGraph,
 	crossPassTextureReadGraph,
 	defaultPreviewGraph,
@@ -50,6 +51,11 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'foundation-buffer-feedback',
 		label: 'Foundation — Buffer feedback',
 		build: bufferFeedbackGraph
+	},
+	{
+		id: 'foundation-compute-buffer',
+		label: 'Foundation — Compute buffer',
+		build: computeBufferDoublingGraph
 	},
 	{
 		id: 'mesh-displaced-sphere',
