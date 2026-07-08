@@ -48,6 +48,11 @@ export interface KernelFragmentBindingInput {
 	resources: ReadonlyMap<string, ComputeKernelResource>;
 }
 
+export interface KernelFragmentVertexModule {
+	code: string;
+	vertexCount: number;
+}
+
 export interface KernelFragmentInput {
 	device: GPUDevice;
 	graph: GraphDocument;
@@ -61,6 +66,8 @@ export interface KernelFragmentInput {
 	target: GPUTexture;
 	kernelBindings: KernelFragmentBindingInput;
 	channelTargets?: ReadonlyMap<number, GPUTexture>;
+	varyings?: readonly VaryingDecl[];
+	vertexModule?: KernelFragmentVertexModule;
 }
 
 export interface KernelFragmentAssemblyInput {
@@ -229,15 +236,18 @@ export async function executeKernelFragment(
 		output,
 		bindings,
 		wgslTypes: kernelBindings.wgslTypes,
-		resolver: input.resolver
+		resolver: input.resolver,
+		varyings: input.varyings
 	});
+	const code = input.vertexModule ? `${input.vertexModule.code}\n\n${assembly.code}` : assembly.code;
+	const vertexCount = input.vertexModule?.vertexCount ?? assembly.vertexCount;
 	for (const channel of assembly.channelBindings.keys()) {
 		if (!input.channelTargets?.has(channel)) {
 			throw new Error(`Missing channel target for channel ${channel}`);
 		}
 	}
 
-	const pipeline = await createKernelFragmentPipeline(device, assembly.code);
+	const pipeline = await createKernelFragmentPipeline(device, code);
 	const resolved = resolveKernelBindings(bindings, 'fragment', kernelBindings.resourceIds);
 	const bindGroupEntries = buildComputeBindGroupEntries(resolved, kernelBindings.resources);
 
@@ -312,7 +322,7 @@ export async function executeKernelFragment(
 	});
 	pass.setPipeline(pipeline);
 	pass.setBindGroup(0, bindGroup);
-	pass.draw(assembly.vertexCount);
+	pass.draw(vertexCount);
 	pass.end();
 
 	const pixelBytes = rgba8BufferByteLength(width, height);

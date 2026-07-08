@@ -331,6 +331,52 @@ export function computeBufferDoublingGraph(): GraphDocument {
 	};
 }
 
+/** Foundation 3.6 proof: graph-authored vertex displacement with an interpolated uv fragment color. */
+export function vertexKernelDisplacementGraph(): GraphDocument {
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode('n_plane', 'geometry.plane', { x: 0, y: 40 }, { resU: 24, resV: 24 }),
+			snapshotNode('n_persist', 'buffer.persist', { x: 240, y: 40 }),
+			snapshotNode('n_vertex', 'stage.vertexKernel', { x: 500, y: 80 }),
+			snapshotNode('n_fragment', 'stage.fragmentKernel', { x: 780, y: 180 }),
+			snapshotNode('n_display', 'target.display', { x: 1040, y: 180 }),
+			snapshotNode('n_position', 'procedural.metricPosition', { x: 0, y: 240 }),
+			snapshotNode('n_x', 'vector.vec3f.x', { x: 220, y: 180 }),
+			snapshotNode('n_y', 'vector.vec3f.y', { x: 220, y: 260 }),
+			snapshotNode('n_z', 'vector.vec3f.z', { x: 220, y: 340 }),
+			snapshotNode('n_noise', 'noise.perlin3d', { x: 220, y: 460 }),
+			snapshotNode('n_displaced_z', 'math.add', { x: 460, y: 400 }),
+			snapshotNode('n_displaced_position', 'vector.vec3f', { x: 500, y: 260 }),
+			snapshotNode('n_vertex_uv', 'vector.vec2f', { x: 500, y: 520 }),
+			snapshotNode('n_fragment_uv', 'procedural.uv', { x: 500, y: 680 }),
+			snapshotNode('n_color', 'vector.combine.vec2f_f32_f32', { x: 780, y: 520 })
+		],
+		edges: [
+			edge('e_plane_persist', 'n_plane', 'geometry.plane', 'n_persist', 'buffer.persist', 0, 0),
+			edge('e_persist_vertex', 'n_persist', 'buffer.persist', 'n_vertex', 'stage.vertexKernel', 0, 0),
+			edge('e_vertex_fragment', 'n_vertex', 'stage.vertexKernel', 'n_fragment', 'stage.fragmentKernel', 0, 0),
+			edge('e_fragment_display', 'n_fragment', 'stage.fragmentKernel', 'n_display', 'target.display', 0, 0),
+			edge('e_position_x', 'n_position', 'procedural.metricPosition', 'n_x', 'vector.vec3f.x', 0, 0),
+			edge('e_position_y', 'n_position', 'procedural.metricPosition', 'n_y', 'vector.vec3f.y', 0, 0),
+			edge('e_position_z', 'n_position', 'procedural.metricPosition', 'n_z', 'vector.vec3f.z', 0, 0),
+			edge('e_position_noise', 'n_position', 'procedural.metricPosition', 'n_noise', 'noise.perlin3d', 0, 0),
+			edge('e_z_displaced_a', 'n_z', 'vector.vec3f.z', 'n_displaced_z', 'math.add', 0, 0),
+			edge('e_noise_displaced_b', 'n_noise', 'noise.perlin3d', 'n_displaced_z', 'math.add', 0, 1),
+			edge('e_x_position', 'n_x', 'vector.vec3f.x', 'n_displaced_position', 'vector.vec3f', 0, 0),
+			edge('e_y_position', 'n_y', 'vector.vec3f.y', 'n_displaced_position', 'vector.vec3f', 0, 1),
+			edge('e_z_position', 'n_displaced_z', 'math.add', 'n_displaced_position', 'vector.vec3f', 0, 2),
+			edge('e_position_vertex', 'n_displaced_position', 'vector.vec3f', 'n_vertex', 'stage.vertexKernel', 0, 1),
+			edge('e_x_uv', 'n_x', 'vector.vec3f.x', 'n_vertex_uv', 'vector.vec2f', 0, 0),
+			edge('e_y_uv', 'n_y', 'vector.vec3f.y', 'n_vertex_uv', 'vector.vec2f', 0, 1),
+			edge('e_uv_vertex', 'n_vertex_uv', 'vector.vec2f', 'n_vertex', 'stage.vertexKernel', 0, 2),
+			edge('e_fragment_uv_color', 'n_fragment_uv', 'procedural.uv', 'n_color', 'vector.combine.vec2f_f32_f32', 0, 0),
+			edge('e_color_fragment', 'n_color', 'vector.combine.vec2f_f32_f32', 'n_fragment', 'stage.fragmentKernel', 0, 1)
+		],
+		outputs: [{ name: 'image', from: portRef('n_color', 'vector.combine.vec2f_f32_f32', 'out', 0) }],
+	};
+}
+
 /**
  * Mesh preview sample: UV → cube face → spherify → Perlin height → normal displace → target.mesh.
  * Load from the document picker; select the mesh buffer tab in preview to see the bumpy sphere.

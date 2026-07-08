@@ -9,14 +9,18 @@ import {
 } from '@world-lab/graph';
 import { evaluateMeshGenCpu } from '@world-lab/runtime-webgpu';
 
-import { computeBufferDoublingGraph, defaultPreviewGraph } from './graphBuilders.js';
+import {
+	computeBufferDoublingGraph,
+	defaultPreviewGraph,
+	vertexKernelDisplacementGraph
+} from './graphBuilders.js';
 import { inferPreviewBackend, resolvePreviewRenderer } from './previewBackend.js';
 import { enumeratePreviewBuffers, inferDefaultPreviewBuffer, resolveMeshPreviewRequest } from './previewBuffers.js';
 import { getGraphSample, GRAPH_SAMPLES, listSampleArtifacts } from './samples.js';
 
 describe('graph-editor samples registry', () => {
 	it('contains the pipeline, Foundation 2, and mesh samples', () => {
-		expect(GRAPH_SAMPLES.length).toBe(10);
+		expect(GRAPH_SAMPLES.length).toBe(11);
 		expect(getGraphSample('pipeline-worley-time')?.label).toContain('Worley');
 		expect(getGraphSample('shadertoy-cosine-palette')?.label).toContain('Cosine palette');
 		expect(getGraphSample('mesh-displaced-sphere')?.label).toContain('Displaced');
@@ -26,6 +30,7 @@ describe('graph-editor samples registry', () => {
 		expect(getGraphSample('foundation-cross-pass-texture')).toBeDefined();
 		expect(getGraphSample('foundation-buffer-feedback')).toBeDefined();
 		expect(getGraphSample('foundation-compute-buffer')).toBeDefined();
+		expect(getGraphSample('foundation-vertex-kernel-displacement')).toBeDefined();
 	});
 
 	it('builds a valid fragment-image graph for the ShaderToy sample', () => {
@@ -94,6 +99,30 @@ describe('graph-editor samples registry', () => {
 		});
 		expect(inferDefaultPreviewBuffer(graph)?.id).toBe('n_compute_buffer');
 		expect(resolvePreviewRenderer(buffers[0]!)).toBe('buffer');
+	});
+
+	it('builds a valid vertex-kernel displacement proof sample', () => {
+		const sample = getGraphSample('foundation-vertex-kernel-displacement');
+		expect(sample).toBeDefined();
+		const graph = sample!.build();
+		expect(graph).toEqual(vertexKernelDisplacementGraph());
+		expect(validateGraphFull(graph).ok).toBe(true);
+		expect(graph.nodes.map((node) => node.primitive)).toEqual(
+			expect.arrayContaining([
+				'geometry.plane',
+				'buffer.persist',
+				'stage.vertexKernel',
+				'stage.fragmentKernel',
+				'procedural.metricPosition',
+				'noise.perlin3d',
+				'procedural.uv',
+				'target.display'
+			])
+		);
+		expect(graph.nodes.some((node) => node.primitive === 'constant.f32')).toBe(false);
+		expect(graph.outputs).toEqual([
+			{ name: 'image', from: { node: 'n_color', port: 'value' } }
+		]);
 	});
 
 	it('builds a displaced-sphere mesh sample wired to target.mesh', () => {

@@ -233,6 +233,26 @@ function channelVec4Field(): GraphDocument {
 	};
 }
 
+function varyingUvVec4Field(): GraphDocument {
+	return {
+		version: '2',
+		nodes: [
+			snapshotNode('n_uv', 'procedural.uv'),
+			snapshotNode('n_vec4', 'vector.combine.vec2f_f32_f32')
+		],
+		edges: [
+			{
+				id: 'e_uv_vec4',
+				from: portRef('n_uv', 'procedural.uv', 'out', 0),
+				to: portRef('n_vec4', 'vector.combine.vec2f_f32_f32', 'in', 0)
+			}
+		],
+		outputs: [
+			{ name: 'image', from: portRef('n_vec4', 'vector.combine.vec2f_f32_f32', 'out', 0) }
+		]
+	};
+}
+
 function timeParamChannelField(): GraphDocument {
 	const constOut = portRef('n_const', 'constant.f32', 'out', 0);
 	return {
@@ -555,6 +575,64 @@ describe('@world-lab/runtime-webgpu executeKernelFragment', () => {
 					kernelBindings: emptyKernelBindings()
 				})
 			).rejects.toThrow('Missing channel target for channel 0');
+		} finally {
+			target.destroy();
+			device.destroy();
+		}
+	});
+
+	it.skipIf(!hasWebGPU)('draws with a supplied vertex module when fragment assembly is varying-only', async () => {
+		const adapter = await navigator.gpu.requestAdapter();
+		expect(adapter).toBeTruthy();
+		const device = await adapter!.requestDevice();
+		const width = 8;
+		const height = 8;
+		const target = device.createTexture({
+			size: { width, height },
+			format: 'rgba8unorm',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+		});
+		const vertexModule = `struct VSOut {
+	@builtin(position) position: vec4f,
+	@location(0) uv: vec2f,
+};
+
+@vertex
+fn vs_main(@builtin(vertex_index) vid: u32) -> VSOut {
+	var positions = array<vec2f, 6>(
+		vec2f(-1.0, -1.0),
+		vec2f(1.0, -1.0),
+		vec2f(-1.0, 1.0),
+		vec2f(-1.0, 1.0),
+		vec2f(1.0, -1.0),
+		vec2f(1.0, 1.0)
+	);
+	var out: VSOut;
+	let p = positions[vid];
+	out.position = vec4f(p, 0.0, 1.0);
+	out.uv = p * 0.5 + vec2f(0.5, 0.5);
+	return out;
+}`;
+		try {
+			const result = await executeKernelFragment({
+				device,
+				graph: pipelineGraph('stage.fragmentKernel', varyingUvVec4Field()),
+				output: { node: 'n_vec4', port: 'value' },
+				bindings: [],
+				width,
+				height,
+				host: { iTime: 0 },
+				target,
+				kernelBindings: emptyKernelBindings(),
+				varyings: [{ name: 'uv', wgslType: 'vec2f' }],
+				vertexModule: { code: vertexModule, vertexCount: 6 }
+			});
+			const unique = new Set<string>();
+			for (let i = 0; i < result.pixels.length; i += 4) {
+				unique.add(result.pixels.slice(i, i + 4).join(','));
+			}
+			expect(unique.size).toBeGreaterThan(1);
+			expect(unique).not.toEqual(new Set(['0,0,0,255']));
 		} finally {
 			target.destroy();
 			device.destroy();

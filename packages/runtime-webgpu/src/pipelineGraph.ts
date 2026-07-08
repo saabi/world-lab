@@ -1,4 +1,4 @@
-import type { GraphDocument, Node, PortRef } from '@world-lab/graph';
+import type { Edge, GraphDocument, Node, PortRef } from '@world-lab/graph';
 import {
 	derivePipelinePresentations,
 	discoverExecutionRoots,
@@ -18,8 +18,12 @@ import {
 	executeKernelFragment,
 	type KernelFragmentBindingInput
 } from './consumers/kernelFragment.js';
+import { createStandardLibraryResolver } from './moduleResolver.js';
+import { resolvePipelineGeometryParams } from './pipelineVertex.js';
+import { assembleVertexKernelPositionModuleAsync } from './vertexKernelPosition.js';
 
 const PIPELINE_GEOMETRY_SOURCE_ROLE = 'pipelineGeometrySource';
+const RESERVED_VERTEX_KERNEL_OUTPUT_NAMES = new Set(['position', 'uv']);
 
 export interface PipelineGraphPlan {
 	geometryNode: string;
@@ -75,6 +79,23 @@ export class PipelineGraphResourceCache {
 
 function incoming(doc: GraphDocument, node: string, port: string) {
 	return doc.edges.find((edge) => edge.to.node === node && edge.to.port === port);
+}
+
+export function graphWithVertexKernelAssemblyOutputs(
+	doc: GraphDocument,
+	positionEdge: Edge,
+	uvEdge?: Edge
+): GraphDocument {
+	return {
+		...doc,
+		outputs: [
+			...doc.outputs.filter(
+				(output) => !RESERVED_VERTEX_KERNEL_OUTPUT_NAMES.has(output.name)
+			),
+			{ name: 'position', from: positionEdge.from },
+			...(uvEdge ? [{ name: 'uv', from: uvEdge.from }] : [])
+		]
+	};
 }
 
 function requireEdge(doc: GraphDocument, from: PortRef, to: PortRef): void {
@@ -272,12 +293,55 @@ export class PipelineGraphExecutor {
 		const fragmentImpl = fragmentNode
 			? getPrimitive(fragmentNode.primitive)?.implementation
 			: undefined;
+		const vertexNode = input.graph.nodes.find((node) => node.id === plan.vertexStageNode);
+		const vertexImpl = vertexNode
+			? getPrimitive(vertexNode.primitive)?.implementation
+			: undefined;
 		if (fragmentImpl?.kind === 'kernel' && fragmentImpl.stage === 'fragment') {
 			if (fragmentImpl.bindings.length > 0 && !input.kernelFragmentBindings) {
 				throw new Error(
 					`Pipeline fragment stage ${plan.fragmentStageNode} declares kernel bindings but no ` +
 						'kernelFragmentBindings were supplied'
 				);
+			}
+			if (vertexImpl?.kind === 'kernel' && vertexImpl.stage === 'vertex') {
+				const positionEdge = incoming(input.graph, vertexNode!.id, 'position');
+				if (!positionEdge) {
+					throw new Error(
+						`Pipeline vertex kernel ${plan.vertexStageNode} is missing its position input`
+					);
+				}
+				const uvEdge = incoming(input.graph, vertexNode!.id, 'uv');
+				const resolver = input.resolver ?? createStandardLibraryResolver();
+				const vertexAssembly = await assembleVertexKernelPositionModuleAsync({
+					graph: graphWithVertexKernelAssemblyOutputs(input.graph, positionEdge, uvEdge),
+					output: positionEdge.from,
+					uvOutput: uvEdge?.from,
+					geo: resolvePipelineGeometryParams(input.graph, plan),
+					resolver
+				});
+				return executeKernelFragment({
+					device: input.device,
+					graph: input.graph,
+					output: plan.fieldOutput,
+					bindings: fragmentImpl.bindings,
+					resolver,
+					width: input.width,
+					height: input.height,
+					host: input.host,
+					target: input.target,
+					kernelBindings: input.kernelFragmentBindings ?? {
+						wgslTypes: new Map(),
+						resourceIds: new Map(),
+						resources: new Map()
+					},
+					channelTargets: input.channelTargets,
+					varyings: vertexAssembly.varyings,
+					vertexModule: {
+						code: vertexAssembly.code,
+						vertexCount: vertexAssembly.vertexCount
+					}
+				});
 			}
 			return executeKernelFragment({
 				device: input.device,

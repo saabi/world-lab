@@ -10,7 +10,8 @@ import {
 	displacedSphereMeshGraph,
 	legacyFullscreenFragmentGraph,
 	rigidTransformsMeshGraph,
-	rotatedPlaneMeshGraph
+	rotatedPlaneMeshGraph,
+	vertexKernelDisplacementGraph
 } from './graphBuilders.js';
 import { createGraphArtifact, type GraphArtifact } from './graphArtifact.js';
 
@@ -56,6 +57,11 @@ export const GRAPH_SAMPLES: readonly GraphSample[] = [
 		id: 'foundation-compute-buffer',
 		label: 'Foundation — Compute buffer',
 		build: computeBufferDoublingGraph
+	},
+	{
+		id: 'foundation-vertex-kernel-displacement',
+		label: 'Foundation — Vertex kernel displacement',
+		build: vertexKernelDisplacementGraph
 	},
 	{
 		id: 'mesh-displaced-sphere',
