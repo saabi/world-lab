@@ -1,8 +1,12 @@
 # Foundation 3 — generic kernels: sequencing plan
 
-**Status:** in progress — F3.1 `4c28431`, F3.2 `0c4b7d8`, F3.3 `2dc6009` landed and independently
-verified; F3.4 rescoped after pre-drafting research (see its sequence entry below) and F3.6 added
-as a result · **Parent:**
+**Status:** ✅ complete — F3.1 `4c28431`, F3.2 `0c4b7d8`, F3.3 `2dc6009`, F3.4 `0b397003`, F3.5
+`899e56f`+`ebf6cd9`, F3.6.1 `29a3208`, F3.6.2 `9183107`, F3.6.3 `a26d8fb`, F3.6.4 `3fcc253`, F3.6.5
+`78c55b3`, F3.6.6 `0ba8d54` — every milestone landed and independently re-verified, including
+F3.6.6's real-browser visual confirmation. F3.4 was rescoped after pre-drafting research (see its
+sequence entry below), which is what led to F3.6 being added; F3.6 itself grew from a design
+discussion into six milestones (F3.6.1-6) closing every sub-problem (A)-(F) it opened. Foundation 3
+is done · **Parent:**
 [elemental-webgpu-architecture-review.md, Foundation 3](./elemental-webgpu-architecture-review.md#foundation-3-generic-kernels)
 · **Depends on:** Foundation 2, complete (F2.1 `04f5319`, F2.2 `397af7f`, F2.3 `f355221`, F2.4
 `37f496a`, F2.5 `35a75fb`+`984bfcb`) · **Blocks:** Foundation 4 (generic command graph), correct
@@ -203,8 +207,10 @@ necessary — none is optional polish.
    sequencing. A seventh sub-problem, (F)'s vertex kernel invocation model, got its own follow-on
    design discussion once F3.6.1-3 narrowed the remaining scope:
    [f3.6.4-vertex-kernel-invocation-design.md](./f3.6.4-vertex-kernel-invocation-design.md).
-   **Status: F3.6.1 landed `29a3208`, F3.6.2 landed `9183107`, F3.6.3 landed `a26d8fb`, F3.6.4 has
-   a design discussion but no contract yet, F3.6.5/F3.6.6 unscoped.**
+   **Status: F3.6.1-6 all landed and independently re-verified — F3.6.1 `29a3208`, F3.6.2
+   `9183107`, F3.6.3 `a26d8fb`, F3.6.4 `3fcc253`, F3.6.5 `78c55b3`, F3.6.6 `0ba8d54`. F3.6.6's
+   bundled sample (`'foundation-vertex-kernel-displacement'`) is visually confirmed rendering
+   correctly in a real browser. F3.6 — and Foundation 3 in full — is closed.**
 
 Each milestone above gets its own full contract (file list, exact signatures, gate-as-failing-tests)
 written immediately before it's routed — this document only fixes the sequence and the verified

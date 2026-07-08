@@ -27,22 +27,45 @@ is still open.
 
 ## Active
 
-- **F3.6.6 — bundled proof sample: graph-authored vertex displacement** (sixth and final milestone
-  of F3.6; spans `runtime-webgpu` + `graph-editor`; **has a manual/visual gate** — see brief's Gate
-  item 6, needs a real-browser screenshot of the bundled sample rendering correctly)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.6-pipeline-kernels-proof-sample.md`
-  Owns: `packages/runtime-webgpu/src/pipelineGraph.ts`,
-  `packages/runtime-webgpu/src/pipelineGraph.test.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
-  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`,
-  `packages/graph-editor/src/samples.test.ts`
-  Claimed by: Codex · Status: CODE COMPLETE; VISUAL GATE PENDING · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.6 — bundled proof sample: graph-authored vertex displacement** — `0ba8d54` · Sixth and
+  **final** milestone of F3.6 — the whole sequence is closed. Wires `PipelineGraphExecutor.execute`'s
+  vertex-side branch (mirroring the fragment-side branch F3.6.2 built) and registers a bundled,
+  pickable sample, `'foundation-vertex-kernel-displacement'`, rendering real graph-authored,
+  noise-based vertex displacement with a shared `uv` varying driving fragment coloring. Diff matches
+  the contract and all three of its pre-routing-review fixes exactly: `assembleVertexKernelPositionModuleAsync`
+  is now called against a temporary, augmented document (`graphWithVertexKernelAssemblyOutputs`,
+  exported and independently tested) that synthesizes `position`/`uv` named outputs rather than
+  requiring real documents to declare them — with collision filtering removing any pre-existing
+  user-declared output under those two names first, proven directly by a test with a colliding
+  `'position'`-named output confirming the *correct* slice still compiles; the bundled sample's
+  displacement uses raw, unscaled `noise.perlin3d` (no `constant.f32`/param-bearing node anywhere in
+  the vertex-side upstream slice), proven directly (`not.toContain('GraphParams')`,
+  `not.toContain('var<uniform> params')`, plus `samples.test.ts`'s own
+  `nodes.some(n => n.primitive === 'constant.f32')` assertion); `executeKernelFragment`'s draw call
+  now uses a supplied `vertexModule.vertexCount` instead of the fragment assembly's own (previously
+  silently-`0`) count, proven by an isolated test supplying a minimal hand-written vertex module
+  directly. The core proof — `'renders a non-uniform image through the vertex-kernel execution
+  branch'` — calls `PipelineGraphExecutor.execute` directly (the real, document-driven entry point,
+  not a standalone assembly call) and confirms a genuinely non-uniform rendered image. Confirmed
+  `GraphFrameExecutor`/the editor needed zero changes, exactly as this contract's own pre-drafting
+  investigation predicted. The implementer could not run a headless browser in their environment and
+  correctly left the task board as "CODE COMPLETE; VISUAL GATE PENDING" rather than falsely marking
+  it done — the user then manually loaded the sample in a real browser (webGPUtoy) and provided a
+  screenshot: the full node graph renders exactly as designed (all fourteen nodes visible, matching
+  `vertexKernelDisplacementGraph()` precisely, "Graph is valid" in the validation panel) and both
+  preview panes show a real, non-uniform, colorful rendered image (green/orange/red patches on
+  black) — satisfying Gate item 9 directly. Independently re-verified: `check`/`test`/`build` re-run
+  clean after clearing every `packages/*/dist` (`runtime-webgpu` 193/8-skip, up from F3.6.5's
+  187/8-skip; `graph-editor` 223 passed, up from prior baseline; full workspace `check` clean across
+  all 12 packages + both apps); all real-device tests independently re-run scoped to their own
+  package with `--reporter=verbose`, confirmed to execute (the core paired-render proof took 470ms,
+  clearly a real render not a stub) not skip.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.6-pipeline-kernels-proof-sample.md`
 
 - **F3.6.5 — vertex-kernel primitive with real varying output** — `78c55b3` · Fifth milestone of
   F3.6, the largest one yet, spanning both packages. Registers additive `stage.vertexKernel` and
