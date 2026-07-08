@@ -27,25 +27,33 @@ is still open.
 
 ## Active
 
-- **F3.5 — generic compute-kernel proof closure** (fifth milestone of Foundation 3; hardens
-  F3.4's static compute-kernel path with a top-level real-device `GraphFrameExecutor` proof,
-  sample/preview persistence checks, and a manual visual gate; no F3.6 pipeline-kernel design)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.5-generic-kernel-proof.md`
-  Owns: `packages/runtime-webgpu/src/graphFrameExecutor.test.ts`,
-  `packages/runtime-webgpu/src/consumers/computeBufferTarget.test.ts`,
-  `packages/graph-editor/src/graphBuilders.ts`, `packages/graph-editor/src/samples.ts`,
-  `packages/graph-editor/src/samples.test.ts`, `packages/graph-editor/src/previewFrameLoop.ts`,
-  `packages/graph-editor/src/previewFrameLoop.test.ts`, `packages/graph-editor/src/previewBuffers.ts`,
-  `packages/graph-editor/src/previewBuffers.test.ts`, `packages/graph-editor/src/previewBackend.ts`,
-  `packages/graph-editor/src/previewBackend.test.ts`, `packages/graph-editor/src/layoutStorage.ts`,
-  `packages/graph-editor/src/layoutStorage.test.ts`, `packages/graph-editor/src/DataBufferPreviewPanel.svelte`,
-  `packages/graph-editor/src/DataBufferPreviewPanel.test.ts`, `packages/graph-editor/src/PreviewZone.svelte`
-  Claimed by: Codex · Status: DONE (this commit) · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.5 — generic compute-kernel proof closure** — `899e56f` (+ `ebf6cd9` for an SSR fix and a
+  second, previously-missed preview-loop guard) · Fifth milestone of Foundation 3, briefed and
+  implemented by Codex directly (a deviation from this project's usual contract-first workflow,
+  independently reviewed after the fact rather than before routing). Landed as pure test/task-board
+  additions — no production code needed for the "confirm or restore" Fix steps, since F3.4's actual
+  landing (`0b397003`) already satisfied every one of them (`target.computeBuffer` registration,
+  the `'buffer'` preview family, `layoutStorage.ts` round-trip coverage, `inferDefaultPreviewBuffer`
+  selection). The real, non-redundant work: a real-device (`it.skipIf(!hasWebGPU)`) test proving a
+  compute-only document produces `computeBuffers` through `GraphFrameExecutor.execute()`'s own top
+  level (not just through `ComputeBufferExecutor` directly or a mocked spy, the only coverage F3.4
+  had), plus preview-routing/default-selection test coverage. A real gap this brief didn't catch
+  was found via the manual visual-gate check and fixed in `ebf6cd9`: `GraphEditor.svelte` has its
+  own separate copy of the "should the preview loop run" early-exit guard, independent of
+  `previewFrameLoop.ts`'s own (already fixed by F3.4) — never updated for
+  `deriveComputeBufferTarget`, so the bundled sample would not have actually run in the real editor
+  UI despite everything else being correct. Independently re-verified: `check`/`test`/`build`
+  re-run clean after clearing `packages/*/dist` (`graph` 217/217, `runtime-webgpu` 164/8-skip,
+  `graph-editor` 222/222, both apps' `check` clean); the new real-device test independently re-run
+  scoped to its own package with `--reporter=verbose` to confirm it executes and passes. Manual
+  browser visual-gate check (sample pickable, buffer panel visible, values changing across frames)
+  confirmed directly by the user. **Foundation 3's static compute-kernel path is closed.**
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.5-generic-kernel-proof.md`
 
 - **F3.3 — compute kernels and dispatch domains** — `2dc6009` · Third milestone of Foundation 3.
   Fixes `assembleStageEntry`'s compute template (`@workgroupSize` → valid `@workgroup_size`, its
