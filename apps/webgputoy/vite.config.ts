@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { defaultClientConditions, defineConfig } from 'vite';
+import { defaultClientConditions, defaultServerConditions, defineConfig } from 'vite';
 
 export default defineConfig({
 	// Single shared dev server on 5173. strictPort makes a second `npm run dev`
@@ -40,6 +40,6 @@ export default defineConfig({
 		// SSR resolution does NOT inherit the root `resolve.conditions` in practice
 		// (verified empirically) — must be set here explicitly too, or a production
 		// build fails to resolve @world-lab/* packages.
-		resolve: { conditions: ['development', ...defaultClientConditions] }
+		resolve: { conditions: ['development', ...defaultServerConditions] }
 	}
 });

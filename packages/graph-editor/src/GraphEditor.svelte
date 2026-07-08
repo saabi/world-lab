@@ -4,6 +4,7 @@
 	import type { LayoutDocument, FloatingPanelSpec } from '@world-lab/subdivide';
 	import {
 		deriveBufferFeedbackTarget,
+		deriveComputeBufferTarget,
 		effectiveGraphDocument,
 		type GraphDocument
 	} from '@world-lab/graph';
@@ -165,10 +166,10 @@
 		const signature = compileSignature;
 		void previewRefreshEpoch;
 
-		if (
-			planIndependentGraphFramePasses(doc).length === 0 &&
-			!deriveBufferFeedbackTarget(doc)
-		) {
+		const hasPipelinePasses = planIndependentGraphFramePasses(doc).length > 0;
+		const hasBufferFeedback = deriveBufferFeedbackTarget(doc) !== null;
+		const hasComputeBuffer = deriveComputeBufferTarget(doc) !== null;
+		if (!hasPipelinePasses && !hasBufferFeedback && !hasComputeBuffer) {
 			previewFrameLoop?.destroy();
 			previewFrameLoop = null;
 			return;
