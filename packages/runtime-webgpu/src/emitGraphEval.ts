@@ -97,6 +97,12 @@ function emitHostInput(
 	if (binding.context === 'stage-builtin' && binding.key === 'fragCoord') {
 		return `let ${variable} = ${opts?.fragCoordExpr ?? 'position.xy'};`;
 	}
+	if (binding.context === 'stage-builtin' && binding.key === 'vertexIndex') {
+		return `let ${variable}: u32 = vid;`;
+	}
+	if (binding.context === 'stage-builtin' && binding.key === 'instanceIndex') {
+		return `let ${variable}: u32 = iid;`;
+	}
 	if (binding.context === 'write-target' && binding.key === 'iResolution') {
 		return `let ${variable} = ${opts?.iResolutionExpr ?? 'u.iResolution'};`;
 	}

@@ -24,6 +24,7 @@ export * from './consumers/bufferFeedback.js';
 export * from './consumers/computeBufferTarget.js';
 export * from './consumers/shadertoyUniforms.js';
 export * from './computeKernel.js';
+export * from './vertexKernelPosition.js';
 export * from './pipelineGraph.js';
 export * from './graphFramePlan.js';
 export * from './graphFrameExecutor.js';

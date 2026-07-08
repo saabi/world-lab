@@ -1,4 +1,13 @@
-import { getPrimitive, paramInputPorts, registerPrimitive, type GraphDocument, type Node, type Port, type PortSpec } from '@world-lab/graph';
+import {
+	getPrimitive,
+	paramInputPorts,
+	registerPrimitive,
+	resolvePortDataType,
+	type GraphDocument,
+	type Node,
+	type Port,
+	type PortSpec
+} from '@world-lab/graph';
 import { Type } from '@world-lab/schema';
 import { describe, expect, it } from 'vitest';
 import { emitGraphScalarEval, emitGraphVec3Eval, emitGraphVec4Eval } from './emitGraphEval.js';
@@ -8,6 +17,7 @@ function instantiatePorts(specs: readonly PortSpec[], direction: 'in' | 'out'): 
 		id: spec.name,
 		name: spec.name,
 		direction,
+		...(spec.type !== undefined ? { type: spec.type } : {}),
 		dataType: spec.dataType,
 		space: spec.space ?? 'none'
 	}));
@@ -59,6 +69,23 @@ function previewGraph(): GraphDocument {
 }
 
 describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
+	it('registers vertex-stage index host inputs with u32 type-only outputs', () => {
+		for (const [primitiveId, key] of [
+			['host.vertexIndex', 'vertexIndex'],
+			['host.instanceIndex', 'instanceIndex']
+		] as const) {
+			const primitive = getPrimitive(primitiveId);
+			expect(primitive).toBeDefined();
+			expect(primitive!.implementation).toEqual({
+				kind: 'host-input',
+				binding: { context: 'stage-builtin', key, stages: ['vertex'] }
+			});
+			expect(primitive!.outputs[0]?.type).toEqual({ kind: 'scalar', scalar: 'u32' });
+			expect(primitive!.outputs[0]?.dataType).toBeUndefined();
+			expect(resolvePortDataType(primitive!.outputs[0]!)).toBeUndefined();
+		}
+	});
+
 	it('dispatches host inputs by binding metadata rather than primitive id', () => {
 		const primitiveId = 'test.playbackClock';
 		try {
@@ -89,6 +116,44 @@ describe('@world-lab/runtime-webgpu emitGraphScalarEval', () => {
 		);
 		expect(emitted.body).toEqual(['let v_n_clock_value: f32 = host.time;']);
 		expect(emitted.resultExpr).toBe('v_n_clock_value');
+	});
+
+	it('emits vertex and instance index host inputs by binding metadata', () => {
+		const probeId = 'test.f364VertexIndexProbe';
+		try {
+			registerPrimitive({
+				id: probeId,
+				category: 'test',
+				inputs: [{ name: 'input', type: { kind: 'scalar', scalar: 'u32' } }],
+				outputs: [{ name: 'value', dataType: 'f32' }],
+				params: Type.Object({}),
+				wgsl: { moduleId: probeId, entry: 'f364VertexIndexProbe' }
+			});
+		} catch {
+			// Shared test registry may already contain it.
+		}
+
+		for (const [primitiveId, expected] of [
+			['host.vertexIndex', 'let v_n_index_index: u32 = vid;'],
+			['host.instanceIndex', 'let v_n_index_index: u32 = iid;']
+		] as const) {
+			const graph: GraphDocument = {
+				version: '2',
+				nodes: [snapshotNode('n_index', primitiveId), snapshotNode('n_probe', probeId)],
+				edges: [
+					{
+						id: 'e_index_probe',
+						from: { node: 'n_index', port: 'index' },
+						to: { node: 'n_probe', port: 'input' }
+					}
+				],
+				outputs: [{ name: 'value', from: { node: 'n_probe', port: 'value' } }]
+			};
+			const emitted = emitGraphScalarEval(graph, { node: 'n_probe', port: 'value' });
+
+			expect(emitted.body).toContain(expected);
+			expect(emitted.body).toContain('let v_n_probe_value: f32 = f364VertexIndexProbe(v_n_index_index);');
+		}
 	});
 
 	it('emits evaluate body for uv → perlin → remap', () => {
