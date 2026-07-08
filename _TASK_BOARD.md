@@ -27,6 +27,17 @@ is still open.
 
 ## Active
 
+- **F3.6.2 — pipeline-stage-aware assembly and execution wiring** (second milestone of F3.6;
+  fragment side only — see brief's Context for why vertex is deferred to F3.6.4/F3.6.5; no
+  manual/visual gate)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.2-kernel-fragment-assembly-execution.md`
+  Owns: `packages/runtime-webgpu/src/consumers/fullscreenFragment.ts`,
+  `packages/runtime-webgpu/src/consumers/kernelFragment.ts` (new),
+  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts` (new),
+  `packages/runtime-webgpu/src/pipelineGraph.ts`, `packages/runtime-webgpu/src/pipelineGraph.test.ts`,
+  `packages/runtime-webgpu/src/index.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
