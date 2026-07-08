@@ -27,6 +27,19 @@ is still open.
 
 ## Active
 
+- **F3.6.4 — vertex kernel invocation model** (fourth milestone of F3.6; spans both packages, no
+  manual/visual gate — see brief's Context, including a real coercion-gap finding surfaced during
+  contract drafting, honestly scoped out rather than silently designed around)
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.4-vertex-kernel-invocation-model.md`
+  Owns: `packages/graph/src/primitives/host/vertexIndex.ts` (new),
+  `packages/graph/src/primitives/host/instanceIndex.ts` (new),
+  `packages/graph/src/primitives/host/index.ts`, `packages/runtime-webgpu/src/emitGraphEval.ts`,
+  `packages/runtime-webgpu/src/emitGraphEval.test.ts`,
+  `packages/runtime-webgpu/src/vertexKernelPosition.ts` (new),
+  `packages/runtime-webgpu/src/vertexKernelPosition.test.ts` (new),
+  `packages/runtime-webgpu/src/index.ts`
+  Claimed by: · Status: · Recommended executor: Cursor or Codex
+
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
