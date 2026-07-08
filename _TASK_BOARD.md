@@ -27,24 +27,39 @@ is still open.
 
 ## Active
 
-- **F3.6.5 — vertex-kernel primitive with real varying output** (fifth milestone of F3.6, the
-  largest one yet — see brief's own header note on splitting if too large; spans both packages, no
-  manual/visual gate, no `PipelineGraphExecutor` wiring — that's F3.6.6's job)
-  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.5-vertex-kernel-real-varyings.md`
-  Owns: `packages/runtime-webgpu/src/emitGraphEval.ts`,
-  `packages/runtime-webgpu/src/emitGraphEval.test.ts`,
-  `packages/runtime-webgpu/src/vertexKernelPosition.ts`,
-  `packages/runtime-webgpu/src/vertexKernelPosition.test.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.ts`,
-  `packages/runtime-webgpu/src/consumers/kernelFragment.test.ts`,
-  `packages/graph/src/primitives/pipeline/index.ts`,
-  `packages/graph/src/primitives/pipeline/pipeline.test.ts`
-  Claimed by: Codex · Status: DONE · Recommended executor: Cursor or Codex
-
 Outstanding (not blocking): F1.4a's two new bundled samples (`migration-default-preview`,
 `migration-fullscreen-fragment`) still need a human browser check per its own gate item 3.
 
 ## Done (recent)
+
+- **F3.6.5 — vertex-kernel primitive with real varying output** — `78c55b3` · Fifth milestone of
+  F3.6, the largest one yet, spanning both packages. Registers additive `stage.vertexKernel` and
+  proves a real, graph-computed `uv: vec2f` varying flows end to end — vertex-kernel output through
+  `assembleStageEntry`'s existing struct/callArgs machinery into a real fragment-kernel consumer via
+  `procedural.uv` — `assertVaryingsMatch`'s first real caller. Adds `emitGraphVec2Eval` and a
+  `uvExpr` override for `procedural.uv`, mirroring `positionExpr`'s existing pattern. Diff matches
+  the contract and both of its pre-routing-review fixes exactly: `assembleKernelFragmentModuleAsync`
+  now skips `resolveVertexAssembly` entirely when `varyings` is supplied (no more duplicate `struct
+  VSOut` when paired with an external vertex-kernel module — the landed test asserts this directly,
+  `expect(code).not.toMatch(/struct VSOut[\s\S]*struct VSOut/)`); `assembleVertexKernelPositionModuleAsync`
+  now passes the same `positionExpr` override to both the `position` and `uv` emission calls, and
+  the milestone's own `uv` test graph is correctly rooted in `procedural.metricPosition` (extracting
+  the grid position's xy), giving the render/readback proof a real, non-uniform per-vertex source
+  instead of a broken fallback. Also replaces F3.6.4's flagged `graphModuleSources` with a direct
+  `compileGraph` call, resolving that milestone's own flagged gap. The paired vertex+fragment module
+  is compiled and linked as **one** combined shader module (concatenated `code`, matching
+  `kernelVaryingsDeviceCompile.test.ts`'s established pattern), not two separate ones. A real-device
+  render/readback test confirms the interpolated `uv` varying visibly produces a non-uniform image
+  (`unique.size > 1` across sampled pixels), and a dedicated test proves `assertVaryingsMatch`
+  genuinely rejects both name and type mismatches, not merely called and ignored. `stage.vertex`/
+  `stage.fragment`/`stage.fragmentKernel` confirmed byte-identical (extended registration test).
+  Independently re-verified: `check`/`test`/`build` re-run clean after clearing every
+  `packages/*/dist` (`runtime-webgpu` 187/8-skip, up from F3.6.4's 182/8-skip; `graph` clean; full
+  workspace `check` clean across all 12 packages + both apps); all real-device tests independently
+  re-run scoped to their own package with `--reporter=verbose`, confirmed to execute (the paired
+  link proof and non-uniform render proof both ran in tens of milliseconds with real adapter/device
+  warnings logged) not skip.
+  Brief: `_docs/architecture/procedural-graph/briefs/F3.6.5-vertex-kernel-real-varyings.md`
 
 - **F3.6.4 — vertex kernel invocation model** — `3fcc253` · Fourth milestone of F3.6. Registers
   `host.vertexIndex`/`host.instanceIndex` (`type: {kind:'scalar', scalar:'u32'}`, no `dataType` —
