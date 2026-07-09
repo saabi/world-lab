@@ -169,6 +169,11 @@ frame-cost counter from F4.1 still holding (no compile-time work per frame).
 - **Vertex-kernel parity leftovers not absorbed by F4.2:** the `u32` consumer gap
   (`host.vertexIndex` casts) and `HostBinding.stages` validation enforcement — small,
   validation-shaped, routable anytime.
+- **Struct-valued list ports** (L1 of
+  [lights-and-materials-design.md](./lights-and-materials-design.md)) — engine infrastructure that
+  lights, F4.4's `list<DrawCommand>`, and F4.5's particle records all need; routable independently
+  of F4.1/F4.2. The light *library* (L2, `material.pbr` + source nodes + lit sample) is gated on
+  F4.2's varyings/camera and slots into the standard-library reconstruction right after it.
 - **Roadmap hygiene:** reconcile/retire `work-plan.md`; refresh
   `planet-pipeline-poc-feasibility.md` against F3.6 (its P0 is half-landed) — after F4.2, P1-P3
   point directly at the vertex-kernel machinery.
