@@ -46,10 +46,14 @@ Confirmed by direct read (citations), not assumed:
   it from cycle detection; `realize.ts:206` already passes `target.shape.format ?? 'rgba8unorm'`
   through to `createTexture` — **float/HDR targets are a consumer-honoring problem, not a core
   redesign.**
-- **Instanced draw is extracted and compute-ready.** `consumers/instancedMeshDraw.ts`:
-  `renderInstancedMesh` + `InstanceVertexLayout`, caller-owned instance `GPUBuffer` with no
-  internal `writeBuffer` — a compute-populated buffer works unchanged (deliberate, per its brief).
-  Not graph-authorable yet.
+- **Instanced draw exists as a behavior prototype — not reusable as-is.** (Corrected from this
+  plan's first draft, which overstated it as "extracted and compute-ready," caught in review.)
+  `consumers/instancedMeshDraw.ts`: the one genuinely reusable design decision is the caller-owned
+  instance `GPUBuffer` with no internal `writeBuffer` — a compute-populated buffer works unchanged
+  (deliberate, per its brief). But `renderInstancedMesh` still creates the template vertex/index
+  buffers, shader module, render pipeline, and bind group **inside every draw call**
+  (`instancedMeshDraw.ts:85+`) — the same per-call-creation pattern F4.1a exists to eliminate.
+  F4.5 decomposes it against the F4.3/F4.4 command model; it does not build on it directly.
 - **Depth + a real camera exist twice, privately.** `surfaceMeshPreview.ts:290,421,436`
   (`depth24plus` pipeline state + attachment, `meshPreviewViewProjection`) and
   `vegetationPreview.ts:692` — working reference implementations of exactly what F4.2 generalizes,
@@ -83,23 +87,36 @@ Confirmed by direct read (citations), not assumed:
 
 ## Milestone sequence
 
-### F4.1 — performance and presentation foundation (no new nodes)
+### F4.1 — performance and presentation foundation (no new nodes; three contracts, not one)
 
-The execution-model fix on the existing vocabulary. Scope: (a) split **plan/compile time** from
-**frame time** — validation, document walks, WGSL emission, `createShaderModule`, and pipeline
-creation happen once per `compileSignature` (a compiled-frame-plan object the executor holds;
-frame time only writes uniforms, sets bind groups, encodes, submits); (b) **persistent frame
-resources** — uniform/params buffers written via `queue.writeBuffer`, device-lifetime sampler
-cache, readback buffers pooled; (c) **canvas presentation** — display targets render into a
-`GPUCanvasContext.getCurrentTexture()` view; readback survives only for tests, probes, and the
-CPU preview panel (explicitly: the test suite's readback-based assertions stay — they are the
-proof mechanism, just no longer the display path); (d) **static-graph dirty detection** (Codex
-review's suggestion, adopted): a graph with no time/pointer/frame-dependent host inputs and no
-edits renders once, not per-rAF; (e) honor the frame-graph core's **per-target sizes** instead of
-the hardcoded 256. Gate shape: frame-time work provably free of compile-cost (a spy/counter test
-asserting zero `createShaderModule`/`validateGraph` calls after the first frame per signature),
-all existing samples render identically (visual gate), and an honest before/after frame-cost
-measurement recorded in the closeout.
+The execution-model fix on the existing vocabulary. **A pre-routing review of this plan's first
+draft correctly flagged the original single-milestone framing as a mega-refactor risk** — it mixed
+runtime execution, graph-editor presentation, tests, and UI semantics into one gate with muddy
+failure modes. Split into three serially-routed contracts, each with a clean failure mode:
+
+- **F4.1a — compiled frame plan + persistent GPU objects.** Validation, document walks, WGSL
+  emission, `createShaderModule`, and pipeline creation happen once per `compileSignature` (a
+  compiled-frame-plan object the executor holds; frame time only writes uniforms, sets bind
+  groups, encodes, submits); uniform/params buffers persist and are written via
+  `queue.writeBuffer`; device-lifetime sampler cache; readback buffers pooled. Purely
+  `runtime-webgpu`; the editor and display path are untouched — pixels still arrive exactly as
+  today. Gate: a spy/counter test asserting zero `createShaderModule`/`validateGraph` calls after
+  the first frame per signature; all samples render identically; before/after frame-cost
+  measurement recorded in the closeout.
+- **F4.1b — display/readback split + canvas presentation, narrowly scoped.** Today's display
+  targets render into a `GPUCanvasContext.getCurrentTexture()` view instead of the
+  readback→`blitPreviewPixels` path (`EffectPreviewPanel.svelte:61-70`,
+  `previewFrameLoop.ts:174-176`). **Color-only, for the existing display-target semantics —
+  explicitly no generic pass presentation, no load/store policy, no depth surface** (those are
+  F4.2/F4.4's to define; presenting them early would freeze semantics the command graph hasn't
+  designed yet). Readback survives for tests, probes, and the CPU preview panel — the test
+  suite's readback assertions stay; they are the proof mechanism, just no longer the display
+  path. Gate: visual parity on every sample, plus the readback path still exercised by tests.
+- **F4.1c — static-graph dirty detection + per-target sizing.** A graph with no
+  time/pointer/frame-dependent host inputs and no edits renders once, not per-rAF (Codex review's
+  suggestion, adopted); honor the frame-graph core's per-target sizes (`TextureTargetSize`,
+  already modeled) instead of the hardcoded 256. Editor-facing semantics land here, after the
+  runtime substrate is stable.
 
 ### F4.2 — depth, camera, and stage-complete uniforms
 
@@ -113,11 +130,21 @@ with a documented **precision policy** (camera-relative / body-local f32, the po
 editor already implements CPU-side and `pending_issues.md` names for particles); (c) **vertex-stage
 uniforms** — ShaderToy host uniforms and `GraphParams` bindable in vertex kernels, closing two of
 the F3.6 capability cliffs (static-only displacement; the designed-around amplitude gap in
-F3.6.6's own sample); (d) **N varyings** — the array-shaped mechanism proven past one
-(`position`+`uv`+`normal`+`worldPos` is the realistic floor for lit 3D); (e) **float color
+F3.6.6's own sample); (d) **a typed varying contract, not just "N varyings"** — the array-shaped
+mechanism proven past one (`position`+`uv`+`normal`+`worldPos` is the realistic floor for lit 3D),
+*plus* interpolation modes on `VaryingDecl` (today it is `{name, wgslType}` only —
+`stageEntry.ts:15-20` — with no `@interpolate` support at all) and explicit vertex-rate vs
+fragment-rate guidance — a value can be
+structurally correct and still visually wrong when moved through a varying (a normal computed
+per-vertex and interpolated is not a normal computed per-fragment; F3.6's own review history is a
+running lesson that structurally-fine ≠ visually-right). Minimum: documented per-varying guidance
+for normal/worldPos/material inputs, ideally a validation-level diagnostic when a
+frequency-sensitive semantic is routed through a varying; (e) **float color
 targets** honored end-to-end (atmosphere/HDR prerequisite). Gate shape: a real-device test with
 two overlapping camera-transformed surfaces resolving correct occlusion; a time-animated,
-param-controlled vertex displacement through the real executor path; every F1-F3 sample untouched.
+param-controlled vertex displacement through the real executor path; a per-fragment vs
+per-vertex normal comparison proving the interpolation guidance is real; every F1-F3 sample
+untouched.
 
 ### F4.3 — `MeshResource` and draw commands
 
@@ -129,9 +156,24 @@ case subsumed (its `PipelineGraphPlan` role becomes a real resource realization 
 compute path writes a `MeshResource` instead of its own private buffers. Explicitly deferred
 here: instancing (F4.5), multi-draw passes (F4.4).
 
+**Type-system location — a decision this plan takes a position on, final call at contract
+pre-drafting.** `ResourceShape` today is `Extract<TypeRef, {kind: 'buffer' | 'texture' |
+'sampler'}>` (`packages/graph/src/implementation.ts:41-44`) — a mesh is not representable. Two
+paths: a **composed GPU resource** (a graph-level `MeshResource` shape aggregating buffer views +
+layout metadata, extending the F2 resource model) or a **CPU handle** (which would pull F4.3 into
+the E1 `cpu-handle`/`ResourceShape {kind:'cpu'}` model). This plan's position: **composed GPU
+resource** — a mesh that feeds draws is GPU-side by nature, the elemental review's own
+decomposition table says "one typed `MeshResource` composed of buffer views," and coupling the F4
+critical path to E1's routing would create a cross-track dependency nothing else here has. E1's
+CPU mesh views (export, collision) can *reference* the same resource later; they don't define it.
+
 ### F4.4 — `render.pass` with an ordered draw collection
 
-Multi-mesh into one target. Scope: `render.pass` owning attachments (color list + depth,
+Multi-mesh into one target. **Hard prerequisite: L1 of
+[lights-and-materials-design.md](./lights-and-materials-design.md) (struct-valued list ports) must
+land before this milestone starts** — `list<DrawCommand>` has no type-system substrate without it;
+L1 is routable any time (no F4.1/F4.2 dependency), so schedule it early enough that it never
+gates this. Scope: `render.pass` owning attachments (color list + depth,
 load/store policy, clear values) and an ordered `list<DrawCommand>` input (the elemental review's
 "ordered command collection, not multi-fan-in on a value port"); blending and write masks on draw
 state; **the legacy-path collapse decision (D2's deferred retirement trigger) lives here by
@@ -158,7 +200,7 @@ for the visual gate. A pickable sample: several `MeshResource` draws (at least o
 least one graph-displaced), depth-tested, camera-orbitable, one time-animated element, rendered
 through canvas presentation at interactive frame rates — plus every prior sample still rendering
 identically through the collapsed path. The gate is a real-browser screenshot *and* the
-frame-cost counter from F4.1 still holding (no compile-time work per frame).
+frame-cost counter from F4.1a still holding (no compile-time work per frame).
 
 ## Parallel tracks (not gated on F4, should not wait for it)
 
@@ -172,8 +214,10 @@ frame-cost counter from F4.1 still holding (no compile-time work per frame).
 - **Struct-valued list ports** (L1 of
   [lights-and-materials-design.md](./lights-and-materials-design.md)) — engine infrastructure that
   lights, F4.4's `list<DrawCommand>`, and F4.5's particle records all need; routable independently
-  of F4.1/F4.2. The light *library* (L2, `material.pbr` + source nodes + lit sample) is gated on
-  F4.2's varyings/camera and slots into the standard-library reconstruction right after it.
+  of F4.1/F4.2 **but a hard prerequisite of F4.4** (stated there too) — "parallel" means "not on
+  the F4.1-F4.2 critical path," not "optional." The light *library* (L2, `material.pbr` + source
+  nodes + lit sample) is gated on F4.2's varyings/camera and slots into the standard-library
+  reconstruction right after it.
 - **Roadmap hygiene:** reconcile/retire `work-plan.md`; refresh
   `planet-pipeline-poc-feasibility.md` against F3.6 (its P0 is half-landed) — after F4.2, P1-P3
   point directly at the vertex-kernel machinery.
@@ -184,9 +228,13 @@ frame-cost counter from F4.1 still holding (no compile-time work per frame).
   `stage.vertexKernel`/`stage.fragmentKernel` automatically, keeping stage nodes as an
   expert-level layer? (Raised in the Codex review's risk list; real, not urgent — F4's command
   vocabulary is a prerequisite either way.)
-- **Shader linking/dedup:** whether shared-module emission across vertex/fragment/compute pairs
-  needs a real linker pass (Codex suggestion) or stays concatenation-with-dedup; revisit at F4.3
-  when `MeshResource` materialization multiplies stage combinations.
+- **Shader linking/dedup — decide before F4.2/F4.3 contracts are drafted, not "revisit at F4.3"**
+  (moved earlier per review): whether shared-module emission across vertex/fragment/compute pairs
+  needs a real linker pass (Codex suggestion) or stays concatenation-with-dedup. F4.2's
+  depth/camera/varying work and the lights library both increase vertex+fragment shared-module
+  pressure immediately — deferring the decision past their contracts means their assembly code
+  gets written against an answer nobody chose. A short design memo (not a milestone) resolving it
+  is a pre-drafting input to F4.2.
 - **Automated screenshot gates:** manual visual gates caught real bugs every time they ran
   (F3.5, F3.6.6 twice) — worth automating, but that's editor/tooling scope, not F4's.
 
